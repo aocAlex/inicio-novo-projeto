@@ -48,7 +48,17 @@ export const useClients = () => {
         throw error;
       }
 
-      setClients(data || []);
+      // Cast the data to proper Client types
+      const typedClients: Client[] = (data || []).map(client => ({
+        ...client,
+        client_type: client.client_type as 'individual' | 'company',
+        status: client.status as 'lead' | 'prospect' | 'active' | 'inactive' | 'archived',
+        address: client.address as Client['address'],
+        custom_fields: client.custom_fields as Client['custom_fields'],
+        tags: client.tags as string[]
+      }));
+
+      setClients(typedClients);
     } catch (err: any) {
       setError(err.message);
       console.error('Error loading clients:', err);
@@ -79,7 +89,15 @@ export const useClients = () => {
         throw error;
       }
 
-      const newClient = data as Client;
+      const newClient: Client = {
+        ...data,
+        client_type: data.client_type as 'individual' | 'company',
+        status: data.status as 'lead' | 'prospect' | 'active' | 'inactive' | 'archived',
+        address: data.address as Client['address'],
+        custom_fields: data.custom_fields as Client['custom_fields'],
+        tags: data.tags as string[]
+      };
+
       setClients(prev => [newClient, ...prev]);
 
       toast({
@@ -120,7 +138,15 @@ export const useClients = () => {
         throw error;
       }
 
-      const updatedClient = data as Client;
+      const updatedClient: Client = {
+        ...data,
+        client_type: data.client_type as 'individual' | 'company',
+        status: data.status as 'lead' | 'prospect' | 'active' | 'inactive' | 'archived',
+        address: data.address as Client['address'],
+        custom_fields: data.custom_fields as Client['custom_fields'],
+        tags: data.tags as string[]
+      };
+
       setClients(prev => 
         prev.map(client => 
           client.id === id ? updatedClient : client

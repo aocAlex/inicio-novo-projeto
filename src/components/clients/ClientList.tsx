@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Client, ClientFilters } from '@/types/client';
 import { Button } from '@/components/ui/button';
@@ -46,8 +45,8 @@ export const ClientList = ({
   onCreateNew,
 }: ClientListProps) => {
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('');
-  const [typeFilter, setTypeFilter] = useState<string>('');
+  const [statusFilter, setStatusFilter] = useState<Client['status'] | ''>('');
+  const [typeFilter, setTypeFilter] = useState<Client['client_type'] | ''>('');
 
   const handleSearch = (value: string) => {
     setSearch(value);
@@ -59,20 +58,22 @@ export const ClientList = ({
   };
 
   const handleStatusFilter = (value: string) => {
-    setStatusFilter(value);
+    const statusValue = value as Client['status'] | '';
+    setStatusFilter(statusValue);
     onFilter({
       search: search || undefined,
-      status: value || undefined,
+      status: statusValue || undefined,
       client_type: typeFilter || undefined,
     });
   };
 
   const handleTypeFilter = (value: string) => {
-    setTypeFilter(value);
+    const typeValue = value as Client['client_type'] | '';
+    setTypeFilter(typeValue);
     onFilter({
       search: search || undefined,
       status: statusFilter || undefined,
-      client_type: value || undefined,
+      client_type: typeValue || undefined,
     });
   };
 
@@ -241,7 +242,7 @@ export const ClientList = ({
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline">
-                        {getTypeLabel(client.client_type)}
+                        {client.client_type === 'individual' ? 'Pessoa Física' : 'Pessoa Jurídica'}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -261,8 +262,17 @@ export const ClientList = ({
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={getStatusBadgeVariant(client.status)}>
-                        {getStatusLabel(client.status)}
+                      <Badge variant={
+                        client.status === 'active' ? 'default' :
+                        client.status === 'lead' ? 'secondary' :
+                        client.status === 'prospect' ? 'outline' :
+                        client.status === 'inactive' ? 'destructive' : 'outline'
+                      }>
+                        {client.status === 'active' ? 'Ativo' :
+                         client.status === 'lead' ? 'Lead' :
+                         client.status === 'prospect' ? 'Prospect' :
+                         client.status === 'inactive' ? 'Inativo' :
+                         client.status === 'archived' ? 'Arquivado' : client.status}
                       </Badge>
                     </TableCell>
                     <TableCell>
