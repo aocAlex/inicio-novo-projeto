@@ -1,13 +1,17 @@
 
+import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { Header } from '@/components/layout/Header';
+import { Sidebar } from '@/components/layout/Sidebar';
 import { Dashboard } from '@/pages/Dashboard';
+import { Clients } from '@/pages/Clients';
 import { Loader2 } from 'lucide-react';
 
 export const MainApp = () => {
   const { user } = useAuth();
   const { isLoading, error } = useWorkspace();
+  const [activeTab, setActiveTab] = useState('dashboard');
 
   if (isLoading) {
     return (
@@ -38,13 +42,38 @@ export const MainApp = () => {
     );
   }
 
+  const renderContent = () => {
+    switch (activeTab) {
+      case 'dashboard':
+        return <Dashboard />;
+      case 'clients':
+        return <Clients />;
+      case 'processes':
+        return <div className="p-6">Módulo de Processos - Em desenvolvimento</div>;
+      case 'templates':
+        return <div className="p-6">Módulo de Templates - Em desenvolvimento</div>;
+      case 'petitions':
+        return <div className="p-6">Módulo de Petições - Em desenvolvimento</div>;
+      case 'executions':
+        return <div className="p-6">Módulo de Execuções - Em desenvolvimento</div>;
+      case 'settings':
+        return <div className="p-6">Configurações - Em desenvolvimento</div>;
+      default:
+        return <Dashboard />;
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
       
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Dashboard />
-      </main>
+      <div className="flex h-[calc(100vh-4rem)]">
+        <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
+        
+        <main className="flex-1 overflow-auto">
+          {renderContent()}
+        </main>
+      </div>
     </div>
   );
 };
