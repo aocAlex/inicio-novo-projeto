@@ -1,4 +1,5 @@
 
+
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './AuthContext';
@@ -94,13 +95,10 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
       if (workspaceError) throw workspaceError;
 
-      // Load member details
+      // Load member details without trying to join profiles
       const { data: memberData, error: memberError } = await supabase
         .from('workspace_members')
-        .select(`
-          *,
-          profile:profiles(*)
-        `)
+        .select('*')
         .eq('workspace_id', workspaceId)
         .eq('user_id', user.id)
         .single();
@@ -124,12 +122,25 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         ? memberData.status as 'active' | 'pending' | 'suspended'
         : 'active';
       
-      setCurrentMember({
-        ...memberData,
+      // Create a properly typed member object using profile data from AuthContext
+      const memberWithProfile: WorkspaceMember = {
+        id: memberData.id,
+        workspace_id: memberData.workspace_id,
+        user_id: memberData.user_id,
         role: validRole,
         permissions,
-        status: validStatus
-      });
+        status: validStatus,
+        last_activity: memberData.last_activity,
+        created_at: memberData.created_at,
+        profile: profile ? {
+          id: profile.id,
+          email: profile.email,
+          full_name: profile.full_name,
+          avatar_url: profile.avatar_url
+        } : undefined
+      };
+      
+      setCurrentMember(memberWithProfile);
 
       // Update profile's current workspace
       await supabase
@@ -255,3 +266,4 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>;
 };
+
