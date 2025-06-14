@@ -635,7 +635,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      increment_execution_retry_count: {
+        Args: { execution_id: string }
+        Returns: undefined
+      }
+      increment_template_execution_count: {
+        Args: { template_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

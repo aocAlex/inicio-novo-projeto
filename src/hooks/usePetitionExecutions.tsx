@@ -60,6 +60,7 @@ export const usePetitionExecutions = () => {
         ...item,
         filled_data: typeof item.filled_data === 'object' ? item.filled_data as Record<string, any> : {},
         webhook_response: typeof item.webhook_response === 'object' ? item.webhook_response as Record<string, any> : {},
+        webhook_status: (item.webhook_status || 'pending') as PetitionExecution['webhook_status'],
       }));
 
       setExecutions(transformedData);
@@ -101,6 +102,7 @@ export const usePetitionExecutions = () => {
         ...data,
         filled_data: typeof data.filled_data === 'object' ? data.filled_data as Record<string, any> : {},
         webhook_response: typeof data.webhook_response === 'object' ? data.webhook_response as Record<string, any> : {},
+        webhook_status: (data.webhook_status || 'pending') as PetitionExecution['webhook_status'],
       };
 
       // Incrementar contador de execuções do template
@@ -219,6 +221,7 @@ export const usePetitionExecutions = () => {
         ...execution,
         filled_data: typeof execution.filled_data === 'object' ? execution.filled_data as Record<string, any> : {},
         webhook_response: typeof execution.webhook_response === 'object' ? execution.webhook_response as Record<string, any> : {},
+        webhook_status: (execution.webhook_status || 'pending') as PetitionExecution['webhook_status'],
       };
 
       await sendToWebhook(executionId, execution.webhook_url, transformedExecution);
