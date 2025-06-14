@@ -9,6 +9,7 @@ import { Clients } from '@/pages/Clients';
 import { Processes } from '@/pages/Processes';
 import { Templates } from '@/pages/Templates';
 import { Petitions } from '@/pages/Petitions';
+import { SettingsPage } from '@/components/settings/SettingsPage';
 import { Loader2 } from 'lucide-react';
 
 export const MainApp = () => {
@@ -60,7 +61,7 @@ export const MainApp = () => {
       case 'executions':
         return <Petitions />; // Mesmo componente
       case 'settings':
-        return <div className="p-6">Configurações - Em desenvolvimento</div>;
+        return <SettingsPage />;
       default:
         return <Dashboard />;
     }

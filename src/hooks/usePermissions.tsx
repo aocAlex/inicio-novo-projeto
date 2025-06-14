@@ -52,6 +52,7 @@ export const usePermissions = () => {
   const hasPermission = (resource: string, action: string): boolean => {
     if (!currentMember) return false;
 
+    // Check role-based permissions first
     const rolePermissions = ROLE_PERMISSIONS[currentMember.role] || [];
 
     // Check for wildcard permissions (owner)
@@ -64,8 +65,20 @@ export const usePermissions = () => {
       return true;
     }
 
-    // Check for specific permission
-    return rolePermissions.some(p => p.resource === resource && p.action === action);
+    // Check for specific permission in role
+    if (rolePermissions.some(p => p.resource === resource && p.action === action)) {
+      return true;
+    }
+
+    // Check custom permissions for the member
+    const customPermissions = currentMember.permissions || {};
+    const permissionKey = `${resource}.${action}`;
+    
+    if (customPermissions[permissionKey] !== undefined) {
+      return customPermissions[permissionKey];
+    }
+
+    return false;
   };
 
   const can = {
