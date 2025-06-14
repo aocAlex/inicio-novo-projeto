@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
@@ -6,6 +5,7 @@ import { Header } from '@/components/layout/Header';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { Dashboard } from '@/pages/Dashboard';
 import { Clients } from '@/pages/Clients';
+import { Processes } from '@/pages/Processes';
 import { Loader2 } from 'lucide-react';
 
 export const MainApp = () => {
@@ -49,7 +49,7 @@ export const MainApp = () => {
       case 'clients':
         return <Clients />;
       case 'processes':
-        return <div className="p-6">Módulo de Processos - Em desenvolvimento</div>;
+        return <Processes />;
       case 'templates':
         return <div className="p-6">Módulo de Templates - Em desenvolvimento</div>;
       case 'petitions':

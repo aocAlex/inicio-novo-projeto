@@ -1,17 +1,15 @@
 
-import React from 'react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { usePermissions } from '@/hooks/usePermissions';
 import { 
   LayoutDashboard, 
   Users, 
   FileText, 
-  Briefcase, 
+  BookOpen, 
+  Gavel, 
+  Play, 
   Settings,
-  PlusCircle,
-  BookOpen,
-  Zap
+  Building2
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -19,77 +17,79 @@ interface SidebarProps {
   onTabChange: (tab: string) => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
-  const { can } = usePermissions();
-
+export const Sidebar = ({ activeTab, onTabChange }: SidebarProps) => {
   const menuItems = [
     {
       id: 'dashboard',
       label: 'Dashboard',
       icon: LayoutDashboard,
-      permission: () => true,
     },
     {
       id: 'clients',
       label: 'Clientes',
       icon: Users,
-      permission: can.readClient,
     },
     {
       id: 'processes',
       label: 'Processos',
-      icon: Briefcase,
-      permission: can.readProcess,
+      icon: FileText,
     },
     {
       id: 'templates',
       label: 'Templates',
       icon: BookOpen,
-      permission: can.readTemplate,
     },
     {
       id: 'petitions',
       label: 'Petições',
-      icon: FileText,
-      permission: can.readPetition,
+      icon: Gavel,
     },
     {
       id: 'executions',
       label: 'Execuções',
-      icon: Zap,
-      permission: can.executePetition,
+      icon: Play,
     },
     {
       id: 'settings',
       label: 'Configurações',
       icon: Settings,
-      permission: can.manageWorkspace,
     },
   ];
 
-  const visibleItems = menuItems.filter(item => item.permission());
-
   return (
-    <aside className="w-64 bg-gray-50 border-r border-gray-200 h-full">
-      <nav className="p-4 space-y-2">
-        {visibleItems.map((item) => {
-          const Icon = item.icon;
-          return (
-            <Button
-              key={item.id}
-              variant={activeTab === item.id ? "default" : "ghost"}
-              className={cn(
-                "w-full justify-start",
-                activeTab === item.id && "bg-blue-600 text-white hover:bg-blue-700"
-              )}
-              onClick={() => onTabChange(item.id)}
-            >
-              <Icon className="mr-3 h-4 w-4" />
-              {item.label}
-            </Button>
-          );
-        })}
+    <div className="w-64 bg-white border-r border-gray-200 flex flex-col">
+      {/* Logo/Brand */}
+      <div className="p-6 border-b border-gray-200">
+        <div className="flex items-center gap-2">
+          <Building2 className="h-6 w-6 text-blue-600" />
+          <span className="font-semibold text-gray-900">SaaS Jurídico</span>
+        </div>
+      </div>
+
+      {/* Navigation */}
+      <nav className="flex-1 p-4">
+        <div className="space-y-1">
+          {menuItems.map((item) => {
+            const Icon = item.icon;
+            return (
+              <Button
+                key={item.id}
+                variant={activeTab === item.id ? 'default' : 'ghost'}
+                className={cn(
+                  'w-full justify-start gap-2',
+                  activeTab === item.id 
+                    ? 'bg-blue-600 text-white hover:bg-blue-700' 
+                    : 'text-gray-700 hover:bg-gray-100'
+                )}
+                onClick={() => onTabChange(item.id)}
+              >
+                <Icon className="h-4 w-4" />
+                {item.label}
+              </Button>
+            );
+          })}
+        </div>
       </nav>
-    </aside>
+    </div>
   );
 };
