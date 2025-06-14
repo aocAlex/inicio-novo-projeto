@@ -1,14 +1,13 @@
 
-import React, { useState } from 'react';
-import { Header } from '@/components/layout/Header';
-import { Sidebar } from '@/components/layout/Sidebar';
-import { DashboardPage } from '@/components/dashboard/DashboardPage';
+import { useAuth } from '@/contexts/AuthContext';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { Header } from '@/components/layout/Header';
+import { Dashboard } from '@/pages/Dashboard';
 import { Loader2 } from 'lucide-react';
 
 export const MainApp = () => {
-  const { isLoading } = useWorkspace();
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const { user } = useAuth();
+  const { isLoading, error } = useWorkspace();
 
   if (isLoading) {
     return (
@@ -21,38 +20,31 @@ export const MainApp = () => {
     );
   }
 
-  const renderContent = () => {
-    switch (activeTab) {
-      case 'dashboard':
-        return <DashboardPage />;
-      case 'clients':
-        return <div className="p-6">Módulo de Clientes (em breve)</div>;
-      case 'processes':
-        return <div className="p-6">Módulo de Processos (em breve)</div>;
-      case 'templates':
-        return <div className="p-6">Módulo de Templates (em breve)</div>;
-      case 'petitions':
-        return <div className="p-6">Módulo de Petições (em breve)</div>;
-      case 'executions':
-        return <div className="p-6">Módulo de Execuções (em breve)</div>;
-      case 'settings':
-        return <div className="p-6">Configurações (em breve)</div>;
-      default:
-        return <DashboardPage />;
-    }
-  };
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-red-600 mb-4">
+            Erro ao carregar workspace: {error}
+          </div>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="text-blue-600 hover:underline"
+          >
+            Tentar novamente
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
-      <div className="flex h-[calc(100vh-73px)]">
-        <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
-        <main className="flex-1 overflow-auto">
-          <div className="p-6">
-            {renderContent()}
-          </div>
-        </main>
-      </div>
+      
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <Dashboard />
+      </main>
     </div>
   );
 };
