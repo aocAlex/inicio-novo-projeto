@@ -108,7 +108,17 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       if (memberError) throw memberError;
 
       setCurrentWorkspace(workspaceData);
-      setCurrentMember(memberData);
+      
+      // Garantir que o role seja válido
+      const validRole = ['owner', 'admin', 'editor', 'viewer'].includes(memberData.role) 
+        ? memberData.role as 'owner' | 'admin' | 'editor' | 'viewer'
+        : 'viewer';
+      
+      setCurrentMember({
+        ...memberData,
+        role: validRole,
+        permissions: memberData.permissions || {}
+      });
 
       // Update profile's current workspace
       await supabase

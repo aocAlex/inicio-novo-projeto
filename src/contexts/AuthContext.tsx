@@ -40,7 +40,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .single();
 
       if (error) throw error;
-      setProfile(data);
+      
+      // Garantir que preferences seja um objeto com as propriedades corretas
+      const preferences = data.preferences && typeof data.preferences === 'object' 
+        ? data.preferences as any
+        : { notifications: true, email_alerts: true, theme: 'light' };
+
+      setProfile({
+        ...data,
+        preferences: {
+          notifications: preferences.notifications ?? true,
+          email_alerts: preferences.email_alerts ?? true,
+          theme: preferences.theme ?? 'light'
+        }
+      });
     } catch (error) {
       console.error('Error loading profile:', error);
     }
