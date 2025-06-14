@@ -44,7 +44,10 @@ export interface PetitionExecution {
   created_by: string | null;
   created_at: string;
   updated_at: string;
-  template?: PetitionTemplate;
+  template?: {
+    id: string;
+    name: string;
+  };
   process?: {
     id: string;
     title: string;

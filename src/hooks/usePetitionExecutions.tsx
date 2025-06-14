@@ -57,10 +57,36 @@ export const usePetitionExecutions = () => {
 
       // Transform the data to match our types
       const transformedData: PetitionExecution[] = (data || []).map(item => ({
-        ...item,
+        id: item.id,
+        workspace_id: item.workspace_id,
+        template_id: item.template_id,
+        process_id: item.process_id,
+        client_id: item.client_id,
         filled_data: typeof item.filled_data === 'object' ? item.filled_data as Record<string, any> : {},
-        webhook_response: typeof item.webhook_response === 'object' ? item.webhook_response as Record<string, any> : {},
+        generated_content: item.generated_content,
+        final_document_url: item.final_document_url,
+        webhook_url: item.webhook_url,
         webhook_status: (item.webhook_status || 'pending') as PetitionExecution['webhook_status'],
+        webhook_sent_at: item.webhook_sent_at,
+        webhook_completed_at: item.webhook_completed_at,
+        webhook_response: typeof item.webhook_response === 'object' ? item.webhook_response as Record<string, any> : {},
+        retry_count: item.retry_count,
+        created_by: item.created_by,
+        created_at: item.created_at,
+        updated_at: item.updated_at,
+        template: item.template ? {
+          id: item.template.id,
+          name: item.template.name,
+        } : undefined,
+        process: item.process ? {
+          id: item.process.id,
+          title: item.process.title,
+          process_number: item.process.process_number,
+        } : undefined,
+        client: item.client ? {
+          id: item.client.id,
+          name: item.client.name,
+        } : undefined,
       }));
 
       setExecutions(transformedData);
@@ -99,10 +125,36 @@ export const usePetitionExecutions = () => {
 
       // Transform the response to match our types
       const transformedData: PetitionExecution = {
-        ...data,
+        id: data.id,
+        workspace_id: data.workspace_id,
+        template_id: data.template_id,
+        process_id: data.process_id,
+        client_id: data.client_id,
         filled_data: typeof data.filled_data === 'object' ? data.filled_data as Record<string, any> : {},
-        webhook_response: typeof data.webhook_response === 'object' ? data.webhook_response as Record<string, any> : {},
+        generated_content: data.generated_content,
+        final_document_url: data.final_document_url,
+        webhook_url: data.webhook_url,
         webhook_status: (data.webhook_status || 'pending') as PetitionExecution['webhook_status'],
+        webhook_sent_at: data.webhook_sent_at,
+        webhook_completed_at: data.webhook_completed_at,
+        webhook_response: typeof data.webhook_response === 'object' ? data.webhook_response as Record<string, any> : {},
+        retry_count: data.retry_count,
+        created_by: data.created_by,
+        created_at: data.created_at,
+        updated_at: data.updated_at,
+        template: data.template ? {
+          id: data.template.id,
+          name: data.template.name,
+        } : undefined,
+        process: data.process ? {
+          id: data.process.id,
+          title: data.process.title,
+          process_number: data.process.process_number,
+        } : undefined,
+        client: data.client ? {
+          id: data.client.id,
+          name: data.client.name,
+        } : undefined,
       };
 
       // Incrementar contador de execuções do template
