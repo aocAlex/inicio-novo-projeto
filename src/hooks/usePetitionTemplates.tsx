@@ -218,7 +218,15 @@ export const usePetitionTemplates = () => {
         throw error;
       }
 
-      return data || [];
+      // Transform the data to match our types
+      const transformedData: TemplateField[] = (data || []).map(item => ({
+        ...item,
+        field_type: item.field_type as TemplateField['field_type'],
+        field_options: typeof item.field_options === 'object' ? item.field_options as Record<string, any> : {},
+        validation_rules: typeof item.validation_rules === 'object' ? item.validation_rules as Record<string, any> : {},
+      }));
+
+      return transformedData;
     } catch (err: any) {
       console.error('Error getting template fields:', err);
       return [];

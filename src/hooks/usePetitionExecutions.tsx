@@ -55,7 +55,14 @@ export const usePetitionExecutions = () => {
         throw error;
       }
 
-      setExecutions(data || []);
+      // Transform the data to match our types
+      const transformedData: PetitionExecution[] = (data || []).map(item => ({
+        ...item,
+        filled_data: typeof item.filled_data === 'object' ? item.filled_data as Record<string, any> : {},
+        webhook_response: typeof item.webhook_response === 'object' ? item.webhook_response as Record<string, any> : {},
+      }));
+
+      setExecutions(transformedData);
     } catch (err: any) {
       setError(err.message);
       console.error('Error loading executions:', err);
@@ -89,20 +96,23 @@ export const usePetitionExecutions = () => {
         throw error;
       }
 
-      // Incrementar contador de execuções do template
-      await supabase
-        .from('petition_templates')
-        .update({
-          execution_count: supabase.sql`execution_count + 1`,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', executionData.template_id);
+      // Transform the response to match our types
+      const transformedData: PetitionExecution = {
+        ...data,
+        filled_data: typeof data.filled_data === 'object' ? data.filled_data as Record<string, any> : {},
+        webhook_response: typeof data.webhook_response === 'object' ? data.webhook_response as Record<string, any> : {},
+      };
 
-      setExecutions(prev => [data, ...prev]);
+      // Incrementar contador de execuções do template
+      await supabase.rpc('increment_template_execution_count', {
+        template_id: executionData.template_id
+      });
+
+      setExecutions(prev => [transformedData, ...prev]);
 
       // Se houver webhook_url, enviar para N8n
       if (executionData.webhook_url) {
-        await sendToWebhook(data.id, executionData.webhook_url, data);
+        await sendToWebhook(transformedData.id, executionData.webhook_url, transformedData);
       }
 
       toast({
@@ -110,7 +120,7 @@ export const usePetitionExecutions = () => {
         description: "Petição foi executada com sucesso.",
       });
 
-      return data;
+      return transformedData;
     } catch (err: any) {
       setError(err.message);
       toast({
@@ -177,9 +187,13 @@ export const usePetitionExecutions = () => {
         .update({
           webhook_status: 'failed',
           webhook_response: { error: err.message },
-          retry_count: supabase.sql`retry_count + 1`,
         })
         .eq('id', executionId);
+
+      // Incrementar retry count
+      await supabase.rpc('increment_execution_retry_count', {
+        execution_id: executionId
+      });
 
       toast({
         title: "Erro no webhook",
@@ -201,7 +215,13 @@ export const usePetitionExecutions = () => {
         throw new Error('Execução não encontrada ou sem webhook');
       }
 
-      await sendToWebhook(executionId, execution.webhook_url, execution);
+      const transformedExecution = {
+        ...execution,
+        filled_data: typeof execution.filled_data === 'object' ? execution.filled_data as Record<string, any> : {},
+        webhook_response: typeof execution.webhook_response === 'object' ? execution.webhook_response as Record<string, any> : {},
+      };
+
+      await sendToWebhook(executionId, execution.webhook_url, transformedExecution);
       await loadExecutions(); // Recarregar lista
       return true;
     } catch (err: any) {
