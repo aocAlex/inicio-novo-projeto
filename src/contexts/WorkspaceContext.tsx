@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './AuthContext';
@@ -114,10 +113,15 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         ? memberData.role as 'owner' | 'admin' | 'editor' | 'viewer'
         : 'viewer';
       
+      // Garantir que permissions seja um objeto válido
+      const permissions = memberData.permissions && typeof memberData.permissions === 'object' && !Array.isArray(memberData.permissions)
+        ? memberData.permissions as Record<string, any>
+        : {};
+      
       setCurrentMember({
         ...memberData,
         role: validRole,
-        permissions: memberData.permissions || {}
+        permissions
       });
 
       // Update profile's current workspace
