@@ -253,6 +253,10 @@ export const useProcesses = () => {
       return (data || []).map(item => ({
         ...item,
         role: item.role as 'plaintiff' | 'defendant' | 'witness' | 'other',
+        client: item.client ? {
+          ...item.client,
+          client_type: item.client.client_type as 'individual' | 'company',
+        } : undefined,
       }));
     } catch (err: any) {
       console.error('Error getting process clients:', err);
