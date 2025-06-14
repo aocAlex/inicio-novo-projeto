@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
@@ -6,6 +7,8 @@ import { Sidebar } from '@/components/layout/Sidebar';
 import { Dashboard } from '@/pages/Dashboard';
 import { Clients } from '@/pages/Clients';
 import { Processes } from '@/pages/Processes';
+import { Templates } from '@/pages/Templates';
+import { Petitions } from '@/pages/Petitions';
 import { Loader2 } from 'lucide-react';
 
 export const MainApp = () => {
@@ -51,11 +54,11 @@ export const MainApp = () => {
       case 'processes':
         return <Processes />;
       case 'templates':
-        return <div className="p-6">Módulo de Templates - Em desenvolvimento</div>;
+        return <Templates />;
       case 'petitions':
-        return <div className="p-6">Módulo de Petições - Em desenvolvimento</div>;
+        return <Petitions />;
       case 'executions':
-        return <div className="p-6">Módulo de Execuções - Em desenvolvimento</div>;
+        return <Petitions />; // Mesmo componente
       case 'settings':
         return <div className="p-6">Configurações - Em desenvolvimento</div>;
       default:
