@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './AuthContext';
@@ -118,10 +119,16 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         ? memberData.permissions as Record<string, any>
         : {};
       
+      // Garantir que status seja válido
+      const validStatus = ['active', 'pending', 'suspended'].includes(memberData.status) 
+        ? memberData.status as 'active' | 'pending' | 'suspended'
+        : 'active';
+      
       setCurrentMember({
         ...memberData,
         role: validRole,
-        permissions
+        permissions,
+        status: validStatus
       });
 
       // Update profile's current workspace
