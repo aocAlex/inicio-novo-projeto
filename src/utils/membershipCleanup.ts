@@ -5,19 +5,16 @@ export const cleanupOrphanedMembers = async (workspaceId: string) => {
   try {
     console.log('Starting cleanup of orphaned members for workspace:', workspaceId);
 
-    // Usar a função do banco de dados para validar membros
-    const { data: validationResult, error: validationError } = await supabase
-      .rpc('validate_user_exists', { user_id: workspaceId });
-
-    if (validationError) {
-      console.error('Error validating workspace:', validationError);
-    }
-
-    // Buscar membros válidos usando a view criada
+    // Buscar membros válidos usando JOIN manual
     const { data: validMembers, error: validMembersError } = await supabase
-      .from('valid_workspace_members')
-      .select('*')
-      .eq('workspace_id', workspaceId);
+      .from('workspace_members')
+      .select(`
+        id,
+        user_id,
+        profiles!inner(id)
+      `)
+      .eq('workspace_id', workspaceId)
+      .eq('status', 'active');
 
     if (validMembersError) {
       console.error('Error fetching valid members:', validMembersError);

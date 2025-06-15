@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -47,18 +46,27 @@ export const MembersManagement = () => {
       
       console.log('Loading members for workspace:', currentWorkspace.id);
       
-      // Usar a view valid_workspace_members para obter apenas membros válidos
-      const { data: validMembersData, error: validMembersError } = await supabase
-        .from('valid_workspace_members')
-        .select('*')
-        .eq('workspace_id', currentWorkspace.id);
+      // Buscar membros válidos usando JOIN manual
+      const { data: membersData, error: membersError } = await supabase
+        .from('workspace_members')
+        .select(`
+          *,
+          profiles!inner(
+            id,
+            email,
+            full_name,
+            avatar_url
+          )
+        `)
+        .eq('workspace_id', currentWorkspace.id)
+        .eq('status', 'active');
 
-      if (validMembersError) {
-        console.error('Error loading valid members:', validMembersError);
-        throw validMembersError;
+      if (membersError) {
+        console.error('Error loading members:', membersError);
+        throw membersError;
       }
 
-      // Buscar total de membros para comparação
+      // Buscar total de membros para comparação (incluindo órfãos)
       const { data: allMembersData, error: allMembersError } = await supabase
         .from('workspace_members')
         .select('id')
@@ -70,14 +78,14 @@ export const MembersManagement = () => {
       }
 
       const totalMembers = allMembersData?.length || 0;
-      const validMembers = validMembersData?.length || 0;
+      const validMembers = membersData?.length || 0;
       const orphanedMembers = totalMembers - validMembers;
 
       setOrphanedCount(orphanedMembers);
 
       // Mapear membros válidos
-      const mappedMembers: WorkspaceMember[] = validMembersData?.map(member => ({
-        id: member.member_id,
+      const mappedMembers: WorkspaceMember[] = membersData?.map(member => ({
+        id: member.id,
         workspace_id: member.workspace_id,
         user_id: member.user_id,
         role: member.role as 'owner' | 'admin' | 'editor' | 'viewer',
@@ -86,10 +94,10 @@ export const MembersManagement = () => {
         last_activity: member.last_activity,
         created_at: member.created_at,
         profile: {
-          id: member.user_id,
-          email: member.email,
-          full_name: member.full_name,
-          avatar_url: member.avatar_url,
+          id: member.profiles.id,
+          email: member.profiles.email,
+          full_name: member.profiles.full_name,
+          avatar_url: member.profiles.avatar_url,
         },
       })) || [];
 
