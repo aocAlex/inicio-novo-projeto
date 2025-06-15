@@ -14,21 +14,23 @@ export const cleanupOrphanedMembers = async (workspaceId: string) => {
   try {
     console.log('Starting cleanup of orphaned members for workspace:', workspaceId);
 
-    // Get all active members for this workspace
-    const { data: allMembers, error: allMembersError } = await supabase
+    // Get all active members for this workspace with explicit typing
+    const membersQuery = supabase
       .from('workspace_members')
       .select('id, user_id')
       .eq('workspace_id', workspaceId)
       .eq('status', 'active');
+
+    const { data: allMembers, error: allMembersError } = await membersQuery;
 
     if (allMembersError) {
       console.error('Error fetching all members:', allMembersError);
       return { success: false, error: allMembersError };
     }
 
-    const typedMembers = allMembers as WorkspaceMember[] | null;
+    const typedMembers = (allMembers || []) as WorkspaceMember[];
 
-    if (!typedMembers || typedMembers.length === 0) {
+    if (typedMembers.length === 0) {
       console.log('No active members found');
       return { success: true, removedCount: 0 };
     }
@@ -37,11 +39,13 @@ export const cleanupOrphanedMembers = async (workspaceId: string) => {
     const orphanedMembers = [];
     
     for (const member of typedMembers) {
-      const { data: profile, error: profileError } = await supabase
+      const profileQuery = supabase
         .from('profiles')
         .select('id')
         .eq('id', member.user_id)
         .single();
+
+      const { data: profile, error: profileError } = await profileQuery;
 
       if (profileError || !profile) {
         orphanedMembers.push(member);
@@ -80,11 +84,13 @@ export const cleanupOrphanedMembers = async (workspaceId: string) => {
 
 export const validateMemberExists = async (userId: string): Promise<boolean> => {
   try {
-    const { data, error } = await supabase
+    const profileQuery = supabase
       .from('profiles')
       .select('id')
       .eq('id', userId)
       .single();
+
+    const { data, error } = await profileQuery;
 
     if (error || !data) {
       console.error('Error validating user:', error);
