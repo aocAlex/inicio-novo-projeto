@@ -29,7 +29,7 @@ export const Processes = () => {
   const [processToDelete, setProcessToDelete] = useState<Process | null>(null);
   const [currentFilters, setCurrentFilters] = useState<FilterTypes>({});
 
-  // Calcular estatísticas
+  // Calcular estatísticas de forma mais robusta
   const stats = {
     total: processes.length,
     active: processes.filter(p => p.status === 'active').length,
@@ -38,21 +38,25 @@ export const Processes = () => {
     archived: processes.filter(p => p.status === 'archived').length,
     withDeadlineThisWeek: processes.filter(p => {
       if (!p.deadline_date) return false;
-      const deadline = new Date(p.deadline_date);
-      const nextWeek = new Date();
-      nextWeek.setDate(nextWeek.getDate() + 7);
-      return deadline <= nextWeek && deadline >= new Date();
+      try {
+        const deadline = new Date(p.deadline_date);
+        const nextWeek = new Date();
+        nextWeek.setDate(nextWeek.getDate() + 7);
+        return deadline <= nextWeek && deadline >= new Date();
+      } catch {
+        return false;
+      }
     }).length,
   };
 
-  const handleFilter = (filters: FilterTypes) => {
+  const handleFilter = async (filters: FilterTypes) => {
     setCurrentFilters(filters);
-    loadProcesses(filters);
+    await loadProcesses(filters);
   };
 
-  const handleClearFilters = () => {
+  const handleClearFilters = async () => {
     setCurrentFilters({});
-    loadProcesses();
+    await loadProcesses();
   };
 
   const handleCreateNew = () => {
@@ -82,12 +86,18 @@ export const Processes = () => {
   const handleSave = async (data: CreateProcessData | UpdateProcessData) => {
     try {
       if (editingProcess) {
-        await updateProcess(editingProcess.id, data as UpdateProcessData);
+        const success = await updateProcess(editingProcess.id, data as UpdateProcessData);
+        if (success) {
+          setIsModalOpen(false);
+          setEditingProcess(null);
+        }
       } else {
-        await createProcess(data as CreateProcessData);
+        const result = await createProcess(data as CreateProcessData);
+        if (result) {
+          setIsModalOpen(false);
+          setEditingProcess(null);
+        }
       }
-      setIsModalOpen(false);
-      setEditingProcess(null);
     } catch (error) {
       console.error('Error saving process:', error);
     }
@@ -96,17 +106,19 @@ export const Processes = () => {
   const confirmDelete = async () => {
     if (processToDelete) {
       try {
-        await deleteProcess(processToDelete.id);
-        setIsConfirmDeleteOpen(false);
-        setProcessToDelete(null);
+        const success = await deleteProcess(processToDelete.id);
+        if (success) {
+          setIsConfirmDeleteOpen(false);
+          setProcessToDelete(null);
+        }
       } catch (error) {
         console.error('Error deleting process:', error);
       }
     }
   };
 
-  const handleRefresh = () => {
-    loadProcesses(currentFilters);
+  const handleRefresh = async () => {
+    await loadProcesses(currentFilters);
   };
 
   if (!can.readProcess) {
@@ -190,7 +202,10 @@ export const Processes = () => {
             </p>
             <div className="flex justify-end gap-3">
               <Button
-                onClick={() => setIsConfirmDeleteOpen(false)}
+                onClick={() => {
+                  setIsConfirmDeleteOpen(false);
+                  setProcessToDelete(null);
+                }}
                 variant="outline"
               >
                 Cancelar
@@ -198,8 +213,9 @@ export const Processes = () => {
               <Button
                 onClick={confirmDelete}
                 variant="destructive"
+                disabled={isLoading}
               >
-                Excluir
+                {isLoading ? 'Excluindo...' : 'Excluir'}
               </Button>
             </div>
           </div>

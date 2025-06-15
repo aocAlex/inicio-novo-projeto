@@ -4,47 +4,45 @@ import { DashboardCards } from '@/components/dashboard/DashboardCards';
 import { RecentActivity } from '@/components/dashboard/RecentActivity';
 import { QuickActions } from '@/components/dashboard/QuickActions';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { usePetitions } from '@/hooks/usePetitions';
 import { Button } from '@/components/ui/button';
 import { RefreshCw, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 
 export const Dashboard = () => {
   const { currentWorkspace } = useWorkspace();
   const { metrics, isLoading, error, refresh } = useDashboardData();
+  const { executions } = usePetitions();
   const navigate = useNavigate();
+  const [recentActivities, setRecentActivities] = useState<any[]>([]);
 
-  // Mock de atividades recentes - posteriormente pode vir de uma API
-  const recentActivities = [
-    {
-      id: '1',
-      type: 'client' as const,
-      title: 'Novo cliente cadastrado',
-      description: 'João Silva adicionado ao CRM',
-      timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-    },
-    {
-      id: '2',
-      type: 'process' as const,
-      title: 'Processo atualizado',
-      description: 'Status alterado para "Em andamento"',
-      timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
-    },
-    {
-      id: '3',
-      type: 'petition' as const,
-      title: 'Petição executada',
-      description: 'Template "Ação de Cobrança" processado',
-      timestamp: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
-      status: 'success' as const,
-    },
-    {
-      id: '4',
-      type: 'template' as const,
-      title: 'Template criado',
-      description: 'Novo template "Contestação" disponível',
-      timestamp: new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString(),
-    },
-  ];
+  // Gerar atividades recentes baseadas em dados reais
+  useEffect(() => {
+    if (executions.length > 0) {
+      const activities = executions.slice(0, 5).map((execution, index) => ({
+        id: execution.id,
+        type: 'petition' as const,
+        title: 'Petição executada',
+        description: `Template "${execution.template?.name || 'Desconhecido'}" processado`,
+        timestamp: execution.created_at,
+        status: execution.webhook_status === 'completed' ? 'success' as const : 
+                execution.webhook_status === 'failed' ? 'failed' as const : 'pending' as const,
+      }));
+      setRecentActivities(activities);
+    } else {
+      // Mock de atividades se não houver execuções
+      setRecentActivities([
+        {
+          id: '1',
+          type: 'template' as const,
+          title: 'Sistema inicializado',
+          description: 'Dashboard pronto para uso',
+          timestamp: new Date().toISOString(),
+        },
+      ]);
+    }
+  }, [executions]);
 
   if (!currentWorkspace) {
     return (
@@ -62,6 +60,7 @@ export const Dashboard = () => {
         <div className="text-center">
           <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
           <p className="text-red-600 mb-4">Erro ao carregar dados do dashboard</p>
+          <p className="text-sm text-gray-500 mb-4">{error}</p>
           <Button onClick={refresh} variant="outline">
             <RefreshCw className="h-4 w-4 mr-2" />
             Tentar Novamente
@@ -90,8 +89,17 @@ export const Dashboard = () => {
       </div>
 
       {/* Métricas Principais */}
-      {metrics && (
+      {metrics ? (
         <DashboardCards metrics={metrics} isLoading={isLoading} />
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="bg-white p-6 rounded-lg shadow animate-pulse">
+              <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+              <div className="h-6 bg-gray-200 rounded w-1/2"></div>
+            </div>
+          ))}
+        </div>
       )}
 
       {/* Seção Inferior */}

@@ -47,23 +47,41 @@ export const MainApp = () => {
   }
 
   const renderContent = () => {
-    switch (activeTab) {
-      case 'dashboard':
-        return <Dashboard />;
-      case 'clients':
-        return <Clients />;
-      case 'processes':
-        return <Processes />;
-      case 'templates':
-        return <TemplatesPage />;
-      case 'petitions':
-        return <PetitionsPage />;
-      case 'executions':
-        return <PetitionsPage />; // Mesmo componente
-      case 'settings':
-        return <SettingsPage />;
-      default:
-        return <Dashboard />;
+    try {
+      switch (activeTab) {
+        case 'dashboard':
+          return <Dashboard />;
+        case 'clients':
+          return <Clients />;
+        case 'processes':
+          return <Processes />;
+        case 'templates':
+          return <TemplatesPage />;
+        case 'petitions':
+        case 'executions':
+          return <PetitionsPage />;
+        case 'settings':
+          return <SettingsPage />;
+        default:
+          return <Dashboard />;
+      }
+    } catch (error) {
+      console.error('Error rendering content:', error);
+      return (
+        <div className="p-6">
+          <div className="text-center">
+            <div className="text-red-600 mb-4">
+              Erro ao carregar a página
+            </div>
+            <button 
+              onClick={() => setActiveTab('dashboard')} 
+              className="text-blue-600 hover:underline"
+            >
+              Voltar ao Dashboard
+            </button>
+          </div>
+        </div>
+      );
     }
   };
 

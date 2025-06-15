@@ -5,6 +5,22 @@ import { supabase } from '@/integrations/supabase/client';
 import { Process, ProcessClient, CreateProcessData, UpdateProcessData, ProcessFilters } from '@/types/process';
 import { useToast } from '@/hooks/use-toast';
 
+// Helper function to safely cast status to the expected type
+const safeProcessStatus = (status: any): 'active' | 'pending' | 'suspended' | 'archived' => {
+  if (status === 'active' || status === 'pending' || status === 'suspended' || status === 'archived') {
+    return status;
+  }
+  return 'active'; // Default fallback
+};
+
+// Helper function to safely cast priority to the expected type
+const safeProcessPriority = (priority: any): 'low' | 'medium' | 'high' | 'urgent' => {
+  if (priority === 'low' || priority === 'medium' || priority === 'high' || priority === 'urgent') {
+    return priority;
+  }
+  return 'medium'; // Default fallback
+};
+
 export const useProcesses = () => {
   const { currentWorkspace } = useWorkspace();
   const { toast } = useToast();
@@ -54,17 +70,22 @@ export const useProcesses = () => {
         throw error;
       }
 
-      // Cast the data to proper Process types
+      // Transform the data to match our interface with proper type casting
       const typedProcesses: Process[] = (data || []).map(process => ({
         ...process,
-        status: process.status as 'active' | 'pending' | 'suspended' | 'archived',
-        priority: process.priority as 'low' | 'medium' | 'high' | 'urgent',
+        status: safeProcessStatus(process.status),
+        priority: safeProcessPriority(process.priority),
       }));
 
       setProcesses(typedProcesses);
     } catch (err: any) {
       setError(err.message);
       console.error('Error loading processes:', err);
+      toast({
+        title: "Erro ao carregar processos",
+        description: err.message,
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -94,8 +115,8 @@ export const useProcesses = () => {
 
       const newProcess: Process = {
         ...data,
-        status: data.status as 'active' | 'pending' | 'suspended' | 'archived',
-        priority: data.priority as 'low' | 'medium' | 'high' | 'urgent',
+        status: safeProcessStatus(data.status),
+        priority: safeProcessPriority(data.priority),
       };
 
       // Adicionar clientes ao processo se fornecidos
@@ -106,9 +127,14 @@ export const useProcesses = () => {
           role: client.role,
         }));
 
-        await supabase
+        const { error: clientError } = await supabase
           .from('process_clients')
           .insert(clientInserts);
+
+        if (clientError) {
+          console.error('Error adding clients to process:', clientError);
+          // Não falha a criação do processo por conta dos clientes
+        }
       }
 
       setProcesses(prev => [newProcess, ...prev]);
@@ -153,8 +179,8 @@ export const useProcesses = () => {
 
       const updatedProcess: Process = {
         ...data,
-        status: data.status as 'active' | 'pending' | 'suspended' | 'archived',
-        priority: data.priority as 'low' | 'medium' | 'high' | 'urgent',
+        status: safeProcessStatus(data.status),
+        priority: safeProcessPriority(data.priority),
       };
 
       setProcesses(prev => 
@@ -229,7 +255,11 @@ export const useProcesses = () => {
         throw error;
       }
 
-      return data as Process;
+      return {
+        ...data,
+        status: safeProcessStatus(data.status),
+        priority: safeProcessPriority(data.priority),
+      } as Process;
     } catch (err: any) {
       console.error('Error getting process:', err);
       return null;
