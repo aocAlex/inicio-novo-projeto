@@ -19,15 +19,16 @@ export const cleanupOrphanedMembers = async (workspaceId: string) => {
       .from('workspace_members')
       .select('id, user_id')
       .eq('workspace_id', workspaceId)
-      .eq('status', 'active')
-      .returns<WorkspaceMember[]>();
+      .eq('status', 'active');
 
     if (allMembersError) {
       console.error('Error fetching all members:', allMembersError);
       return { success: false, error: allMembersError };
     }
 
-    if (!allMembers || allMembers.length === 0) {
+    const typedMembers = allMembers as WorkspaceMember[] | null;
+
+    if (!typedMembers || typedMembers.length === 0) {
       console.log('No active members found');
       return { success: true, removedCount: 0 };
     }
@@ -35,20 +36,19 @@ export const cleanupOrphanedMembers = async (workspaceId: string) => {
     // Check which members have valid profiles
     const orphanedMembers = [];
     
-    for (const member of allMembers) {
+    for (const member of typedMembers) {
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('id')
         .eq('id', member.user_id)
-        .single()
-        .returns<ProfileCheck>();
+        .single();
 
       if (profileError || !profile) {
         orphanedMembers.push(member);
       }
     }
 
-    console.log(`Found ${orphanedMembers.length} orphaned members out of ${allMembers.length} total`);
+    console.log(`Found ${orphanedMembers.length} orphaned members out of ${typedMembers.length} total`);
 
     if (orphanedMembers.length === 0) {
       return { success: true, removedCount: 0 };
@@ -84,8 +84,7 @@ export const validateMemberExists = async (userId: string): Promise<boolean> => 
       .from('profiles')
       .select('id')
       .eq('id', userId)
-      .single()
-      .returns<ProfileCheck>();
+      .single();
 
     if (error || !data) {
       console.error('Error validating user:', error);
