@@ -14,7 +14,7 @@ import { TemplatesPage } from '@/pages/TemplatesPage';
 import { PetitionsPage } from '@/pages/PetitionsPage';
 import { DeadlinesPage } from '@/pages/DeadlinesPage';
 import { TemplateEditorPage } from '@/pages/TemplateEditorPage';
-import { NotFound } from '@/pages/NotFound';
+import NotFound from '@/pages/NotFound';
 import './App.css';
 
 const queryClient = new QueryClient();

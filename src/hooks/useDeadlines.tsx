@@ -1,359 +1,340 @@
 
-import { useState, useEffect, useCallback } from 'react';
-import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { Deadline, DeadlineFormData, DeadlineFilters } from '@/types/deadline';
+import { format, isAfter, differenceInDays, addDays } from 'date-fns';
+import { useToast } from '@/components/ui/use-toast';
 
 export const useDeadlines = () => {
-  const { currentWorkspace } = useWorkspace();
+  const { workspace } = useWorkspace();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [deadlines, setDeadlines] = useState<Deadline[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  const loadDeadlines = useCallback(async (filters?: DeadlineFilters) => {
-    if (!currentWorkspace) return;
+  // Buscar prazos
+  const { data: rawDeadlines, isLoading, error } = useQuery({
+    queryKey: ['deadlines', workspace?.id],
+    queryFn: async () => {
+      if (!workspace?.id) return [];
 
-    try {
-      setIsLoading(true);
-      setError(null);
+      console.log('Fetching deadlines for workspace:', workspace.id);
 
-      let query = supabase
+      const { data, error } = await supabase
         .from('deadlines')
         .select(`
           *,
-          process:processes(id, title, process_number),
-          client:clients(id, name),
-          assigned_user:profiles!deadlines_assigned_to_fkey(id, full_name, email)
+          process:processes (
+            id,
+            title,
+            process_number
+          ),
+          client:clients (
+            id,
+            name
+          ),
+          assigned_user:profiles!deadlines_assigned_to_fkey (
+            id,
+            full_name,
+            email
+          )
         `)
-        .eq('workspace_id', currentWorkspace.id)
+        .eq('workspace_id', workspace.id)
         .order('due_date', { ascending: true });
 
-      // Aplicar filtros
-      if (filters?.search) {
-        query = query.or(`title.ilike.%${filters.search}%,description.ilike.%${filters.search}%`);
-      }
-      if (filters?.status) {
-        query = query.eq('status', filters.status);
-      }
-      if (filters?.priority) {
-        query = query.eq('priority', filters.priority);
-      }
-      if (filters?.deadline_type) {
-        query = query.eq('deadline_type', filters.deadline_type);
-      }
-      if (filters?.assigned_to) {
-        query = query.eq('assigned_to', filters.assigned_to);
-      }
-      if (filters?.process_id) {
-        query = query.eq('process_id', filters.process_id);
-      }
-      if (filters?.client_id) {
-        query = query.eq('client_id', filters.client_id);
-      }
-      if (filters?.start_date) {
-        query = query.gte('due_date', filters.start_date);
-      }
-      if (filters?.end_date) {
-        query = query.lte('due_date', filters.end_date);
+      if (error) {
+        console.error('Error fetching deadlines:', error);
+        throw error;
       }
 
-      const { data, error: queryError } = await query;
+      console.log('Fetched deadlines:', data);
+      return data || [];
+    },
+    enabled: !!workspace?.id,
+  });
 
-      if (queryError) {
-        throw new Error(queryError.message);
-      }
-
-      setDeadlines(data || []);
-
-    } catch (err: any) {
-      console.error('Error loading deadlines:', err);
-      setError(err.message);
-      toast({
-        title: "Erro ao carregar prazos",
-        description: err.message,
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
+  // Atualizar estado local quando dados mudam
+  useEffect(() => {
+    if (rawDeadlines) {
+      // Converter os dados do Supabase para o tipo Deadline
+      const convertedDeadlines: Deadline[] = rawDeadlines.map((item: any) => ({
+        ...item,
+        deadline_type: item.deadline_type as 'processual' | 'administrativo' | 'contratual' | 'fiscal' | 'personalizado',
+        status: item.status as 'PENDENTE' | 'EM_ANDAMENTO' | 'CUMPRIDO' | 'PERDIDO' | 'SUSPENSO',
+        priority: item.priority as 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL',
+        attachments: item.attachments || [],
+        custom_fields: item.custom_fields || {}
+      }));
+      setDeadlines(convertedDeadlines);
     }
-  }, [currentWorkspace, toast]);
+  }, [rawDeadlines]);
 
-  const createDeadline = useCallback(async (data: DeadlineFormData): Promise<Deadline | null> => {
-    if (!currentWorkspace) return null;
+  // Criar prazo
+  const createDeadlineMutation = useMutation({
+    mutationFn: async (data: DeadlineFormData) => {
+      if (!workspace?.id) throw new Error('Workspace não encontrado');
 
-    try {
-      setIsLoading(true);
-      setError(null);
+      console.log('Creating deadline:', data);
 
-      const { data: user } = await supabase.auth.getUser();
-      if (!user.user) throw new Error('Usuário não autenticado');
+      const deadlineData = {
+        workspace_id: workspace.id,
+        title: data.title,
+        description: data.description,
+        deadline_type: data.deadline_type,
+        due_date: format(data.due_date, 'yyyy-MM-dd'),
+        process_id: data.process_id || null,
+        client_id: data.client_id || null,
+        assigned_to: data.assigned_to || null,
+        priority: data.priority,
+        business_days_only: data.business_days_only,
+        anticipation_days: data.anticipation_days,
+        is_critical: data.is_critical,
+        attachments: [],
+        custom_fields: data.custom_fields || {},
+        created_by: (await supabase.auth.getUser()).data.user?.id
+      };
 
-      const { data: deadline, error } = await supabase
+      const { data: result, error } = await supabase
         .from('deadlines')
-        .insert({
-          workspace_id: currentWorkspace.id,
-          title: data.title,
-          description: data.description,
-          deadline_type: data.deadline_type,
-          due_date: data.due_date.toISOString().split('T')[0],
-          process_id: data.process_id,
-          client_id: data.client_id,
-          assigned_to: data.assigned_to,
-          priority: data.priority,
-          business_days_only: data.business_days_only,
-          anticipation_days: data.anticipation_days,
-          is_critical: data.is_critical,
-          custom_fields: data.custom_fields || {},
-          created_by: user.user.id,
-        })
+        .insert([deadlineData])
         .select(`
           *,
-          process:processes(id, title, process_number),
-          client:clients(id, name),
-          assigned_user:profiles!deadlines_assigned_to_fkey(id, full_name, email)
+          process:processes (
+            id,
+            title,
+            process_number
+          ),
+          client:clients (
+            id,
+            name
+          ),
+          assigned_user:profiles!deadlines_assigned_to_fkey (
+            id,
+            full_name,
+            email
+          )
         `)
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error creating deadline:', error);
+        throw error;
+      }
 
-      // Adicionar histórico
-      await supabase
-        .from('deadline_history')
-        .insert({
-          deadline_id: deadline.id,
-          workspace_id: currentWorkspace.id,
-          action: 'created',
-          new_values: deadline,
-          performed_by: user.user.id,
-        });
-
-      setDeadlines(prev => [deadline, ...prev]);
-
-      toast({
-        title: "Prazo criado",
-        description: `${deadline.title} foi criado com sucesso.`,
-      });
-
-      return deadline;
-
-    } catch (err: any) {
-      console.error('Error creating deadline:', err);
-      setError(err.message);
-      toast({
-        title: "Erro ao criar prazo",
-        description: err.message,
-        variant: "destructive",
-      });
-      return null;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [currentWorkspace, toast]);
-
-  const updateDeadline = useCallback(async (
-    id: string, 
-    data: Partial<DeadlineFormData>
-  ): Promise<boolean> => {
-    if (!currentWorkspace) return false;
-
-    try {
-      setIsLoading(true);
-      setError(null);
-
-      const { data: user } = await supabase.auth.getUser();
-      if (!user.user) throw new Error('Usuário não autenticado');
-
-      // Buscar dados atuais para histórico
-      const { data: currentDeadline } = await supabase
-        .from('deadlines')
-        .select('*')
-        .eq('id', id)
-        .single();
-
-      const updateData: any = {
-        updated_at: new Date().toISOString()
+      return result;
+    },
+    onSuccess: (newDeadline) => {
+      // Converter para o tipo correto
+      const convertedDeadline: Deadline = {
+        ...newDeadline,
+        deadline_type: newDeadline.deadline_type as 'processual' | 'administrativo' | 'contratual' | 'fiscal' | 'personalizado',
+        status: newDeadline.status as 'PENDENTE' | 'EM_ANDAMENTO' | 'CUMPRIDO' | 'PERDIDO' | 'SUSPENSO',
+        priority: newDeadline.priority as 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL',
+        attachments: newDeadline.attachments || [],
+        custom_fields: newDeadline.custom_fields || {}
       };
 
-      if (data.title) updateData.title = data.title;
-      if (data.description !== undefined) updateData.description = data.description;
-      if (data.deadline_type) updateData.deadline_type = data.deadline_type;
-      if (data.due_date) updateData.due_date = data.due_date.toISOString().split('T')[0];
-      if (data.process_id !== undefined) updateData.process_id = data.process_id;
-      if (data.client_id !== undefined) updateData.client_id = data.client_id;
-      if (data.assigned_to !== undefined) updateData.assigned_to = data.assigned_to;
-      if (data.priority) updateData.priority = data.priority;
-      if (data.business_days_only !== undefined) updateData.business_days_only = data.business_days_only;
-      if (data.anticipation_days !== undefined) updateData.anticipation_days = data.anticipation_days;
-      if (data.is_critical !== undefined) updateData.is_critical = data.is_critical;
-      if (data.custom_fields !== undefined) updateData.custom_fields = data.custom_fields;
+      setDeadlines(prev => [...prev, convertedDeadline]);
+      queryClient.invalidateQueries({ queryKey: ['deadlines'] });
+      toast({
+        title: 'Sucesso',
+        description: 'Prazo criado com sucesso!'
+      });
+    },
+    onError: (error) => {
+      console.error('Error creating deadline:', error);
+      toast({
+        title: 'Erro',
+        description: 'Erro ao criar prazo. Tente novamente.',
+        variant: 'destructive'
+      });
+    }
+  });
 
-      const { error } = await supabase
+  // Atualizar prazo
+  const updateDeadlineMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: Partial<DeadlineFormData> }) => {
+      console.log('Updating deadline:', id, data);
+
+      const updateData: any = { ...data };
+      if (data.due_date) {
+        updateData.due_date = format(data.due_date, 'yyyy-MM-dd');
+      }
+
+      const { data: result, error } = await supabase
         .from('deadlines')
         .update(updateData)
         .eq('id', id)
-        .eq('workspace_id', currentWorkspace.id);
+        .select(`
+          *,
+          process:processes (
+            id,
+            title,
+            process_number
+          ),
+          client:clients (
+            id,
+            name
+          ),
+          assigned_user:profiles!deadlines_assigned_to_fkey (
+            id,
+            full_name,
+            email
+          )
+        `)
+        .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error updating deadline:', error);
+        throw error;
+      }
 
-      // Adicionar histórico
-      await supabase
-        .from('deadline_history')
-        .insert({
-          deadline_id: id,
-          workspace_id: currentWorkspace.id,
-          action: 'updated',
-          old_values: currentDeadline,
-          new_values: updateData,
-          performed_by: user.user.id,
-        });
+      return result;
+    },
+    onSuccess: (updatedDeadline) => {
+      // Converter para o tipo correto
+      const convertedDeadline: Deadline = {
+        ...updatedDeadline,
+        deadline_type: updatedDeadline.deadline_type as 'processual' | 'administrativo' | 'contratual' | 'fiscal' | 'personalizado',
+        status: updatedDeadline.status as 'PENDENTE' | 'EM_ANDAMENTO' | 'CUMPRIDO' | 'PERDIDO' | 'SUSPENSO',
+        priority: updatedDeadline.priority as 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL',
+        attachments: updatedDeadline.attachments || [],
+        custom_fields: updatedDeadline.custom_fields || {}
+      };
 
-      // Recarregar lista
-      await loadDeadlines();
-
+      setDeadlines(prev => 
+        prev.map(deadline => 
+          deadline.id === convertedDeadline.id ? convertedDeadline : deadline
+        )
+      );
+      queryClient.invalidateQueries({ queryKey: ['deadlines'] });
       toast({
-        title: "Prazo atualizado",
-        description: "Prazo foi atualizado com sucesso.",
+        title: 'Sucesso',
+        description: 'Prazo atualizado com sucesso!'
       });
-
-      return true;
-
-    } catch (err: any) {
-      console.error('Error updating deadline:', err);
-      setError(err.message);
+    },
+    onError: (error) => {
+      console.error('Error updating deadline:', error);
       toast({
-        title: "Erro ao atualizar prazo",
-        description: err.message,
-        variant: "destructive",
+        title: 'Erro',
+        description: 'Erro ao atualizar prazo. Tente novamente.',
+        variant: 'destructive'
       });
-      return false;
-    } finally {
-      setIsLoading(false);
     }
-  }, [currentWorkspace, toast, loadDeadlines]);
+  });
 
-  const completeDeadline = useCallback(async (
-    id: string,
-    completionNotes?: string
-  ): Promise<boolean> => {
-    if (!currentWorkspace) return false;
+  // Completar prazo
+  const completeDeadlineMutation = useMutation({
+    mutationFn: async ({ id, notes }: { id: string; notes?: string }) => {
+      console.log('Completing deadline:', id, notes);
 
-    try {
-      const { data: user } = await supabase.auth.getUser();
-      if (!user.user) throw new Error('Usuário não autenticado');
-
-      const { error } = await supabase
+      const { data: result, error } = await supabase
         .from('deadlines')
         .update({
           status: 'CUMPRIDO',
-          completed_date: new Date().toISOString().split('T')[0],
-          completion_notes: completionNotes,
-          updated_at: new Date().toISOString()
+          completed_date: format(new Date(), 'yyyy-MM-dd'),
+          completion_notes: notes
         })
         .eq('id', id)
-        .eq('workspace_id', currentWorkspace.id);
+        .select()
+        .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error completing deadline:', error);
+        throw error;
+      }
 
-      // Adicionar histórico
-      await supabase
-        .from('deadline_history')
-        .insert({
-          deadline_id: id,
-          workspace_id: currentWorkspace.id,
-          action: 'completed',
-          notes: completionNotes,
-          performed_by: user.user.id,
-        });
-
-      await loadDeadlines();
-
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['deadlines'] });
       toast({
-        title: "Prazo cumprido",
-        description: "Prazo foi marcado como cumprido.",
+        title: 'Sucesso',
+        description: 'Prazo marcado como cumprido!'
       });
-
-      return true;
-
-    } catch (err: any) {
-      console.error('Error completing deadline:', err);
+    },
+    onError: (error) => {
+      console.error('Error completing deadline:', error);
       toast({
-        title: "Erro ao marcar prazo como cumprido",
-        description: err.message,
-        variant: "destructive",
+        title: 'Erro',
+        description: 'Erro ao marcar prazo como cumprido. Tente novamente.',
+        variant: 'destructive'
       });
-      return false;
     }
-  }, [currentWorkspace, toast, loadDeadlines]);
+  });
 
-  const deleteDeadline = useCallback(async (id: string): Promise<boolean> => {
-    if (!currentWorkspace) return false;
+  // Deletar prazo
+  const deleteDeadlineMutation = useMutation({
+    mutationFn: async (id: string) => {
+      console.log('Deleting deadline:', id);
 
-    try {
       const { error } = await supabase
         .from('deadlines')
         .delete()
-        .eq('id', id)
-        .eq('workspace_id', currentWorkspace.id);
+        .eq('id', id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error deleting deadline:', error);
+        throw error;
+      }
 
-      setDeadlines(prev => prev.filter(deadline => deadline.id !== id));
-
+      return id;
+    },
+    onSuccess: (deletedId) => {
+      setDeadlines(prev => prev.filter(deadline => deadline.id !== deletedId));
+      queryClient.invalidateQueries({ queryKey: ['deadlines'] });
       toast({
-        title: "Prazo removido",
-        description: "Prazo foi removido com sucesso.",
+        title: 'Sucesso',
+        description: 'Prazo excluído com sucesso!'
       });
-
-      return true;
-
-    } catch (err: any) {
-      console.error('Error deleting deadline:', err);
+    },
+    onError: (error) => {
+      console.error('Error deleting deadline:', error);
       toast({
-        title: "Erro ao remover prazo",
-        description: err.message,
-        variant: "destructive",
+        title: 'Erro',
+        description: 'Erro ao excluir prazo. Tente novamente.',
+        variant: 'destructive'
       });
-      return false;
     }
-  }, [currentWorkspace, toast]);
+  });
 
-  const getUpcomingDeadlines = useCallback((days: number = 7): Deadline[] => {
-    const today = new Date();
-    const futureDate = new Date();
-    futureDate.setDate(today.getDate() + days);
+  // Filtrar prazos
+  const loadDeadlines = async (filters?: DeadlineFilters) => {
+    // Esta função pode ser expandida para aplicar filtros do lado servidor
+    queryClient.invalidateQueries({ queryKey: ['deadlines'] });
+  };
 
+  // Funções de utilidade
+  const getUpcomingDeadlines = (days: number) => {
+    const targetDate = addDays(new Date(), days);
     return deadlines.filter(deadline => {
       const dueDate = new Date(deadline.due_date);
-      return dueDate >= today && dueDate <= futureDate && deadline.status === 'PENDENTE';
+      const today = new Date();
+      return dueDate >= today && dueDate <= targetDate && deadline.status === 'PENDENTE';
     });
-  }, [deadlines]);
+  };
 
-  const getOverdueDeadlines = useCallback((): Deadline[] => {
+  const getOverdueDeadlines = () => {
     const today = new Date();
     return deadlines.filter(deadline => {
       const dueDate = new Date(deadline.due_date);
-      return dueDate < today && deadline.status === 'PENDENTE';
+      return isAfter(today, dueDate) && deadline.status === 'PENDENTE';
     });
-  }, [deadlines]);
-
-  useEffect(() => {
-    if (currentWorkspace) {
-      loadDeadlines();
-    }
-  }, [currentWorkspace, loadDeadlines]);
+  };
 
   return {
     deadlines,
     isLoading,
     error,
+    createDeadline: (data: DeadlineFormData) => createDeadlineMutation.mutateAsync(data),
+    updateDeadline: (id: string, data: Partial<DeadlineFormData>) => 
+      updateDeadlineMutation.mutateAsync({ id, data }),
+    completeDeadline: (id: string, notes?: string) => 
+      completeDeadlineMutation.mutateAsync({ id, notes }),
+    deleteDeadline: (id: string) => deleteDeadlineMutation.mutateAsync(id),
     loadDeadlines,
-    createDeadline,
-    updateDeadline,
-    completeDeadline,
-    deleteDeadline,
     getUpcomingDeadlines,
-    getOverdueDeadlines,
+    getOverdueDeadlines
   };
 };

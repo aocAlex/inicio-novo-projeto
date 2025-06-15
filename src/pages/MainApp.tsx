@@ -12,12 +12,11 @@ import { TemplateEditorPage } from '@/pages/TemplateEditorPage';
 import { PetitionsPage } from '@/pages/PetitionsPage';
 import { SettingsPage } from '@/components/settings/SettingsPage';
 import { Loader2 } from 'lucide-react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Outlet } from 'react-router-dom';
 
 export const MainApp = () => {
   const { user } = useAuth();
   const { isLoading, error } = useWorkspace();
-  const [activeTab, setActiveTab] = useState('dashboard');
 
   console.log('MainApp - user:', user, 'isLoading:', isLoading, 'error:', error);
 
@@ -50,68 +49,15 @@ export const MainApp = () => {
     );
   }
 
-  const renderContent = () => {
-    try {
-      switch (activeTab) {
-        case 'dashboard':
-          return <Dashboard />;
-        case 'clients':
-          return <Clients />;
-        case 'processes':
-          return <Processes />;
-        case 'templates':
-          return <TemplatesPage />;
-        case 'petitions':
-        case 'executions':
-          return <PetitionsPage />;
-        case 'settings':
-          return <SettingsPage />;
-        default:
-          return <Dashboard />;
-      }
-    } catch (error) {
-      console.error('Error rendering content:', error);
-      return (
-        <div className="p-6">
-          <div className="text-center">
-            <div className="text-red-600 mb-4">
-              Erro ao carregar a página
-            </div>
-            <button 
-              onClick={() => setActiveTab('dashboard')} 
-              className="text-blue-600 hover:underline"
-            >
-              Voltar ao Dashboard
-            </button>
-          </div>
-        </div>
-      );
-    }
-  };
-
   return (
     <div className="min-h-screen bg-gray-50">
-      <Routes>
-        {/* Template Editor - Full screen without sidebar */}
-        <Route path="/templates/new" element={<TemplateEditorPage />} />
-        <Route path="/templates/edit/:id" element={<TemplateEditorPage />} />
-        
-        {/* Main app with sidebar */}
-        <Route 
-          path="/*" 
-          element={
-            <>
-              <Header />
-              <div className="flex h-[calc(100vh-4rem)]">
-                <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
-                <main className="flex-1 overflow-auto">
-                  {renderContent()}
-                </main>
-              </div>
-            </>
-          } 
-        />
-      </Routes>
+      <Header />
+      <div className="flex h-[calc(100vh-4rem)]">
+        <Sidebar />
+        <main className="flex-1 overflow-auto ml-64">
+          <Outlet />
+        </main>
+      </div>
     </div>
   );
 };
