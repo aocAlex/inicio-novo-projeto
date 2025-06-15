@@ -26,7 +26,8 @@ export const ClientFilters = ({ filters, onFiltersChange, availableTags }: Clien
 
   const hasActiveFilters = Object.keys(filters).some(key => 
     filters[key as keyof IClientFilters] !== undefined && 
-    filters[key as keyof IClientFilters] !== ''
+    filters[key as keyof IClientFilters] !== '' &&
+    filters[key as keyof IClientFilters] !== 'all'
   );
 
   return (
