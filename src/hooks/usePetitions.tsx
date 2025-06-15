@@ -45,6 +45,17 @@ export interface CreateExecutionData {
   webhook_url?: string;
 }
 
+// Helper function to safely convert Json to Record<string, any>
+const safeJsonToRecord = (json: any): Record<string, any> => {
+  if (json === null || json === undefined) {
+    return {};
+  }
+  if (typeof json === 'object' && !Array.isArray(json)) {
+    return json as Record<string, any>;
+  }
+  return {};
+};
+
 export const usePetitions = () => {
   const { currentWorkspace } = useWorkspace();
   const { toast } = useToast();
@@ -77,7 +88,15 @@ export const usePetitions = () => {
       const { data, error } = await query;
 
       if (error) throw error;
-      setExecutions(data || []);
+      
+      // Transform the data to match our interface
+      const transformedData: PetitionExecution[] = (data || []).map(item => ({
+        ...item,
+        filled_data: safeJsonToRecord(item.filled_data),
+        webhook_response: safeJsonToRecord(item.webhook_response),
+      }));
+      
+      setExecutions(transformedData);
     } catch (err: any) {
       setError(err.message);
       console.error('Error loading executions:', err);
@@ -114,11 +133,18 @@ export const usePetitions = () => {
         template_id: executionData.template_id
       });
 
-      setExecutions(prev => [data, ...prev]);
+      // Transform the data to match our interface
+      const transformedExecution: PetitionExecution = {
+        ...data,
+        filled_data: safeJsonToRecord(data.filled_data),
+        webhook_response: safeJsonToRecord(data.webhook_response),
+      };
+
+      setExecutions(prev => [transformedExecution, ...prev]);
 
       // Se houver webhook_url, enviar para N8n
       if (executionData.webhook_url) {
-        await sendToWebhook(data.id, executionData.webhook_url, data);
+        await sendToWebhook(transformedExecution.id, executionData.webhook_url, transformedExecution);
       }
 
       toast({
@@ -126,7 +152,7 @@ export const usePetitions = () => {
         description: "Petição foi executada com sucesso.",
       });
 
-      return data;
+      return transformedExecution;
     } catch (err: any) {
       setError(err.message);
       toast({
@@ -140,7 +166,7 @@ export const usePetitions = () => {
     }
   };
 
-  const sendToWebhook = async (executionId: string, webhookUrl: string, executionData: any) => {
+  const sendToWebhook = async (executionId: string, webhookUrl: string, executionData: PetitionExecution) => {
     try {
       // Atualizar status para 'sent'
       await supabase
@@ -221,7 +247,13 @@ export const usePetitions = () => {
         throw new Error('Execução não encontrada ou sem webhook');
       }
 
-      await sendToWebhook(executionId, execution.webhook_url, execution);
+      const transformedExecution: PetitionExecution = {
+        ...execution,
+        filled_data: safeJsonToRecord(execution.filled_data),
+        webhook_response: safeJsonToRecord(execution.webhook_response),
+      };
+
+      await sendToWebhook(executionId, execution.webhook_url, transformedExecution);
       await loadExecutions();
       return true;
     } catch (err: any) {
