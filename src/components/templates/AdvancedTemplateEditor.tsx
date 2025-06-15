@@ -251,7 +251,7 @@ export const AdvancedTemplateEditor = ({
                   />
                   
                   <div className="mt-2 text-xs text-gray-500">
-                    💡 Use variáveis como {{`{cliente_nome}`}} para campos dinâmicos
+                    💡 Use variáveis como {`{{cliente_nome}}`} para campos dinâmicos
                   </div>
                 </div>
               </TabsContent>
