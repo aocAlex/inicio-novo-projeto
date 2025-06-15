@@ -133,7 +133,7 @@ export const ContractModal: React.FC<ContractModalProps> = ({ open, onClose, con
                         {fullContract.matching_confidence && (
                           <Badge variant="outline" className="text-xs">
                             {Math.round(fullContract.matching_confidence * 100)}% confiança
-                            ({fullContract.matched_by})
+                            {fullContract.matched_by && ` (${fullContract.matched_by})`}
                           </Badge>
                         )}
                       </div>

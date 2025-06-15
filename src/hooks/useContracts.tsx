@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -15,7 +14,7 @@ export const useContracts = () => {
   const transformContractData = (data: any): Contract => {
     return {
       ...data,
-      matched_by: data.matched_by as Contract['matched_by'],
+      matched_by: data.matched_by as Contract['matched_by'] | null,
       status: data.status as Contract['status'],
       extra_docs: Array.isArray(data.extra_docs) ? data.extra_docs : [],
       metadata: data.metadata || {},
