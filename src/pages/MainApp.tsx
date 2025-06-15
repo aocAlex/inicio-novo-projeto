@@ -11,11 +11,14 @@ import { TemplatesPage } from '@/pages/TemplatesPage';
 import { PetitionsPage } from '@/pages/PetitionsPage';
 import { SettingsPage } from '@/components/settings/SettingsPage';
 import { Loader2 } from 'lucide-react';
+import { Routes, Route } from 'react-router-dom';
 
 export const MainApp = () => {
   const { user } = useAuth();
   const { isLoading, error } = useWorkspace();
   const [activeTab, setActiveTab] = useState('dashboard');
+
+  console.log('MainApp - user:', user, 'isLoading:', isLoading, 'error:', error);
 
   if (isLoading) {
     return (
@@ -93,7 +96,10 @@ export const MainApp = () => {
         <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
         
         <main className="flex-1 overflow-auto">
-          {renderContent()}
+          <Routes>
+            <Route path="/" element={renderContent()} />
+            <Route path="/*" element={renderContent()} />
+          </Routes>
         </main>
       </div>
     </div>

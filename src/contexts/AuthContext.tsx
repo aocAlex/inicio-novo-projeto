@@ -31,15 +31,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 
+  console.log('AuthProvider - user:', user, 'loading:', loading);
+
   const loadProfile = async (userId: string) => {
     try {
+      console.log('Carregando perfil para userId:', userId);
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Erro ao carregar perfil:', error);
+        throw error;
+      }
       
       // Garantir que preferences seja um objeto com as propriedades corretas
       const preferences = data.preferences && typeof data.preferences === 'object' 
@@ -54,15 +60,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           theme: preferences.theme ?? 'light'
         }
       });
+      console.log('Perfil carregado com sucesso:', data);
     } catch (error) {
       console.error('Error loading profile:', error);
     }
   };
 
   useEffect(() => {
+    console.log('AuthProvider useEffect - configurando listeners');
+    
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('Auth state changed:', event, session?.user?.id);
         setSession(session);
         setUser(session?.user ?? null);
         
@@ -78,6 +88,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('Sessão existente encontrada:', session?.user?.id);
       setSession(session);
       setUser(session?.user ?? null);
       
@@ -88,18 +99,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      console.log('AuthProvider cleanup');
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signIn = async (email: string, password: string) => {
+    console.log('Iniciando signIn para:', email);
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
+    console.log('Resultado signIn:', error ? 'erro' : 'sucesso');
     return { error };
   };
 
   const signUp = async (email: string, password: string, fullName?: string) => {
+    console.log('Iniciando signUp para:', email);
     const redirectUrl = `${window.location.origin}/`;
     
     const { error } = await supabase.auth.signUp({
@@ -110,10 +127,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         data: fullName ? { full_name: fullName } : undefined
       }
     });
+    console.log('Resultado signUp:', error ? 'erro' : 'sucesso');
     return { error };
   };
 
   const signOut = async () => {
+    console.log('Fazendo signOut');
     await supabase.auth.signOut();
   };
 

@@ -17,6 +17,8 @@ const queryClient = new QueryClient();
 const AppContent = () => {
   const { user, loading } = useAuth();
 
+  console.log('AppContent - user:', user, 'loading:', loading);
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -28,19 +30,24 @@ const AppContent = () => {
     );
   }
 
-  if (!user) {
-    return <AuthPage />;
-  }
-
   return (
-    <WorkspaceProvider>
-      <ProtectedRoute>
-        <Routes>
-          <Route path="/" element={<MainApp />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </ProtectedRoute>
-    </WorkspaceProvider>
+    <Routes>
+      <Route path="/auth" element={<AuthPage />} />
+      <Route 
+        path="/*" 
+        element={
+          user ? (
+            <WorkspaceProvider>
+              <ProtectedRoute>
+                <MainApp />
+              </ProtectedRoute>
+            </WorkspaceProvider>
+          ) : (
+            <AuthPage />
+          )
+        } 
+      />
+    </Routes>
   );
 };
 

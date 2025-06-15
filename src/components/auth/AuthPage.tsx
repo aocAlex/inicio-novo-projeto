@@ -8,10 +8,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/contexts/AuthContext';
 import { Loader2, Scale } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
 
 export const AuthPage = () => {
-  const { signIn, signUp, loading } = useAuth();
+  const { signIn, signUp, user } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
 
   const [loginData, setLoginData] = useState({
@@ -26,21 +29,34 @@ export const AuthPage = () => {
     confirmPassword: '',
   });
 
+  // Redirecionar se o usuário já estiver logado
+  useEffect(() => {
+    if (user) {
+      navigate('/');
+    }
+  }, [user, navigate]);
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
+      console.log('Tentando fazer login com:', loginData.email);
       const { error } = await signIn(loginData.email, loginData.password);
       
       if (error) {
+        console.error('Erro no login:', error);
         throw error;
       }
 
+      console.log('Login realizado com sucesso');
       toast({
         title: "Sucesso",
         description: "Login realizado com sucesso!",
       });
+      
+      // Redirecionar para o dashboard
+      navigate('/');
     } catch (error: any) {
       console.error('Login error:', error);
       toast({
@@ -68,12 +84,15 @@ export const AuthPage = () => {
     setIsLoading(true);
 
     try {
+      console.log('Tentando criar conta para:', signupData.email);
       const { error } = await signUp(signupData.email, signupData.password, signupData.fullName);
       
       if (error) {
+        console.error('Erro no cadastro:', error);
         throw error;
       }
 
+      console.log('Cadastro realizado com sucesso');
       toast({
         title: "Sucesso",
         description: "Conta criada com sucesso! Verifique seu email.",
