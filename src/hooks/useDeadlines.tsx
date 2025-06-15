@@ -67,14 +67,27 @@ export const useDeadlines = () => {
   useEffect(() => {
     if (rawDeadlines) {
       // Converter os dados do Supabase para o tipo Deadline
-      const convertedDeadlines: Deadline[] = rawDeadlines.map((item: any) => ({
-        ...item,
-        deadline_type: item.deadline_type as 'processual' | 'administrativo' | 'contratual' | 'fiscal' | 'personalizado',
-        status: item.status as 'PENDENTE' | 'EM_ANDAMENTO' | 'CUMPRIDO' | 'PERDIDO' | 'SUSPENSO',
-        priority: item.priority as 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL',
-        attachments: Array.isArray(item.attachments) ? item.attachments : [],
-        custom_fields: typeof item.custom_fields === 'object' && item.custom_fields !== null ? item.custom_fields : {}
-      }));
+      const convertedDeadlines: Deadline[] = rawDeadlines.map((item: any) => {
+        // Função auxiliar para verificar se um relacionamento é válido
+        const isValidRelation = (relation: any) => {
+          return relation && typeof relation === 'object' && !relation.error && relation.id;
+        };
+
+        return {
+          ...item,
+          deadline_type: item.deadline_type as 'processual' | 'administrativo' | 'contratual' | 'fiscal' | 'personalizado',
+          status: item.status as 'PENDENTE' | 'EM_ANDAMENTO' | 'CUMPRIDO' | 'PERDIDO' | 'SUSPENSO',
+          priority: item.priority as 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL',
+          attachments: Array.isArray(item.attachments) ? item.attachments : [],
+          custom_fields: typeof item.custom_fields === 'object' && item.custom_fields !== null ? item.custom_fields : {},
+          // Tratar relacionamentos que podem ser null ou inválidos
+          process: isValidRelation(item.process) ? item.process : undefined,
+          client: isValidRelation(item.client) ? item.client : undefined,
+          assigned_user: isValidRelation(item.assigned_user) ? item.assigned_user : undefined,
+          petition: isValidRelation(item.petition) ? item.petition : undefined,
+          petition_execution: isValidRelation(item.petition_execution) ? item.petition_execution : undefined,
+        };
+      });
       setDeadlines(convertedDeadlines);
     }
   }, [rawDeadlines]);
@@ -149,6 +162,11 @@ export const useDeadlines = () => {
       return result;
     },
     onSuccess: (newDeadline) => {
+      // Função auxiliar para verificar se um relacionamento é válido
+      const isValidRelation = (relation: any) => {
+        return relation && typeof relation === 'object' && !relation.error && relation.id;
+      };
+
       // Converter para o tipo correto
       const convertedDeadline: Deadline = {
         ...newDeadline,
@@ -156,7 +174,13 @@ export const useDeadlines = () => {
         status: newDeadline.status as 'PENDENTE' | 'EM_ANDAMENTO' | 'CUMPRIDO' | 'PERDIDO' | 'SUSPENSO',
         priority: newDeadline.priority as 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL',
         attachments: Array.isArray(newDeadline.attachments) ? newDeadline.attachments : [],
-        custom_fields: typeof newDeadline.custom_fields === 'object' && newDeadline.custom_fields !== null ? newDeadline.custom_fields : {}
+        custom_fields: typeof newDeadline.custom_fields === 'object' && newDeadline.custom_fields !== null ? newDeadline.custom_fields : {},
+        // Tratar relacionamentos que podem ser null ou inválidos
+        process: isValidRelation(newDeadline.process) ? newDeadline.process : undefined,
+        client: isValidRelation(newDeadline.client) ? newDeadline.client : undefined,
+        assigned_user: isValidRelation(newDeadline.assigned_user) ? newDeadline.assigned_user : undefined,
+        petition: isValidRelation(newDeadline.petition) ? newDeadline.petition : undefined,
+        petition_execution: isValidRelation(newDeadline.petition_execution) ? newDeadline.petition_execution : undefined,
       };
 
       setDeadlines(prev => [...prev, convertedDeadline]);
@@ -227,6 +251,11 @@ export const useDeadlines = () => {
       return result;
     },
     onSuccess: (updatedDeadline) => {
+      // Função auxiliar para verificar se um relacionamento é válido
+      const isValidRelation = (relation: any) => {
+        return relation && typeof relation === 'object' && !relation.error && relation.id;
+      };
+
       // Converter para o tipo correto
       const convertedDeadline: Deadline = {
         ...updatedDeadline,
@@ -234,7 +263,13 @@ export const useDeadlines = () => {
         status: updatedDeadline.status as 'PENDENTE' | 'EM_ANDAMENTO' | 'CUMPRIDO' | 'PERDIDO' | 'SUSPENSO',
         priority: updatedDeadline.priority as 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL',
         attachments: Array.isArray(updatedDeadline.attachments) ? updatedDeadline.attachments : [],
-        custom_fields: typeof updatedDeadline.custom_fields === 'object' && updatedDeadline.custom_fields !== null ? updatedDeadline.custom_fields : {}
+        custom_fields: typeof updatedDeadline.custom_fields === 'object' && updatedDeadline.custom_fields !== null ? updatedDeadline.custom_fields : {},
+        // Tratar relacionamentos que podem ser null ou inválidos
+        process: isValidRelation(updatedDeadline.process) ? updatedDeadline.process : undefined,
+        client: isValidRelation(updatedDeadline.client) ? updatedDeadline.client : undefined,
+        assigned_user: isValidRelation(updatedDeadline.assigned_user) ? updatedDeadline.assigned_user : undefined,
+        petition: isValidRelation(updatedDeadline.petition) ? updatedDeadline.petition : undefined,
+        petition_execution: isValidRelation(updatedDeadline.petition_execution) ? updatedDeadline.petition_execution : undefined,
       };
 
       setDeadlines(prev => 

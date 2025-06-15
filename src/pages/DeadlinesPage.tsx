@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -34,14 +33,16 @@ export const DeadlinesPage = () => {
   const handleCreateDeadline = async (data: DeadlineFormData): Promise<Deadline> => {
     const result = await createDeadline(data);
     setShowCreateModal(false);
-    return result as Deadline;
+    // Retornar o resultado diretamente, pois já é do tipo Deadline após conversão no hook
+    return result;
   };
 
   const handleEditDeadline = async (data: DeadlineFormData): Promise<Deadline | null> => {
     if (editingDeadline) {
       const result = await updateDeadline(editingDeadline.id, data);
       setEditingDeadline(undefined);
-      return result as Deadline;
+      // Retornar o resultado diretamente, pois já é do tipo Deadline após conversão no hook
+      return result;
     }
     return null;
   };
