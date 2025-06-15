@@ -10,33 +10,10 @@ import {
   AlertTriangle,
   CheckCircle
 } from 'lucide-react';
+import { DashboardMetrics } from '@/types/dashboard';
 
 interface DashboardCardsProps {
-  metrics: {
-    clients: {
-      total: number;
-      activeToday: number;
-      newThisWeek: number;
-      newThisMonth: number;
-    };
-    processes: {
-      total: number;
-      active: number;
-      pending: number;
-      archived: number;
-      withDeadlineThisWeek: number;
-    };
-    petitions: {
-      total: number;
-      thisWeek: number;
-      thisMonth: number;
-      successRate: number;
-    };
-    templates: {
-      total: number;
-      mostUsed: any[];
-    };
-  };
+  metrics: DashboardMetrics;
   isLoading: boolean;
 }
 

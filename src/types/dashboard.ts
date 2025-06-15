@@ -1,5 +1,18 @@
 
 export interface DashboardMetrics {
+  clients: {
+    total: number;
+    activeToday: number;
+    newThisWeek: number;
+    newThisMonth: number;
+  };
+  processes: {
+    total: number;
+    active: number;
+    pending: number;
+    archived: number;
+    withDeadlineThisWeek: number;
+  };
   petitions: {
     total: number;
     today: number;

@@ -19,86 +19,129 @@ export const useDashboardData = () => {
       setIsLoading(true);
       setError(null);
 
-      // Buscar dados de petições
-      const { data: petitionsData, error: petitionsError } = await supabase
-        .from('petition_executions')
-        .select('*')
-        .eq('workspace_id', currentWorkspace.id);
+      // Buscar dados em paralelo para evitar loading infinito
+      const [petitionsData, templatesData, membersData, clientsData, processesData] = await Promise.all([
+        supabase
+          .from('petition_executions')
+          .select('*')
+          .eq('workspace_id', currentWorkspace.id),
+        supabase
+          .from('petition_templates')
+          .select('*')
+          .eq('workspace_id', currentWorkspace.id)
+          .order('execution_count', { ascending: false })
+          .limit(5),
+        supabase
+          .from('workspace_members')
+          .select('*')
+          .eq('workspace_id', currentWorkspace.id),
+        supabase
+          .from('clients')
+          .select('*')
+          .eq('workspace_id', currentWorkspace.id),
+        supabase
+          .from('processes')
+          .select('*')
+          .eq('workspace_id', currentWorkspace.id)
+      ]);
 
-      if (petitionsError) throw petitionsError;
+      if (petitionsData.error) throw petitionsData.error;
+      if (templatesData.error) throw templatesData.error;
+      if (membersData.error) throw membersData.error;
+      if (clientsData.error) throw clientsData.error;
+      if (processesData.error) throw processesData.error;
 
-      // Buscar dados de templates
-      const { data: templatesData, error: templatesError } = await supabase
-        .from('petition_templates')
-        .select('*')
-        .eq('workspace_id', currentWorkspace.id)
-        .order('execution_count', { ascending: false })
-        .limit(5);
-
-      if (templatesError) throw templatesError;
-
-      // Buscar membros da workspace
-      const { data: membersData, error: membersError } = await supabase
-        .from('workspace_members')
-        .select('*')
-        .eq('workspace_id', currentWorkspace.id);
-
-      if (membersError) throw membersError;
-
-      // Calcular métricas de petições
+      // Calcular métricas de tempo
       const now = new Date();
       const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
       const thisWeekStart = new Date(today);
       thisWeekStart.setDate(today.getDate() - today.getDay());
       const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
-      const petitionsToday = petitionsData.filter(p => 
+      // Métricas de petições
+      const petitions = petitionsData.data || [];
+      const petitionsToday = petitions.filter(p => 
         new Date(p.created_at) >= today
       ).length;
-
-      const petitionsThisWeek = petitionsData.filter(p => 
+      const petitionsThisWeek = petitions.filter(p => 
         new Date(p.created_at) >= thisWeekStart
       ).length;
-
-      const petitionsThisMonth = petitionsData.filter(p => 
+      const petitionsThisMonth = petitions.filter(p => 
         new Date(p.created_at) >= thisMonthStart
       ).length;
-
-      const successfulPetitions = petitionsData.filter(p => 
+      const successfulPetitions = petitions.filter(p => 
         p.webhook_status === 'completed'
       ).length;
-
-      const successRate = petitionsData.length > 0 
-        ? (successfulPetitions / petitionsData.length) * 100 
+      const successRate = petitions.length > 0 
+        ? (successfulPetitions / petitions.length) * 100 
         : 0;
 
-      // Calcular métricas de webhooks
-      const webhooksSent = petitionsData.filter(p => 
+      // Métricas de clientes
+      const clients = clientsData.data || [];
+      const clientsThisWeek = clients.filter(c => 
+        new Date(c.created_at) >= thisWeekStart
+      ).length;
+      const clientsThisMonth = clients.filter(c => 
+        new Date(c.created_at) >= thisMonthStart
+      ).length;
+      const activeClients = clients.filter(c => c.status === 'active').length;
+
+      // Métricas de processos
+      const processes = processesData.data || [];
+      const activeProcesses = processes.filter(p => p.status === 'active').length;
+      const pendingProcesses = processes.filter(p => p.status === 'pending').length;
+      const archivedProcesses = processes.filter(p => p.status === 'archived').length;
+      const processesWithDeadlineThisWeek = processes.filter(p => {
+        if (!p.deadline_date) return false;
+        try {
+          const deadline = new Date(p.deadline_date);
+          const nextWeek = new Date();
+          nextWeek.setDate(nextWeek.getDate() + 7);
+          return deadline <= nextWeek && deadline >= new Date();
+        } catch {
+          return false;
+        }
+      }).length;
+
+      // Métricas de webhooks
+      const webhooksSent = petitions.filter(p => 
         p.webhook_status === 'sent' || p.webhook_status === 'completed'
       ).length;
-
-      const webhooksFailed = petitionsData.filter(p => 
+      const webhooksFailed = petitions.filter(p => 
         p.webhook_status === 'failed'
       ).length;
-
       const webhookSuccessRate = webhooksSent > 0 
         ? ((webhooksSent - webhooksFailed) / webhooksSent) * 100 
         : 0;
 
-      // Membros ativos hoje (simulado - seria baseado em last_activity)
-      const activeToday = Math.floor(membersData.length * 0.7); // 70% dos membros ativos
+      // Membros ativos
+      const members = membersData.data || [];
+      const activeToday = Math.floor(members.length * 0.7);
 
       const metrics: DashboardMetrics = {
+        clients: {
+          total: clients.length,
+          activeToday: activeClients,
+          newThisWeek: clientsThisWeek,
+          newThisMonth: clientsThisMonth,
+        },
+        processes: {
+          total: processes.length,
+          active: activeProcesses,
+          pending: pendingProcesses,
+          archived: archivedProcesses,
+          withDeadlineThisWeek: processesWithDeadlineThisWeek,
+        },
         petitions: {
-          total: petitionsData.length,
+          total: petitions.length,
           today: petitionsToday,
           thisWeek: petitionsThisWeek,
           thisMonth: petitionsThisMonth,
           successRate: Math.round(successRate * 100) / 100,
         },
         templates: {
-          total: templatesData.length,
-          mostUsed: templatesData.map(template => ({
+          total: (templatesData.data || []).length,
+          mostUsed: (templatesData.data || []).map(template => ({
             id: template.id,
             name: template.name,
             category: template.category,
@@ -108,12 +151,12 @@ export const useDashboardData = () => {
         },
         webhooks: {
           successRate: Math.round(webhookSuccessRate * 100) / 100,
-          averageResponseTime: 1200, // Simulado - seria calculado dos logs
+          averageResponseTime: 1200,
           totalSent: webhooksSent,
           failed: webhooksFailed,
         },
         members: {
-          total: membersData.length,
+          total: members.length,
           activeToday: activeToday,
         },
       };
@@ -139,6 +182,9 @@ export const useDashboardData = () => {
   useEffect(() => {
     if (currentWorkspace) {
       loadMetrics();
+    } else {
+      setMetrics(null);
+      setIsLoading(false);
     }
   }, [currentWorkspace]);
 
