@@ -18,9 +18,11 @@ export const DeadlinesFilters: React.FC<DeadlinesFiltersProps> = ({
   onClearFilters
 }) => {
   const handleFilterChange = (key: keyof DeadlineFilters, value: string) => {
+    // Convert special "all" values back to undefined
+    const actualValue = value === 'all' ? undefined : value;
     onFiltersChange({
       ...filters,
-      [key]: value || undefined
+      [key]: actualValue
     });
   };
 
@@ -38,14 +40,14 @@ export const DeadlinesFilters: React.FC<DeadlinesFiltersProps> = ({
         </div>
 
         <Select
-          value={filters.status || ''}
+          value={filters.status || 'all'}
           onValueChange={(value) => handleFilterChange('status', value)}
         >
           <SelectTrigger className="w-[150px]">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">Todos</SelectItem>
+            <SelectItem value="all">Todos</SelectItem>
             <SelectItem value="PENDENTE">Pendente</SelectItem>
             <SelectItem value="EM_ANDAMENTO">Em Andamento</SelectItem>
             <SelectItem value="CUMPRIDO">Cumprido</SelectItem>
@@ -55,14 +57,14 @@ export const DeadlinesFilters: React.FC<DeadlinesFiltersProps> = ({
         </Select>
 
         <Select
-          value={filters.priority || ''}
+          value={filters.priority || 'all'}
           onValueChange={(value) => handleFilterChange('priority', value)}
         >
           <SelectTrigger className="w-[130px]">
             <SelectValue placeholder="Prioridade" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">Todas</SelectItem>
+            <SelectItem value="all">Todas</SelectItem>
             <SelectItem value="CRITICAL">Crítica</SelectItem>
             <SelectItem value="HIGH">Alta</SelectItem>
             <SelectItem value="MEDIUM">Média</SelectItem>
@@ -71,14 +73,14 @@ export const DeadlinesFilters: React.FC<DeadlinesFiltersProps> = ({
         </Select>
 
         <Select
-          value={filters.deadline_type || ''}
+          value={filters.deadline_type || 'all'}
           onValueChange={(value) => handleFilterChange('deadline_type', value)}
         >
           <SelectTrigger className="w-[150px]">
             <SelectValue placeholder="Tipo" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">Todos</SelectItem>
+            <SelectItem value="all">Todos</SelectItem>
             <SelectItem value="processual">Processual</SelectItem>
             <SelectItem value="administrativo">Administrativo</SelectItem>
             <SelectItem value="contratual">Contratual</SelectItem>
