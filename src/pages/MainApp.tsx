@@ -5,7 +5,7 @@ import { Header } from '@/components/layout/Header';
 import { ModernSidebar } from '@/components/layout/ModernSidebar';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { Loader2, AlertTriangle, RefreshCw } from 'lucide-react';
-import { AppRoutes } from './Routes';
+import { Routes } from './Routes';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { SidebarProvider, SidebarInset, SidebarTrigger, useSidebar } from '@/components/ui/sidebar';
@@ -28,7 +28,7 @@ const MainAppContent = () => {
         </header>
         <main className="flex-1 overflow-auto">
           <div className="max-w-7xl mx-auto p-6">
-            <AppRoutes />
+            <Routes />
           </div>
         </main>
       </SidebarInset>

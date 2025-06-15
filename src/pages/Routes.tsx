@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Routes as RouterRoutes, Route, Navigate } from 'react-router-dom';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
@@ -12,7 +11,7 @@ import { DeadlinesPage } from './DeadlinesPage';
 import { ContractsPage } from './ContractsPage';
 import { SettingsPage } from '@/components/settings/SettingsPage';
 import { SuperAdminPage } from './SuperAdminPage';
-import { NotFound } from './NotFound';
+import NotFound from './NotFound';
 
 export const Routes = () => {
   return (

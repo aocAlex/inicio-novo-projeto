@@ -10,7 +10,7 @@ import {
   Settings,
   Calendar,
   ClipboardList,
-  FileContract
+  FileSignature
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -62,7 +62,7 @@ const navigation = [
   { 
     name: 'Contratos', 
     href: '/contracts', 
-    icon: FileContract,
+    icon: FileSignature,
     badge: null,
     shortcut: '4'
   },
