@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -65,12 +64,12 @@ export const useDeadlines = () => {
         query = query.eq('client_id', filters.client_id);
       }
       
-      if (filters.date_range?.from) {
-        query = query.gte('due_date', filters.date_range.from);
+      if (filters.start_date) {
+        query = query.gte('due_date', filters.start_date);
       }
       
-      if (filters.date_range?.to) {
-        query = query.lte('due_date', filters.date_range.to);
+      if (filters.end_date) {
+        query = query.lte('due_date', filters.end_date);
       }
 
       const { data, error } = await query;
@@ -80,8 +79,71 @@ export const useDeadlines = () => {
         throw error;
       }
       
-      console.log('Prazos carregados:', data);
-      return data as Deadline[];
+      console.log('Dados brutos do Supabase:', data);
+      
+      // Converter os dados para o tipo Deadline
+      const convertedData: Deadline[] = (data || []).map((item: any) => ({
+        id: item.id,
+        workspace_id: item.workspace_id,
+        process_id: item.process_id,
+        client_id: item.client_id,
+        template_id: item.template_id,
+        petition_id: item.petition_id,
+        petition_execution_id: item.petition_execution_id,
+        title: item.title,
+        description: item.description,
+        deadline_type: item.deadline_type,
+        due_date: item.due_date,
+        created_date: item.created_date,
+        completed_date: item.completed_date,
+        business_days_only: item.business_days_only,
+        anticipation_days: item.anticipation_days,
+        is_critical: item.is_critical,
+        assigned_to: item.assigned_to,
+        created_by: item.created_by,
+        status: item.status,
+        priority: item.priority,
+        completion_notes: item.completion_notes,
+        attachments: Array.isArray(item.attachments) ? item.attachments : [],
+        custom_fields: item.custom_fields && typeof item.custom_fields === 'object' ? item.custom_fields : {},
+        created_at: item.created_at,
+        updated_at: item.updated_at,
+        // Converter relacionamentos com verificação de tipos
+        process: item.process && typeof item.process === 'object' && !Array.isArray(item.process) && item.process.id 
+          ? {
+              id: item.process.id,
+              title: item.process.title || '',
+              process_number: item.process.process_number || ''
+            }
+          : undefined,
+        client: item.client && typeof item.client === 'object' && !Array.isArray(item.client) && item.client.id
+          ? {
+              id: item.client.id,
+              name: item.client.name || ''
+            }
+          : undefined,
+        assigned_user: item.assigned_user && typeof item.assigned_user === 'object' && !Array.isArray(item.assigned_user) && item.assigned_user.id
+          ? {
+              id: item.assigned_user.id,
+              full_name: item.assigned_user.full_name || ''
+            }
+          : undefined,
+        petition: item.petition && typeof item.petition === 'object' && !Array.isArray(item.petition) && item.petition.id
+          ? {
+              id: item.petition.id,
+              name: item.petition.name || '',
+              category: item.petition.category || ''
+            }
+          : undefined,
+        petition_execution: item.petition_execution && typeof item.petition_execution === 'object' && !Array.isArray(item.petition_execution) && item.petition_execution.id
+          ? {
+              id: item.petition_execution.id
+            }
+          : undefined
+      }));
+      
+      console.log('Prazos convertidos:', convertedData);
+      return convertedData;
     },
     enabled: !!currentWorkspace?.id,
   });
@@ -100,7 +162,7 @@ export const useDeadlines = () => {
         deadline_type: data.deadline_type,
         due_date: data.due_date.toISOString().split('T')[0],
         priority: data.priority,
-        status: data.status || 'PENDENTE',
+        status: 'PENDENTE' as const,
         is_critical: data.is_critical || false,
         business_days_only: data.business_days_only ?? true,
         anticipation_days: data.anticipation_days || 7,
@@ -109,7 +171,7 @@ export const useDeadlines = () => {
         assigned_to: data.assigned_to || null,
         petition_id: data.petition_id || null,
         petition_execution_id: data.petition_execution_id || null,
-        attachments: data.attachments || [],
+        attachments: [],
         custom_fields: data.custom_fields || {},
         workspace_id: currentWorkspace.id,
         created_by: user.id,
@@ -167,10 +229,8 @@ export const useDeadlines = () => {
         updateData.due_date = data.due_date.toISOString().split('T')[0];
       }
 
-      // Converter attachments para array simples se for File[]
-      if (data.attachments) {
-        updateData.attachments = data.attachments;
-      }
+      // Remover attachments do update pois não conseguimos lidar com File[]
+      delete updateData.attachments;
 
       const { data: result, error } = await supabase
         .from('deadlines')
