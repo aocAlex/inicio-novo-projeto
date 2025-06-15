@@ -1,113 +1,100 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { SuperAdminDashboardMetrics, WorkspaceAnalytics } from '@/types/superadmin';
+import { useToast } from '@/hooks/use-toast';
+
+interface WorkspaceAnalytics {
+  workspace_id: string;
+  workspace_name: string;
+  total_members: number;
+  total_clients: number;
+  total_processes: number;
+  total_templates: number;
+  total_executions: number;
+  created_at: string;
+}
 
 export const useSuperAdminAnalytics = () => {
-  const [metrics, setMetrics] = useState<SuperAdminDashboardMetrics | null>(null);
-  const [workspaceAnalytics, setWorkspaceAnalytics] = useState<WorkspaceAnalytics[]>([]);
+  const [analytics, setAnalytics] = useState<WorkspaceAnalytics[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
 
-  const fetchDashboardMetrics = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-
+  const loadAnalytics = async () => {
     try {
-      // Total workspaces
-      const { count: totalWorkspaces } = await supabase
+      setIsLoading(true);
+
+      // Buscar workspaces com contagem de dados
+      const { data: workspacesData, error: workspacesError } = await supabase
         .from('workspaces')
-        .select('*', { count: 'exact', head: true });
+        .select('id, name, created_at');
 
-      // Active workspaces (with activity in last 30 days)
-      const { count: activeWorkspaces } = await supabase
-        .from('workspace_analytics')
-        .select('*', { count: 'exact', head: true })
-        .eq('activity_status', 'active');
+      if (workspacesError) throw workspacesError;
 
-      // Total users
-      const { count: totalUsers } = await supabase
-        .from('profiles')
-        .select('*', { count: 'exact', head: true });
+      const analyticsData: WorkspaceAnalytics[] = [];
 
-      // Active users (logged in last 7 days)
-      const { count: activeUsers } = await supabase
-        .from('profiles')
-        .select('*', { count: 'exact', head: true })
-        .gte('last_login', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString());
+      for (const workspace of workspacesData || []) {
+        // Contar membros
+        const { count: membersCount } = await supabase
+          .from('workspace_members')
+          .select('*', { count: 'exact', head: true })
+          .eq('workspace_id', workspace.id);
 
-      // Total executions
-      const { count: totalExecutions } = await supabase
-        .from('petition_executions')
-        .select('*', { count: 'exact', head: true });
+        // Contar clientes
+        const { count: clientsCount } = await supabase
+          .from('clients')
+          .select('*', { count: 'exact', head: true })
+          .eq('workspace_id', workspace.id);
 
-      const dashboardMetrics: SuperAdminDashboardMetrics = {
-        totalWorkspaces: totalWorkspaces || 0,
-        activeWorkspaces: activeWorkspaces || 0,
-        totalUsers: totalUsers || 0,
-        activeUsers: activeUsers || 0,
-        totalExecutions: totalExecutions || 0,
-        systemUptime: 99.9, // Mock data - would come from monitoring
-        avgResponseTime: 150, // Mock data - would come from monitoring
-        errorRate: 0.1, // Mock data - would come from monitoring
-      };
+        // Contar processos
+        const { count: processesCount } = await supabase
+          .from('processes')
+          .select('*', { count: 'exact', head: true })
+          .eq('workspace_id', workspace.id);
 
-      setMetrics(dashboardMetrics);
-    } catch (err: any) {
-      console.error('Error fetching dashboard metrics:', err);
-      setError(err.message);
+        // Contar templates
+        const { count: templatesCount } = await supabase
+          .from('petition_templates')
+          .select('*', { count: 'exact', head: true })
+          .eq('workspace_id', workspace.id);
+
+        // Contar execuções
+        const { count: executionsCount } = await supabase
+          .from('petition_executions')
+          .select('*', { count: 'exact', head: true })
+          .eq('workspace_id', workspace.id);
+
+        analyticsData.push({
+          workspace_id: workspace.id,
+          workspace_name: workspace.name,
+          total_members: membersCount || 0,
+          total_clients: clientsCount || 0,
+          total_processes: processesCount || 0,
+          total_templates: templatesCount || 0,
+          total_executions: executionsCount || 0,
+          created_at: workspace.created_at,
+        });
+      }
+
+      setAnalytics(analyticsData);
+    } catch (error: any) {
+      console.error('Error loading analytics:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao carregar analytics",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
-  }, []);
-
-  const fetchWorkspaceAnalytics = useCallback(async () => {
-    try {
-      const { data, error: fetchError } = await supabase
-        .from('workspace_analytics')
-        .select('*')
-        .order('last_activity', { ascending: false });
-
-      if (fetchError) throw fetchError;
-
-      // Convert database response to our WorkspaceAnalytics type
-      const convertedData: WorkspaceAnalytics[] = (data || []).map(item => ({
-        workspace_id: item.workspace_id,
-        workspace_name: item.workspace_name,
-        workspace_created_at: item.workspace_created_at,
-        workspace_updated_at: item.workspace_updated_at,
-        total_members: item.total_members,
-        owners_count: item.owners_count,
-        admins_count: item.admins_count,
-        total_clients: item.total_clients,
-        total_processes: item.total_processes,
-        total_templates: item.total_templates,
-        total_executions: item.total_executions,
-        recent_activities: item.recent_activities,
-        last_activity: item.last_activity,
-        activity_status: (item.activity_status === 'active' || item.activity_status === 'idle' || item.activity_status === 'inactive') 
-          ? item.activity_status 
-          : 'inactive'
-      }));
-
-      setWorkspaceAnalytics(convertedData);
-    } catch (err: any) {
-      console.error('Error fetching workspace analytics:', err);
-      setError(err.message);
-    }
-  }, []);
+  };
 
   useEffect(() => {
-    fetchDashboardMetrics();
-    fetchWorkspaceAnalytics();
-  }, [fetchDashboardMetrics, fetchWorkspaceAnalytics]);
+    loadAnalytics();
+  }, []);
 
   return {
-    metrics,
-    workspaceAnalytics,
+    analytics,
     isLoading,
-    error,
-    refreshMetrics: fetchDashboardMetrics,
-    refreshWorkspaceAnalytics: fetchWorkspaceAnalytics,
+    refreshAnalytics: loadAnalytics,
   };
 };

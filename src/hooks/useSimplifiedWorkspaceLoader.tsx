@@ -78,10 +78,10 @@ export const useSimplifiedWorkspaceLoader = () => {
           };
         }
         
-        // É membro
+        // É membro - buscar dados do membership
         const memberInfo = membershipData?.find(m => m.workspace_id === workspace.id);
         return {
-          id: memberInfo?.id || `member-${workspace.id}`,
+          id: `member-${workspace.id}`,
           workspace_id: workspace.id,
           user_id: userId,
           invited_by: memberInfo?.invited_by,

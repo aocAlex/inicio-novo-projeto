@@ -5,9 +5,11 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { CreateWorkspaceModal } from './CreateWorkspaceModal';
 import { ChevronDown, Building2, Plus, Check, Crown, Users } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 export const WorkspaceSelector = () => {
   const { currentWorkspace, workspaces, isOwner, switchWorkspace } = useWorkspace();
+  const { user } = useAuth();
   const [showCreateModal, setShowCreateModal] = useState(false);
 
   const handleWorkspaceSwitch = async (workspaceId: string) => {
@@ -16,13 +18,8 @@ export const WorkspaceSelector = () => {
     }
   };
 
-  const getWorkspaceIcon = (workspace: any) => {
-    const isCurrentOwner = workspace.owner_id === workspace.id; // Esta lógica será ajustada
-    return isCurrentOwner ? (
-      <Crown className="mr-2 h-4 w-4 text-yellow-600" />
-    ) : (
-      <Users className="mr-2 h-4 w-4 text-blue-600" />
-    );
+  const isWorkspaceOwner = (workspace: any) => {
+    return workspace.owner_id === user?.id;
   };
 
   return (
@@ -48,7 +45,7 @@ export const WorkspaceSelector = () => {
           <DropdownMenuSeparator />
           
           {workspaces.map((workspace) => {
-            const isWorkspaceOwner = workspace.owner_id === workspace.id; // Será ajustado
+            const isCurrentOwner = isWorkspaceOwner(workspace);
             return (
               <DropdownMenuItem
                 key={workspace.id}
@@ -56,7 +53,7 @@ export const WorkspaceSelector = () => {
                 className="flex items-center justify-between"
               >
                 <div className="flex items-center">
-                  {isWorkspaceOwner ? (
+                  {isCurrentOwner ? (
                     <Crown className="mr-2 h-4 w-4 text-yellow-600" />
                   ) : (
                     <Users className="mr-2 h-4 w-4 text-blue-600" />
@@ -64,7 +61,7 @@ export const WorkspaceSelector = () => {
                   <div className="flex flex-col">
                     <span className="truncate font-medium">{workspace.name}</span>
                     <span className="text-xs text-gray-500">
-                      {isWorkspaceOwner ? 'Minha workspace' : 'Membro'}
+                      {isCurrentOwner ? 'Minha workspace' : 'Membro'}
                     </span>
                   </div>
                 </div>
