@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -13,13 +14,58 @@ const isValidRelation = (relation: any): boolean => {
     return false;
   }
   
-  // Verificar se tem propriedade error ou se é uma string disfarçada
-  if ('error' in relation || typeof relation === 'string' || relation.constructor === String) {
+  // Verificar se tem propriedade error ou se é uma string disfarçada ou tipo inválido
+  if ('error' in relation || 
+      typeof relation === 'string' || 
+      relation.constructor === String ||
+      relation.constructor === Object.constructor ||
+      Object.prototype.toString.call(relation) === '[object String]') {
     return false;
   }
   
   // Verificar se tem um id válido
-  return relation.id && typeof relation.id === 'string';
+  return relation.id && typeof relation.id === 'string' && relation.id.length > 0;
+};
+
+// Função auxiliar para converter relação segura
+const convertRelation = (relation: any, type: 'process' | 'client' | 'assigned_user' | 'petition' | 'petition_execution') => {
+  if (!isValidRelation(relation)) {
+    return undefined;
+  }
+  
+  switch (type) {
+    case 'process':
+      return {
+        id: relation.id,
+        title: relation.title || '',
+        process_number: relation.process_number || ''
+      };
+    case 'client':
+      return {
+        id: relation.id,
+        name: relation.name || ''
+      };
+    case 'assigned_user':
+      return {
+        id: relation.id,
+        full_name: relation.full_name || '',
+        email: relation.email || ''
+      };
+    case 'petition':
+      return {
+        id: relation.id,
+        name: relation.name || '',
+        category: relation.category || ''
+      };
+    case 'petition_execution':
+      return {
+        id: relation.id,
+        created_at: relation.created_at || '',
+        filled_data: relation.filled_data || {}
+      };
+    default:
+      return undefined;
+  }
 };
 
 export const useDeadlines = () => {
@@ -91,12 +137,12 @@ export const useDeadlines = () => {
           priority: item.priority as 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL',
           attachments: Array.isArray(item.attachments) ? item.attachments : [],
           custom_fields: typeof item.custom_fields === 'object' && item.custom_fields !== null ? item.custom_fields : {},
-          // Tratar relacionamentos que podem ser null ou inválidos
-          process: isValidRelation(item.process) ? item.process : undefined,
-          client: isValidRelation(item.client) ? item.client : undefined,
-          assigned_user: isValidRelation(item.assigned_user) ? item.assigned_user : undefined,
-          petition: isValidRelation(item.petition) ? item.petition : undefined,
-          petition_execution: isValidRelation(item.petition_execution) ? item.petition_execution : undefined,
+          // Usar funções auxiliares para conversão segura
+          process: convertRelation(item.process, 'process'),
+          client: convertRelation(item.client, 'client'),
+          assigned_user: convertRelation(item.assigned_user, 'assigned_user'),
+          petition: convertRelation(item.petition, 'petition'),
+          petition_execution: convertRelation(item.petition_execution, 'petition_execution'),
         };
       });
       setDeadlines(convertedDeadlines);
@@ -173,7 +219,7 @@ export const useDeadlines = () => {
       return result;
     },
     onSuccess: (newDeadline) => {
-      // Converter para o tipo correto
+      // Converter para o tipo correto usando funções auxiliares
       const convertedDeadline: Deadline = {
         ...newDeadline,
         deadline_type: newDeadline.deadline_type as 'processual' | 'administrativo' | 'contratual' | 'fiscal' | 'personalizado',
@@ -181,12 +227,12 @@ export const useDeadlines = () => {
         priority: newDeadline.priority as 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL',
         attachments: Array.isArray(newDeadline.attachments) ? newDeadline.attachments : [],
         custom_fields: typeof newDeadline.custom_fields === 'object' && newDeadline.custom_fields !== null ? newDeadline.custom_fields : {},
-        // Usar isValidRelation para conversão consistente
-        process: isValidRelation(newDeadline.process) ? newDeadline.process : undefined,
-        client: isValidRelation(newDeadline.client) ? newDeadline.client : undefined,
-        assigned_user: isValidRelation(newDeadline.assigned_user) ? newDeadline.assigned_user : undefined,
-        petition: isValidRelation(newDeadline.petition) ? newDeadline.petition : undefined,
-        petition_execution: isValidRelation(newDeadline.petition_execution) ? newDeadline.petition_execution : undefined,
+        // Usar funções auxiliares para conversão consistente
+        process: convertRelation(newDeadline.process, 'process'),
+        client: convertRelation(newDeadline.client, 'client'),
+        assigned_user: convertRelation(newDeadline.assigned_user, 'assigned_user'),
+        petition: convertRelation(newDeadline.petition, 'petition'),
+        petition_execution: convertRelation(newDeadline.petition_execution, 'petition_execution'),
       };
 
       setDeadlines(prev => [...prev, convertedDeadline]);
@@ -257,7 +303,7 @@ export const useDeadlines = () => {
       return result;
     },
     onSuccess: (updatedDeadline) => {
-      // Converter para o tipo correto
+      // Converter para o tipo correto usando funções auxiliares
       const convertedDeadline: Deadline = {
         ...updatedDeadline,
         deadline_type: updatedDeadline.deadline_type as 'processual' | 'administrativo' | 'contratual' | 'fiscal' | 'personalizado',
@@ -265,12 +311,12 @@ export const useDeadlines = () => {
         priority: updatedDeadline.priority as 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL',
         attachments: Array.isArray(updatedDeadline.attachments) ? updatedDeadline.attachments : [],
         custom_fields: typeof updatedDeadline.custom_fields === 'object' && updatedDeadline.custom_fields !== null ? updatedDeadline.custom_fields : {},
-        // Usar isValidRelation para conversão consistente
-        process: isValidRelation(updatedDeadline.process) ? updatedDeadline.process : undefined,
-        client: isValidRelation(updatedDeadline.client) ? updatedDeadline.client : undefined,
-        assigned_user: isValidRelation(updatedDeadline.assigned_user) ? updatedDeadline.assigned_user : undefined,
-        petition: isValidRelation(updatedDeadline.petition) ? updatedDeadline.petition : undefined,
-        petition_execution: isValidRelation(updatedDeadline.petition_execution) ? updatedDeadline.petition_execution : undefined,
+        // Usar funções auxiliares para conversão consistente
+        process: convertRelation(updatedDeadline.process, 'process'),
+        client: convertRelation(updatedDeadline.client, 'client'),
+        assigned_user: convertRelation(updatedDeadline.assigned_user, 'assigned_user'),
+        petition: convertRelation(updatedDeadline.petition, 'petition'),
+        petition_execution: convertRelation(updatedDeadline.petition_execution, 'petition_execution'),
       };
 
       setDeadlines(prev => 

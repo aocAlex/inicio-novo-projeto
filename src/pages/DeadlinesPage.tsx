@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,6 +8,28 @@ import { DeadlinesList } from '@/components/deadlines/DeadlinesList';
 import { DeadlineModal } from '@/components/deadlines/DeadlineModal';
 import { DeadlinesFilters } from '@/components/deadlines/DeadlinesFilters';
 import { Deadline, DeadlineFilters, DeadlineFormData } from '@/types/deadline';
+
+// Função auxiliar para converter relações com verificação de nulo
+const convertProcessRelation = (process: any) => {
+  if (!process || typeof process !== 'object' || !process.id || typeof process.id !== 'string') {
+    return undefined;
+  }
+  return {
+    id: process.id,
+    title: process.title || '',
+    process_number: process.process_number || ''
+  };
+};
+
+const convertClientRelation = (client: any) => {
+  if (!client || typeof client !== 'object' || !client.id || typeof client.id !== 'string') {
+    return undefined;
+  }
+  return {
+    id: client.id,
+    name: client.name || ''
+  };
+};
 
 export const DeadlinesPage = () => {
   const {
@@ -42,15 +65,8 @@ export const DeadlinesPage = () => {
       priority: result.priority as 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL',
       attachments: Array.isArray(result.attachments) ? result.attachments : [],
       custom_fields: typeof result.custom_fields === 'object' && result.custom_fields !== null ? result.custom_fields : {},
-      process: result.process && typeof result.process === 'object' && 'id' in result.process && result.process.id && typeof result.process.id === 'string' ? {
-        id: result.process.id,
-        title: result.process.title || '',
-        process_number: result.process.process_number || ''
-      } : undefined,
-      client: result.client && typeof result.client === 'object' && 'id' in result.client && result.client.id && typeof result.client.id === 'string' ? {
-        id: result.client.id,
-        name: result.client.name || ''
-      } : undefined,
+      process: convertProcessRelation(result.process),
+      client: convertClientRelation(result.client),
       assigned_user: result.assigned_user && typeof result.assigned_user === 'object' && 'id' in result.assigned_user ? result.assigned_user : undefined,
       petition: result.petition && typeof result.petition === 'object' && 'id' in result.petition ? result.petition : undefined,
       petition_execution: result.petition_execution && typeof result.petition_execution === 'object' && 'id' in result.petition_execution ? result.petition_execution : undefined,
@@ -71,15 +87,8 @@ export const DeadlinesPage = () => {
         priority: result.priority as 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL',
         attachments: Array.isArray(result.attachments) ? result.attachments : [],
         custom_fields: typeof result.custom_fields === 'object' && result.custom_fields !== null ? result.custom_fields : {},
-        process: result.process && typeof result.process === 'object' && 'id' in result.process && result.process.id && typeof result.process.id === 'string' ? {
-          id: result.process.id,
-          title: result.process.title || '',
-          process_number: result.process.process_number || ''
-        } : undefined,
-        client: result.client && typeof result.client === 'object' && 'id' in result.client && result.client.id && typeof result.client.id === 'string' ? {
-          id: result.client.id,
-          name: result.client.name || ''
-        } : undefined,
+        process: convertProcessRelation(result.process),
+        client: convertClientRelation(result.client),
         assigned_user: result.assigned_user && typeof result.assigned_user === 'object' && 'id' in result.assigned_user ? result.assigned_user : undefined,
         petition: result.petition && typeof result.petition === 'object' && 'id' in result.petition ? result.petition : undefined,
         petition_execution: result.petition_execution && typeof result.petition_execution === 'object' && 'id' in result.petition_execution ? result.petition_execution : undefined,
