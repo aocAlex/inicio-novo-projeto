@@ -14,6 +14,7 @@ import { TemplatesPage } from '@/pages/TemplatesPage';
 import { PetitionsPage } from '@/pages/PetitionsPage';
 import { DeadlinesPage } from '@/pages/DeadlinesPage';
 import { TemplateEditorPage } from '@/pages/TemplateEditorPage';
+import { SettingsPage } from '@/components/settings/SettingsPage';
 import NotFound from '@/pages/NotFound';
 import './App.css';
 
@@ -42,6 +43,7 @@ function App() {
                 <Route path="templates/:id/edit" element={<TemplateEditorPage />} />
                 <Route path="petitions" element={<PetitionsPage />} />
                 <Route path="deadlines" element={<DeadlinesPage />} />
+                <Route path="settings" element={<SettingsPage />} />
               </Route>
               <Route path="*" element={<NotFound />} />
             </Routes>
