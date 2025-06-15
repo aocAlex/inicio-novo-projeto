@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -33,16 +34,42 @@ export const DeadlinesPage = () => {
   const handleCreateDeadline = async (data: DeadlineFormData): Promise<Deadline> => {
     const result = await createDeadline(data);
     setShowCreateModal(false);
-    // Retornar o resultado diretamente, pois já é do tipo Deadline após conversão no hook
-    return result;
+    // Converter o resultado para o tipo Deadline
+    const convertedResult: Deadline = {
+      ...result,
+      deadline_type: result.deadline_type as 'processual' | 'administrativo' | 'contratual' | 'fiscal' | 'personalizado',
+      status: result.status as 'PENDENTE' | 'EM_ANDAMENTO' | 'CUMPRIDO' | 'PERDIDO' | 'SUSPENSO',
+      priority: result.priority as 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL',
+      attachments: Array.isArray(result.attachments) ? result.attachments : [],
+      custom_fields: typeof result.custom_fields === 'object' && result.custom_fields !== null ? result.custom_fields : {},
+      process: result.process && typeof result.process === 'object' && result.process.id ? result.process : undefined,
+      client: result.client && typeof result.client === 'object' && result.client.id ? result.client : undefined,
+      assigned_user: result.assigned_user && typeof result.assigned_user === 'object' && result.assigned_user.id ? result.assigned_user : undefined,
+      petition: result.petition && typeof result.petition === 'object' && result.petition.id ? result.petition : undefined,
+      petition_execution: result.petition_execution && typeof result.petition_execution === 'object' && result.petition_execution.id ? result.petition_execution : undefined,
+    };
+    return convertedResult;
   };
 
   const handleEditDeadline = async (data: DeadlineFormData): Promise<Deadline | null> => {
     if (editingDeadline) {
       const result = await updateDeadline(editingDeadline.id, data);
       setEditingDeadline(undefined);
-      // Retornar o resultado diretamente, pois já é do tipo Deadline após conversão no hook
-      return result;
+      // Converter o resultado para o tipo Deadline
+      const convertedResult: Deadline = {
+        ...result,
+        deadline_type: result.deadline_type as 'processual' | 'administrativo' | 'contratual' | 'fiscal' | 'personalizado',
+        status: result.status as 'PENDENTE' | 'EM_ANDAMENTO' | 'CUMPRIDO' | 'PERDIDO' | 'SUSPENSO',
+        priority: result.priority as 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL',
+        attachments: Array.isArray(result.attachments) ? result.attachments : [],
+        custom_fields: typeof result.custom_fields === 'object' && result.custom_fields !== null ? result.custom_fields : {},
+        process: result.process && typeof result.process === 'object' && result.process.id ? result.process : undefined,
+        client: result.client && typeof result.client === 'object' && result.client.id ? result.client : undefined,
+        assigned_user: result.assigned_user && typeof result.assigned_user === 'object' && result.assigned_user.id ? result.assigned_user : undefined,
+        petition: result.petition && typeof result.petition === 'object' && result.petition.id ? result.petition : undefined,
+        petition_execution: result.petition_execution && typeof result.petition_execution === 'object' && result.petition_execution.id ? result.petition_execution : undefined,
+      };
+      return convertedResult;
     }
     return null;
   };

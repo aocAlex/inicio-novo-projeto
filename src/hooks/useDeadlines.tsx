@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -66,13 +67,13 @@ export const useDeadlines = () => {
   // Atualizar estado local quando dados mudam
   useEffect(() => {
     if (rawDeadlines) {
+      // Função auxiliar para verificar se um relacionamento é válido
+      const isValidRelation = (relation: any) => {
+        return relation && typeof relation === 'object' && !relation.error && relation.id;
+      };
+
       // Converter os dados do Supabase para o tipo Deadline
       const convertedDeadlines: Deadline[] = rawDeadlines.map((item: any) => {
-        // Função auxiliar para verificar se um relacionamento é válido
-        const isValidRelation = (relation: any) => {
-          return relation && typeof relation === 'object' && !relation.error && relation.id;
-        };
-
         return {
           ...item,
           deadline_type: item.deadline_type as 'processual' | 'administrativo' | 'contratual' | 'fiscal' | 'personalizado',
