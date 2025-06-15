@@ -172,6 +172,249 @@ export type Database = {
           },
         ]
       }
+      deadline_history: {
+        Row: {
+          action: string
+          created_at: string | null
+          deadline_id: string
+          id: string
+          new_values: Json | null
+          notes: string | null
+          old_values: Json | null
+          performed_by: string
+          workspace_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string | null
+          deadline_id: string
+          id?: string
+          new_values?: Json | null
+          notes?: string | null
+          old_values?: Json | null
+          performed_by: string
+          workspace_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string | null
+          deadline_id?: string
+          id?: string
+          new_values?: Json | null
+          notes?: string | null
+          old_values?: Json | null
+          performed_by?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deadline_history_deadline_id_fkey"
+            columns: ["deadline_id"]
+            isOneToOne: false
+            referencedRelation: "deadlines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deadline_history_performed_by_fkey"
+            columns: ["performed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deadline_history_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      deadline_notifications: {
+        Row: {
+          created_at: string | null
+          days_before: number
+          deadline_id: string
+          id: string
+          is_sent: boolean | null
+          message: string | null
+          notification_type: string
+          recipient_id: string
+          sent_at: string | null
+          subject: string | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          days_before: number
+          deadline_id: string
+          id?: string
+          is_sent?: boolean | null
+          message?: string | null
+          notification_type: string
+          recipient_id: string
+          sent_at?: string | null
+          subject?: string | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string | null
+          days_before?: number
+          deadline_id?: string
+          id?: string
+          is_sent?: boolean | null
+          message?: string | null
+          notification_type?: string
+          recipient_id?: string
+          sent_at?: string | null
+          subject?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deadline_notifications_deadline_id_fkey"
+            columns: ["deadline_id"]
+            isOneToOne: false
+            referencedRelation: "deadlines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deadline_notifications_recipient_id_fkey"
+            columns: ["recipient_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deadline_notifications_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      deadlines: {
+        Row: {
+          anticipation_days: number | null
+          assigned_to: string | null
+          attachments: Json | null
+          business_days_only: boolean | null
+          client_id: string | null
+          completed_date: string | null
+          completion_notes: string | null
+          created_at: string | null
+          created_by: string
+          created_date: string
+          custom_fields: Json | null
+          deadline_type: string
+          description: string | null
+          due_date: string
+          id: string
+          is_critical: boolean | null
+          priority: string | null
+          process_id: string | null
+          status: string | null
+          template_id: string | null
+          title: string
+          updated_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          anticipation_days?: number | null
+          assigned_to?: string | null
+          attachments?: Json | null
+          business_days_only?: boolean | null
+          client_id?: string | null
+          completed_date?: string | null
+          completion_notes?: string | null
+          created_at?: string | null
+          created_by: string
+          created_date?: string
+          custom_fields?: Json | null
+          deadline_type: string
+          description?: string | null
+          due_date: string
+          id?: string
+          is_critical?: boolean | null
+          priority?: string | null
+          process_id?: string | null
+          status?: string | null
+          template_id?: string | null
+          title: string
+          updated_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          anticipation_days?: number | null
+          assigned_to?: string | null
+          attachments?: Json | null
+          business_days_only?: boolean | null
+          client_id?: string | null
+          completed_date?: string | null
+          completion_notes?: string | null
+          created_at?: string | null
+          created_by?: string
+          created_date?: string
+          custom_fields?: Json | null
+          deadline_type?: string
+          description?: string | null
+          due_date?: string
+          id?: string
+          is_critical?: boolean | null
+          priority?: string | null
+          process_id?: string | null
+          status?: string | null
+          template_id?: string | null
+          title?: string
+          updated_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deadlines_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deadlines_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deadlines_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deadlines_process_id_fkey"
+            columns: ["process_id"]
+            isOneToOne: false
+            referencedRelation: "processes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deadlines_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "petition_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deadlines_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       petition_executions: {
         Row: {
           client_id: string | null
@@ -554,6 +797,71 @@ export type Database = {
           },
         ]
       }
+      workspace_calendar_settings: {
+        Row: {
+          city_holidays: Json | null
+          created_at: string | null
+          custom_holidays: Json | null
+          december_recess_end: string | null
+          december_recess_start: string | null
+          default_anticipation_days: number | null
+          enable_email_notifications: boolean | null
+          enable_whatsapp_notifications: boolean | null
+          id: string
+          july_recess_end: string | null
+          july_recess_start: string | null
+          notification_time: string | null
+          state_holidays: Json | null
+          updated_at: string | null
+          work_days: Json | null
+          workspace_id: string
+        }
+        Insert: {
+          city_holidays?: Json | null
+          created_at?: string | null
+          custom_holidays?: Json | null
+          december_recess_end?: string | null
+          december_recess_start?: string | null
+          default_anticipation_days?: number | null
+          enable_email_notifications?: boolean | null
+          enable_whatsapp_notifications?: boolean | null
+          id?: string
+          july_recess_end?: string | null
+          july_recess_start?: string | null
+          notification_time?: string | null
+          state_holidays?: Json | null
+          updated_at?: string | null
+          work_days?: Json | null
+          workspace_id: string
+        }
+        Update: {
+          city_holidays?: Json | null
+          created_at?: string | null
+          custom_holidays?: Json | null
+          december_recess_end?: string | null
+          december_recess_start?: string | null
+          default_anticipation_days?: number | null
+          enable_email_notifications?: boolean | null
+          enable_whatsapp_notifications?: boolean | null
+          id?: string
+          july_recess_end?: string | null
+          july_recess_start?: string | null
+          notification_time?: string | null
+          state_holidays?: Json | null
+          updated_at?: string | null
+          work_days?: Json | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_calendar_settings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workspace_invitations: {
         Row: {
           accepted_at: string | null
@@ -742,6 +1050,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      add_business_days: {
+        Args: { start_date: string; business_days: number }
+        Returns: string
+      }
       increment_execution_retry_count: {
         Args: { execution_id: string }
         Returns: undefined
@@ -749,6 +1061,10 @@ export type Database = {
       increment_template_execution_count: {
         Args: { template_id: string }
         Returns: undefined
+      }
+      is_business_day: {
+        Args: { check_date: string }
+        Returns: boolean
       }
     }
     Enums: {

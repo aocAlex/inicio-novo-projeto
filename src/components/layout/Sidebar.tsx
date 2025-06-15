@@ -1,89 +1,66 @@
 
-import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
+import React from 'react';
+import { NavLink, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   Users, 
   FileText, 
-  BookOpen, 
-  Gavel, 
+  Scale, 
+  FolderOpen, 
   Settings,
-  Building2
+  Calendar,
+  ClipboardList
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
-interface SidebarProps {
-  activeTab: string;
-  onTabChange: (tab: string) => void;
-}
+const navigation = [
+  { name: 'Dashboard', href: '/', icon: LayoutDashboard },
+  { name: 'Clientes', href: '/clients', icon: Users },
+  { name: 'Processos', href: '/processes', icon: Scale },
+  { name: 'Templates', href: '/templates', icon: FileText },
+  { name: 'Petições', href: '/petitions', icon: FolderOpen },
+  { name: 'Prazos', href: '/deadlines', icon: Calendar },
+  { name: 'Configurações', href: '/settings', icon: Settings },
+];
 
-export const Sidebar = ({ activeTab, onTabChange }: SidebarProps) => {
-  const menuItems = [
-    {
-      id: 'dashboard',
-      label: 'Dashboard',
-      icon: LayoutDashboard,
-    },
-    {
-      id: 'clients',
-      label: 'Clientes',
-      icon: Users,
-    },
-    {
-      id: 'processes',
-      label: 'Processos',
-      icon: FileText,
-    },
-    {
-      id: 'templates',
-      label: 'Templates',
-      icon: BookOpen,
-    },
-    {
-      id: 'petitions',
-      label: 'Petições',
-      icon: Gavel,
-    },
-    {
-      id: 'settings',
-      label: 'Configurações',
-      icon: Settings,
-    },
-  ];
+export const Sidebar = () => {
+  const location = useLocation();
 
   return (
-    <div className="w-64 bg-white border-r border-gray-200 flex flex-col">
-      {/* Logo/Brand */}
-      <div className="p-6 border-b border-gray-200">
-        <div className="flex items-center gap-2">
-          <Building2 className="h-6 w-6 text-blue-600" />
-          <span className="font-semibold text-gray-900">SaaS Jurídico</span>
+    <div className="flex h-full w-64 flex-col fixed inset-y-0 z-50 bg-gray-900">
+      <div className="flex flex-1 flex-col overflow-y-auto pt-5 pb-4">
+        <div className="flex flex-shrink-0 items-center px-4">
+          <div className="flex items-center">
+            <ClipboardList className="h-8 w-8 text-white" />
+            <span className="ml-2 text-xl font-bold text-white">LegalSaaS</span>
+          </div>
         </div>
-      </div>
-
-      {/* Navigation */}
-      <nav className="flex-1 p-4">
-        <div className="space-y-1">
-          {menuItems.map((item) => {
-            const Icon = item.icon;
+        <nav className="mt-5 flex-1 space-y-1 px-2">
+          {navigation.map((item) => {
+            const isActive = location.pathname === item.href;
             return (
-              <Button
-                key={item.id}
-                variant={activeTab === item.id ? 'default' : 'ghost'}
+              <NavLink
+                key={item.name}
+                to={item.href}
                 className={cn(
-                  'w-full justify-start gap-2',
-                  activeTab === item.id 
-                    ? 'bg-blue-600 text-white hover:bg-blue-700' 
-                    : 'text-gray-700 hover:bg-gray-100'
+                  'group flex items-center px-2 py-2 text-sm font-medium rounded-md',
+                  isActive
+                    ? 'bg-gray-800 text-white'
+                    : 'text-gray-300 hover:bg-gray-700 hover:text-white'
                 )}
-                onClick={() => onTabChange(item.id)}
               >
-                <Icon className="h-4 w-4" />
-                {item.label}
-              </Button>
+                <item.icon
+                  className={cn(
+                    'mr-3 h-5 w-5 flex-shrink-0',
+                    isActive ? 'text-white' : 'text-gray-400 group-hover:text-white'
+                  )}
+                />
+                {item.name}
+              </NavLink>
             );
           })}
-        </div>
-      </nav>
+        </nav>
+      </div>
     </div>
   );
 };
