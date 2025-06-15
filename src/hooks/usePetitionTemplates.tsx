@@ -3,9 +3,7 @@ import { useState, useEffect } from 'react';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-
-// Import types from the templates module to ensure consistency
-import { PetitionTemplate, CreateTemplateData, UpdateTemplateData, TemplateFilters } from '@/types/templates';
+import { PetitionTemplate, CreateTemplateData, UpdateTemplateData, PetitionFilters } from '@/types/petition';
 
 export const usePetitionTemplates = () => {
   const { currentWorkspace } = useWorkspace();
@@ -14,7 +12,7 @@ export const usePetitionTemplates = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const loadTemplates = async (filters?: TemplateFilters) => {
+  const loadTemplates = async (filters?: PetitionFilters) => {
     if (!currentWorkspace) return;
 
     try {
@@ -43,7 +41,10 @@ export const usePetitionTemplates = () => {
         throw error;
       }
 
-      setTemplates(data || []);
+      setTemplates((data || []).map(template => ({
+        ...template,
+        category: template.category as 'civil' | 'criminal' | 'trabalhista' | 'tributario' | 'empresarial' | 'familia'
+      })));
     } catch (err: any) {
       setError(err.message);
       console.error('Error loading templates:', err);
@@ -78,14 +79,19 @@ export const usePetitionTemplates = () => {
         throw templateError;
       }
 
-      setTemplates(prev => [template, ...prev]);
+      const templateWithCategory = {
+        ...template,
+        category: template.category as 'civil' | 'criminal' | 'trabalhista' | 'tributario' | 'empresarial' | 'familia'
+      };
+
+      setTemplates(prev => [templateWithCategory, ...prev]);
 
       toast({
         title: "Template criado",
         description: `${template.name} foi criado com sucesso.`,
       });
 
-      return template;
+      return templateWithCategory;
     } catch (err: any) {
       setError(err.message);
       toast({
@@ -118,9 +124,14 @@ export const usePetitionTemplates = () => {
         throw error;
       }
 
+      const updatedTemplate = {
+        ...data,
+        category: data.category as 'civil' | 'criminal' | 'trabalhista' | 'tributario' | 'empresarial' | 'familia'
+      };
+
       setTemplates(prev => 
         prev.map(template => 
-          template.id === id ? data : template
+          template.id === id ? updatedTemplate : template
         )
       );
 
@@ -190,7 +201,10 @@ export const usePetitionTemplates = () => {
         throw error;
       }
 
-      return data;
+      return {
+        ...data,
+        category: data.category as 'civil' | 'criminal' | 'trabalhista' | 'tributario' | 'empresarial' | 'familia'
+      };
     } catch (err: any) {
       console.error('Error getting template:', err);
       return null;

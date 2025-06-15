@@ -1,413 +1,305 @@
 
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAdvancedTemplates } from '@/hooks/useAdvancedTemplates';
-import { useToast } from '@/hooks/use-toast';
-import { useSimplifiedPermissions } from '@/hooks/useSimplifiedPermissions';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import {
+import { useState, useEffect } from 'react'
+import { useAdvancedTemplates } from '@/hooks/useAdvancedTemplates'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { 
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import {
+} from '@/components/ui/select'
+import { 
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import { AdvancedTemplateExecutor } from './AdvancedTemplateExecutor';
+} from '@/components/ui/dropdown-menu'
 import { 
-  Search, 
-  Plus, 
-  Eye, 
-  Edit, 
-  Trash2, 
-  Play,
-  FileText,
+  Search,
+  Plus,
   Filter,
-  MoreHorizontal,
+  MoreVertical,
+  Edit,
+  Trash2,
   Copy,
-  Share2,
-  Settings
-} from 'lucide-react';
+  Play,
+  Share2
+} from 'lucide-react'
+import { AdvancedTemplateEditor } from './AdvancedTemplateEditor'
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
+import { PetitionTemplate, PetitionFilters } from '@/types/petition'
 
 const CATEGORIES = [
-  { value: 'all', label: 'Todas as Categorias', color: 'bg-gray-100 text-gray-800' },
-  { value: 'civil', label: 'Civil', color: 'bg-blue-100 text-blue-800' },
-  { value: 'criminal', label: 'Criminal', color: 'bg-red-100 text-red-800' },
-  { value: 'trabalhista', label: 'Trabalhista', color: 'bg-green-100 text-green-800' },
-  { value: 'tributario', label: 'Tributário', color: 'bg-yellow-100 text-yellow-800' },
-  { value: 'empresarial', label: 'Empresarial', color: 'bg-purple-100 text-purple-800' },
-  { value: 'familia', label: 'Família', color: 'bg-pink-100 text-pink-800' }
-];
+  { value: 'all', label: 'Todas as Categorias' },
+  { value: 'civil', label: 'Civil' },
+  { value: 'criminal', label: 'Criminal' },
+  { value: 'trabalhista', label: 'Trabalhista' },
+  { value: 'tributario', label: 'Tributário' },
+  { value: 'empresarial', label: 'Empresarial' },
+  { value: 'familia', label: 'Família' }
+]
 
 export const AdvancedTemplatesList = () => {
-  const navigate = useNavigate();
   const { 
     templates, 
     isLoading, 
-    error, 
     loadTemplates, 
-    deleteTemplate, 
-    duplicateTemplate 
-  } = useAdvancedTemplates();
-  
-  const { can } = useSimplifiedPermissions();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('all');
-  const [executingTemplate, setExecutingTemplate] = useState<any>(null);
-  const [previewingTemplate, setPreviewingTemplate] = useState<any>(null);
+    deleteTemplate 
+  } = useAdvancedTemplates()
+
+  const [searchTerm, setSearchTerm] = useState('')
+  const [selectedCategory, setSelectedCategory] = useState('all')
+  const [selectedTemplate, setSelectedTemplate] = useState<PetitionTemplate | null>(null)
+  const [isEditorOpen, setIsEditorOpen] = useState(false)
+  const [templateToDelete, setTemplateToDelete] = useState<PetitionTemplate | null>(null)
+
+  // Filtros aplicados
+  const filters: PetitionFilters = {
+    search: searchTerm || undefined,
+    category: selectedCategory !== 'all' ? selectedCategory : undefined,
+  }
 
   useEffect(() => {
-    loadTemplates({ 
-      search: searchTerm || undefined,
-      category: selectedCategory === 'all' ? undefined : selectedCategory
-    });
-  }, [loadTemplates, searchTerm, selectedCategory]);
+    loadTemplates(filters)
+  }, [searchTerm, selectedCategory])
 
-  const handleDeleteTemplate = async (template: any) => {
-    if (window.confirm(`Tem certeza que deseja excluir o template "${template.name}"?\n\nEsta ação não pode ser desfeita.`)) {
-      try {
-        await deleteTemplate(template.id);
-      } catch (error) {
-        console.error('Error deleting template:', error);
-      }
+  const handleCreateNew = () => {
+    setSelectedTemplate(null)
+    setIsEditorOpen(true)
+  }
+
+  const handleEdit = (template: PetitionTemplate) => {
+    setSelectedTemplate(template)
+    setIsEditorOpen(true)
+  }
+
+  const handleDelete = async (template: PetitionTemplate) => {
+    setTemplateToDelete(template)
+  }
+
+  const confirmDelete = async () => {
+    if (templateToDelete) {
+      await deleteTemplate(templateToDelete.id)
+      setTemplateToDelete(null)
     }
-  };
+  }
 
-  const handleDuplicateTemplate = async (template: any) => {
-    try {
-      await duplicateTemplate(template.id);
-    } catch (error) {
-      console.error('Error duplicating template:', error);
+  const getCategoryLabel = (category: string) => {
+    const cat = CATEGORIES.find(c => c.value === category)
+    return cat?.label || category
+  }
+
+  const getCategoryColor = (category: string) => {
+    const colors: Record<string, string> = {
+      civil: 'bg-blue-100 text-blue-800',
+      criminal: 'bg-red-100 text-red-800',
+      trabalhista: 'bg-green-100 text-green-800',
+      tributario: 'bg-yellow-100 text-yellow-800',
+      empresarial: 'bg-purple-100 text-purple-800',
+      familia: 'bg-pink-100 text-pink-800'
     }
-  };
+    return colors[category] || 'bg-gray-100 text-gray-800'
+  }
 
-  const getCategoryData = (category: string) => {
-    return CATEGORIES.find(c => c.value === category) || CATEGORIES[0];
-  };
-
-  const filteredTemplates = templates.filter(template =>
-    template.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    template.description?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const getStatsForCategory = (category: string) => {
-    if (category === 'all') return templates.length;
-    return templates.filter(t => t.category === category).length;
-  };
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Carregando templates...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center">
+      {/* Header e Filtros */}
+      <div className="flex flex-col lg:flex-row gap-4 lg:items-center lg:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Templates Avançados</h1>
-          <p className="text-gray-600">Sistema completo de criação e execução de petições</p>
+          <h1 className="text-2xl font-bold text-gray-900">Templates Avançados</h1>
+          <p className="text-gray-600">Gerencie seus templates de petições com campos personalizados</p>
         </div>
         
-        {can.createTemplate && (
-          <Button onClick={() => navigate('/templates/new')} size="lg">
-            <Plus className="mr-2 h-4 w-4" />
-            Novo Template Avançado
-          </Button>
-        )}
+        <Button onClick={handleCreateNew} className="lg:w-auto">
+          <Plus className="mr-2 h-4 w-4" />
+          Novo Template
+        </Button>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
-        {CATEGORIES.map(category => (
-          <Card 
-            key={category.value}
-            className={`cursor-pointer transition-all ${
-              selectedCategory === category.value ? 'ring-2 ring-blue-500' : 'hover:shadow-md'
-            }`}
-            onClick={() => setSelectedCategory(category.value)}
-          >
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">{category.label}</p>
-                  <p className="text-2xl font-bold">{getStatsForCategory(category.value)}</p>
-                </div>
-                <div className={`h-3 w-3 rounded-full ${category.color.split(' ')[0]}`} />
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {/* Filters */}
-      <Card>
-        <CardContent className="p-6">
-          <div className="flex flex-col md:flex-row gap-4">
-            {/* Search */}
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder="Buscar templates por nome ou descrição..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-            
-            {/* Additional Filters */}
-            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-              <SelectTrigger className="w-64">
-                <SelectValue placeholder="Categoria" />
-              </SelectTrigger>
-              <SelectContent>
-                {CATEGORIES.map(category => (
-                  <SelectItem key={category.value} value={category.value}>
-                    <div className="flex items-center gap-2">
-                      <div className={`h-2 w-2 rounded-full ${category.color.split(' ')[0]}`} />
-                      {category.label}
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+      {/* Filtros */}
+      <div className="flex flex-col sm:flex-row gap-4">
+        <div className="flex-1">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input
+              placeholder="Buscar templates..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Templates Grid */}
-      {isLoading ? (
-        <div className="text-center py-12">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-          <p className="mt-4 text-gray-600">Carregando templates...</p>
         </div>
-      ) : error ? (
-        <Card>
-          <CardContent className="p-8 text-center">
-            <div className="text-red-600 mb-4">❌ Erro ao carregar</div>
-            <p className="text-gray-600">{error}</p>
-            <Button 
-              variant="outline" 
-              onClick={() => loadTemplates()} 
-              className="mt-4"
-            >
-              Tentar Novamente
-            </Button>
-          </CardContent>
-        </Card>
-      ) : filteredTemplates.length === 0 ? (
-        <Card>
-          <CardContent className="p-12 text-center">
-            <FileText className="mx-auto h-16 w-16 text-gray-400 mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
-              {searchTerm ? 'Nenhum template encontrado' : 'Comece criando templates'}
-            </h3>
-            <p className="text-gray-600 mb-6">
-              {searchTerm 
-                ? 'Tente ajustar sua busca ou criar um novo template'
-                : 'Templates avançados permitem criar petições dinâmicas com campos configuráveis'
-              }
-            </p>
-            {can.createTemplate && (
-              <Button onClick={() => navigate('/templates/new')} size="lg">
-                <Plus className="mr-2 h-4 w-4" />
-                Criar Primeiro Template
-              </Button>
-            )}
-          </CardContent>
-        </Card>
+        
+        <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+          <SelectTrigger className="w-full sm:w-[200px]">
+            <Filter className="mr-2 h-4 w-4" />
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {CATEGORIES.map(category => (
+              <SelectItem key={category.value} value={category.value}>
+                {category.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Lista de Templates */}
+      {templates.length === 0 ? (
+        <div className="text-center py-12">
+          <div className="mx-auto h-12 w-12 text-gray-400 mb-4">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+          </div>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">Nenhum template encontrado</h3>
+          <p className="text-gray-600 mb-6">
+            {searchTerm || selectedCategory !== 'all' 
+              ? 'Tente ajustar os filtros ou criar um novo template.'
+              : 'Comece criando seu primeiro template de petição.'
+            }
+          </p>
+          <Button onClick={handleCreateNew}>
+            <Plus className="mr-2 h-4 w-4" />
+            Criar Primeiro Template
+          </Button>
+        </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredTemplates.map((template) => {
-            const categoryData = getCategoryData(template.category);
-            
-            return (
-              <Card key={template.id} className="hover:shadow-lg transition-all duration-200">
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <CardTitle className="text-lg line-clamp-2">{template.name}</CardTitle>
-                      {template.description && (
-                        <p className="text-sm text-gray-600 mt-1 line-clamp-2">
-                          {template.description}
-                        </p>
-                      )}
-                    </div>
-                    
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => setExecutingTemplate(template)}>
-                          <Play className="mr-2 h-4 w-4" />
-                          Executar
-                        </DropdownMenuItem>
-                        
-                        <DropdownMenuItem onClick={() => setPreviewingTemplate(template)}>
-                          <Eye className="mr-2 h-4 w-4" />
-                          Visualizar
-                        </DropdownMenuItem>
-                        
-                        {can.updateTemplate && (
-                          <DropdownMenuItem onClick={() => navigate(`/templates/edit/${template.id}`)}>
-                            <Edit className="mr-2 h-4 w-4" />
-                            Editar
-                          </DropdownMenuItem>
-                        )}
-                        
-                        <DropdownMenuItem onClick={() => handleDuplicateTemplate(template)}>
-                          <Copy className="mr-2 h-4 w-4" />
-                          Duplicar
-                        </DropdownMenuItem>
-                        
-                        <DropdownMenuSeparator />
-                        
-                        {can.deleteTemplate && (
-                          <DropdownMenuItem 
-                            onClick={() => handleDeleteTemplate(template)}
-                            className="text-red-600"
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Excluir
-                          </DropdownMenuItem>
-                        )}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+          {templates.map((template) => (
+            <Card key={template.id} className="hover:shadow-lg transition-shadow duration-200">
+              <CardHeader className="pb-3">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1 min-w-0">
+                    <CardTitle className="text-lg font-semibold truncate">
+                      {template.name}
+                    </CardTitle>
+                    {template.description && (
+                      <p className="text-sm text-gray-600 mt-1 line-clamp-2">
+                        {template.description}
+                      </p>
+                    )}
                   </div>
-                </CardHeader>
-                
-                <CardContent className="pt-0">
-                  <div className="space-y-4">
-                    {/* Category and Shared Status */}
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <Badge className={categoryData.color}>
-                        {categoryData.label}
+                  
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0 ml-2">
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => handleEdit(template)}>
+                        <Edit className="mr-2 h-4 w-4" />
+                        Editar
+                      </DropdownMenuItem>
+                      <DropdownMenuItem className="text-red-600" onClick={() => handleDelete(template)}>
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Excluir
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </CardHeader>
+              
+              <CardContent className="pt-0">
+                <div className="space-y-3">
+                  {/* Categoria e Status */}
+                  <div className="flex items-center justify-between">
+                    <Badge className={getCategoryColor(template.category)}>
+                      {getCategoryLabel(template.category)}
+                    </Badge>
+                    
+                    {template.is_shared && (
+                      <Badge variant="outline" className="text-xs">
+                        <Share2 className="mr-1 h-3 w-3" />
+                        Compartilhado
                       </Badge>
-                      
-                      {template.is_shared && (
-                        <Badge variant="outline">
-                          <Share2 className="mr-1 h-3 w-3" />
-                          Compartilhado
-                        </Badge>
-                      )}
-                      
-                      {template.fields && template.fields.length > 0 && (
-                        <Badge variant="secondary">
-                          <Settings className="mr-1 h-3 w-3" />
-                          {template.fields.length} campos
-                        </Badge>
-                      )}
+                    )}
+                  </div>
+
+                  {/* Estatísticas */}
+                  <div className="text-sm text-gray-600 space-y-1">
+                    <div className="flex justify-between">
+                      <span>Execuções:</span>
+                      <span className="font-medium">{template.execution_count || 0}</span>
                     </div>
-                    
-                    {/* Statistics */}
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div className="text-center p-2 bg-gray-50 rounded">
-                        <div className="font-semibold text-gray-900">
-                          {template.fields?.length || 0}
-                        </div>
-                        <div className="text-gray-600">Campos</div>
-                      </div>
-                      <div className="text-center p-2 bg-gray-50 rounded">
-                        <div className="font-semibold text-gray-900">
-                          {template.execution_count}
-                        </div>
-                        <div className="text-gray-600">Execuções</div>
-                      </div>
-                    </div>
-                    
-                    {/* Actions */}
-                    <div className="flex gap-2">
-                      <Button 
-                        className="flex-1" 
-                        onClick={() => setExecutingTemplate(template)}
-                      >
-                        <Play className="mr-2 h-4 w-4" />
-                        Executar
-                      </Button>
-                      
-                      <Button 
-                        variant="outline"
-                        onClick={() => setPreviewingTemplate(template)}
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      
-                      {can.updateTemplate && (
-                        <Button 
-                          variant="outline"
-                          onClick={() => navigate(`/templates/edit/${template.id}`)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                      )}
+                    <div className="flex justify-between">
+                      <span>Campos:</span>
+                      <span className="font-medium">0</span>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
-            )
-          })}
+
+                  {/* Webhook Status */}
+                  {template.webhook_enabled && (
+                    <div className="flex items-center text-xs text-green-600">
+                      <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+                      Webhook ativo
+                    </div>
+                  )}
+
+                  {/* Data de criação */}
+                  <div className="text-xs text-gray-500 pt-2 border-t">
+                    Criado em {new Date(template.created_at).toLocaleDateString('pt-BR')}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
         </div>
       )}
 
-      {/* Modals */}
-      {executingTemplate && (
-        <AdvancedTemplateExecutor 
-          isOpen={!!executingTemplate}
-          template={executingTemplate}
-          onClose={() => setExecutingTemplate(null)}
-          onSuccess={() => {
-            setExecutingTemplate(null);
-            loadTemplates(); // Refresh to update execution count
-          }}
-        />
-      )}
+      {/* Modal de Edição */}
+      <AdvancedTemplateEditor
+        isOpen={isEditorOpen}
+        template={selectedTemplate || undefined}
+        onClose={() => {
+          setIsEditorOpen(false)
+          setSelectedTemplate(null)
+        }}
+        onSuccess={() => {
+          setIsEditorOpen(false)
+          setSelectedTemplate(null)
+          loadTemplates(filters)
+        }}
+      />
 
-      {/* Preview Modal */}
-      {previewingTemplate && (
-        <Dialog open={!!previewingTemplate} onOpenChange={() => setPreviewingTemplate(null)}>
-          <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden">
-            <DialogHeader>
-              <DialogTitle>Preview: {previewingTemplate.name}</DialogTitle>
-            </DialogHeader>
-            <div className="overflow-y-auto">
-              <div className="p-4 bg-gray-50 rounded">
-                <h4 className="font-medium mb-2">Conteúdo do Template:</h4>
-                <pre className="whitespace-pre-wrap text-sm">{previewingTemplate.template_content}</pre>
-              </div>
-              {previewingTemplate.fields && previewingTemplate.fields.length > 0 && (
-                <div className="mt-4">
-                  <h4 className="font-medium mb-2">Campos Configurados ({previewingTemplate.fields.length}):</h4>
-                  <div className="space-y-2">
-                    {previewingTemplate.fields.map((field: any) => (
-                      <div key={field.id} className="flex items-center gap-2 p-2 bg-gray-50 rounded">
-                        <Badge variant="outline">{field.field_type}</Badge>
-                        <span className="font-medium">{field.field_label}</span>
-                        <span className="text-gray-600">({field.field_key})</span>
-                        {field.is_required && <Badge variant="destructive" className="text-xs">Obrigatório</Badge>}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
+      {/* Dialog de Confirmação de Exclusão */}
+      <AlertDialog open={!!templateToDelete} onOpenChange={() => setTemplateToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir o template "{templateToDelete?.name}"? 
+              Esta ação não pode ser desfeita e todos os dados relacionados serão perdidos.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmDelete}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
-  );
-};
+  )
+}

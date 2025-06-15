@@ -51,7 +51,10 @@ export const useAdvancedTemplates = () => {
         throw new Error(queryError.message)
       }
 
-      setTemplates(data || [])
+      setTemplates((data || []).map(template => ({
+        ...template,
+        category: template.category as 'civil' | 'criminal' | 'trabalhista' | 'tributario' | 'empresarial' | 'familia'
+      })))
 
     } catch (err: any) {
       console.error('Error loading templates:', err)
@@ -100,6 +103,29 @@ export const useAdvancedTemplates = () => {
         throw new Error(templateError.message)
       }
 
+      // Create fields if provided
+      if (data.fields && data.fields.length > 0) {
+        const fieldsToInsert = data.fields.map((field, index) => ({
+          template_id: templateData.id,
+          field_key: field.field_key,
+          field_title: field.field_title,
+          field_type: field.field_type,
+          field_options: field.field_options || {},
+          is_required: field.is_required || false,
+          display_order: field.display_order || index,
+          validation_rules: field.validation_rules || {},
+          field_description: ''
+        }))
+
+        const { error: fieldsError } = await supabase
+          .from('template_fields')
+          .insert(fieldsToInsert)
+
+        if (fieldsError) {
+          console.error('Error creating fields:', fieldsError)
+        }
+      }
+
       toast({
         title: "Template criado",
         description: `${templateData.name} foi criado com sucesso.`,
@@ -107,7 +133,10 @@ export const useAdvancedTemplates = () => {
 
       await loadTemplates()
 
-      return templateData as PetitionTemplate
+      return {
+        ...templateData,
+        category: templateData.category as 'civil' | 'criminal' | 'trabalhista' | 'tributario' | 'empresarial' | 'familia'
+      }
 
     } catch (err: any) {
       console.error('Error creating template:', err)
@@ -152,6 +181,38 @@ export const useAdvancedTemplates = () => {
 
       if (templateError) {
         throw new Error(templateError.message)
+      }
+
+      // Update fields if provided
+      if (data.fields) {
+        // Delete existing fields
+        await supabase
+          .from('template_fields')
+          .delete()
+          .eq('template_id', id)
+
+        // Insert new fields
+        if (data.fields.length > 0) {
+          const fieldsToInsert = data.fields.map((field, index) => ({
+            template_id: id,
+            field_key: field.field_key,
+            field_title: field.field_title,
+            field_type: field.field_type,
+            field_options: field.field_options || {},
+            is_required: field.is_required || false,
+            display_order: field.display_order || index,
+            validation_rules: field.validation_rules || {},
+            field_description: ''
+          }))
+
+          const { error: fieldsError } = await supabase
+            .from('template_fields')
+            .insert(fieldsToInsert)
+
+          if (fieldsError) {
+            console.error('Error updating fields:', fieldsError)
+          }
+        }
       }
 
       toast({
@@ -216,7 +277,10 @@ export const useAdvancedTemplates = () => {
     try {
       const { data, error } = await supabase
         .from('petition_templates')
-        .select('*')
+        .select(`
+          *,
+          fields:template_fields(*)
+        `)
         .eq('id', id)
         .single()
 
@@ -224,7 +288,11 @@ export const useAdvancedTemplates = () => {
         throw new Error(error.message)
       }
 
-      return data as PetitionTemplate
+      return {
+        ...data,
+        category: data.category as 'civil' | 'criminal' | 'trabalhista' | 'tributario' | 'empresarial' | 'familia',
+        fields: data.fields || []
+      }
 
     } catch (err: any) {
       console.error('Error getting template:', err)

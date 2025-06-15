@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react'
 import { useAdvancedTemplates } from '@/hooks/useAdvancedTemplates'
 import { Button } from '@/components/ui/button'
@@ -12,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Plus, X, Save, AlertCircle } from 'lucide-react'
-import { PetitionTemplate, CreateTemplateData, TemplateField } from '@/types/templates'
+import { PetitionTemplate, CreateTemplateData, TemplateField } from '@/types/petition'
 
 interface AdvancedTemplateEditorProps {
   isOpen: boolean
@@ -79,7 +78,7 @@ export const AdvancedTemplateEditor = ({
         webhook_enabled: template.webhook_enabled,
         fields: template.fields?.map(field => ({
           field_key: field.field_key,
-          field_label: field.field_label,
+          field_title: field.field_title,
           field_type: field.field_type,
           field_options: field.field_options,
           is_required: field.is_required,
@@ -113,7 +112,7 @@ export const AdvancedTemplateEditor = ({
   const addField = () => {
     const newField = {
       field_key: `campo_${formData.fields.length + 1}`,
-      field_label: `Campo ${formData.fields.length + 1}`,
+      field_title: `Campo ${formData.fields.length + 1}`,
       field_type: 'text' as const,
       field_options: {},
       is_required: false,
@@ -400,8 +399,8 @@ export const AdvancedTemplateEditor = ({
                                 <div>
                                   <Label className="text-xs">Label do Campo</Label>
                                   <Input
-                                    value={field.field_label}
-                                    onChange={(e) => updateField(index, { field_label: e.target.value })}
+                                    value={field.field_title}
+                                    onChange={(e) => updateField(index, { field_title: e.target.value })}
                                     placeholder="Nome do Cliente"
                                     className="text-sm h-8"
                                   />

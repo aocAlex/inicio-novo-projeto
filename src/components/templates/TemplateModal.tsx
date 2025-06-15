@@ -40,7 +40,7 @@ export const TemplateModal = ({
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    category: 'civil' as const,
+    category: 'civil' as 'civil' | 'criminal' | 'trabalhista' | 'tributario' | 'empresarial' | 'familia',
     template_content: '',
     is_shared: false,
     webhook_url: '',
