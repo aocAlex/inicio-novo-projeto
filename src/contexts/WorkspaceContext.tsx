@@ -173,7 +173,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       console.log('LoadWorkspaces: Finalizando carregamento');
       setIsLoading(false);
     }
-  }, [user]); // Removido profile e toast da dependência para evitar loop
+  }, [user?.id]); // Só depender do user.id, não do objeto user inteiro
 
   const createWorkspace = async (data: CreateWorkspaceData): Promise<Workspace> => {
     if (!user) throw new Error('User not authenticated');
@@ -270,7 +270,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       setCurrentMember(null);
       setIsLoading(false);
     }
-  }, [user, profile, loadWorkspaces]);
+  }, [user?.id, profile?.id, loadWorkspaces]); // Dependências mais específicas
 
   const value = {
     currentWorkspace,
