@@ -30,7 +30,7 @@ export const ContractModal: React.FC<ContractModalProps> = ({ open, onClose, con
     contract_type: '',
     zapsign_open_id: 0,
     zapsign_token: '',
-    status: 'pending' as const,
+    status: 'pending' as Contract['status'],
     client_id: '',
     notes: ''
   });
@@ -156,7 +156,7 @@ export const ContractModal: React.FC<ContractModalProps> = ({ open, onClose, con
               <Label htmlFor="status">Status</Label>
               <Select
                 value={formData.status}
-                onValueChange={(value) => setFormData(prev => ({ ...prev, status: value as any }))}
+                onValueChange={(value) => setFormData(prev => ({ ...prev, status: value as Contract['status'] }))}
               >
                 <SelectTrigger>
                   <SelectValue />
