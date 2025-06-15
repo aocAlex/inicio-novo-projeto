@@ -132,35 +132,21 @@ export const ModernSidebar = () => {
                 
                 return (
                   <SidebarMenuItem key={item.name}>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <SidebarMenuButton 
-                            asChild
-                            isActive={isActive}
-                            tooltip={isCollapsed ? `${item.name} (${item.shortcut})` : undefined}
-                          >
-                            <Link to={item.href} className="group">
-                              <item.icon className="h-4 w-4" />
-                              <span>{item.name}</span>
-                              {item.badge && (
-                                <span className="ml-auto flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground">
-                                  {item.badge}
-                                </span>
-                              )}
-                            </Link>
-                          </SidebarMenuButton>
-                        </TooltipTrigger>
-                        {isCollapsed && (
-                          <TooltipContent side="right" className="font-medium">
-                            {item.name}
-                            <span className="ml-2 text-xs text-muted-foreground">
-                              {item.shortcut}
-                            </span>
-                          </TooltipContent>
+                    <SidebarMenuButton 
+                      asChild
+                      isActive={isActive}
+                      tooltip={isCollapsed ? `${item.name} (${item.shortcut})` : undefined}
+                    >
+                      <Link to={item.href} className="group flex items-center gap-2">
+                        <item.icon className="h-4 w-4 flex-shrink-0" />
+                        <span className="truncate">{item.name}</span>
+                        {item.badge && (
+                          <span className="ml-auto flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground">
+                            {item.badge}
+                          </span>
                         )}
-                      </Tooltip>
-                    </TooltipProvider>
+                      </Link>
+                    </SidebarMenuButton>
                   </SidebarMenuItem>
                 );
               })}

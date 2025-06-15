@@ -1,12 +1,12 @@
 
 import { supabase } from '@/integrations/supabase/client';
 
-interface WorkspaceMember {
+interface SimpleMember {
   id: string;
   user_id: string;
 }
 
-interface ProfileCheck {
+interface SimpleProfile {
   id: string;
 }
 
@@ -14,17 +14,19 @@ export const cleanupOrphanedMembers = async (workspaceId: string) => {
   try {
     console.log('Starting cleanup of orphaned members for workspace:', workspaceId);
 
-    // Get all active members for this workspace - simplified query
-    const { data: allMembers, error: allMembersError } = await supabase
+    // Get all active members for this workspace
+    const membersResult = await supabase
       .from('workspace_members')
       .select('id, user_id')
       .eq('workspace_id', workspaceId)
       .eq('status', 'active');
 
-    if (allMembersError) {
-      console.error('Error fetching all members:', allMembersError);
-      return { success: false, error: allMembersError };
+    if (membersResult.error) {
+      console.error('Error fetching all members:', membersResult.error);
+      return { success: false, error: membersResult.error };
     }
+
+    const allMembers = membersResult.data as SimpleMember[];
 
     if (!allMembers || allMembers.length === 0) {
       console.log('No active members found');
@@ -32,17 +34,17 @@ export const cleanupOrphanedMembers = async (workspaceId: string) => {
     }
 
     // Check which members have valid profiles
-    const orphanedMembers: WorkspaceMember[] = [];
+    const orphanedMembers: SimpleMember[] = [];
     
     for (const member of allMembers) {
-      // Simplified profile query
-      const { data: profile, error: profileError } = await supabase
+      // Check if profile exists
+      const profileResult = await supabase
         .from('profiles')
         .select('id')
         .eq('id', member.user_id)
         .single();
 
-      if (profileError || !profile) {
+      if (profileResult.error || !profileResult.data) {
         orphanedMembers.push(member);
       }
     }
@@ -53,10 +55,10 @@ export const cleanupOrphanedMembers = async (workspaceId: string) => {
       return { success: true, removedCount: 0 };
     }
 
-    // Suspend orphaned members - simplified update
+    // Suspend orphaned members
     const orphanedIds = orphanedMembers.map(m => m.id);
     
-    const { error: updateError } = await supabase
+    const updateResult = await supabase
       .from('workspace_members')
       .update({ 
         status: 'suspended',
@@ -64,9 +66,9 @@ export const cleanupOrphanedMembers = async (workspaceId: string) => {
       })
       .in('id', orphanedIds);
 
-    if (updateError) {
-      console.error('Error suspending orphaned members:', updateError);
-      return { success: false, error: updateError };
+    if (updateResult.error) {
+      console.error('Error suspending orphaned members:', updateResult.error);
+      return { success: false, error: updateResult.error };
     }
 
     console.log(`Successfully suspended ${orphanedMembers.length} orphaned members`);
@@ -80,15 +82,15 @@ export const cleanupOrphanedMembers = async (workspaceId: string) => {
 
 export const validateMemberExists = async (userId: string): Promise<boolean> => {
   try {
-    // Simplified profile validation query
-    const { data, error } = await supabase
+    // Check if profile exists
+    const profileResult = await supabase
       .from('profiles')
       .select('id')
       .eq('id', userId)
       .single();
 
-    if (error || !data) {
-      console.error('Error validating user:', error);
+    if (profileResult.error || !profileResult.data) {
+      console.error('Error validating user:', profileResult.error);
       return false;
     }
 
