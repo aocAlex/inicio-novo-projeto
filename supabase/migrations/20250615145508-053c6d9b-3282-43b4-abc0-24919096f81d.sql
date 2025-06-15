@@ -24,15 +24,9 @@ AS $$
   );
 $$;
 
--- Adicionar política para permitir que usuários criem workspaces quando não têm nenhuma
-CREATE POLICY "Users can create workspace if they have none" ON public.workspaces
-  FOR INSERT WITH CHECK (
-    owner_id = auth.uid() AND
-    NOT EXISTS (
-      SELECT 1 FROM public.workspace_members wm
-      WHERE wm.user_id = auth.uid() AND wm.status = 'active'
-    )
-  );
+-- Política mais permissiva: usuários podem criar workspaces normalmente
+CREATE POLICY "Users can create workspaces" ON public.workspaces
+  FOR INSERT WITH CHECK (owner_id = auth.uid());
 
 -- Adicionar política para permitir que usuários vejam suas próprias workspaces
 CREATE POLICY "Users can view their own workspaces" ON public.workspaces
@@ -43,3 +37,4 @@ CREATE POLICY "Users can view their own workspaces" ON public.workspaces
 -- Adicionar política para permitir que owners atualizem suas workspaces
 CREATE POLICY "Owners can update their workspaces" ON public.workspaces
   FOR UPDATE USING (owner_id = auth.uid());
+

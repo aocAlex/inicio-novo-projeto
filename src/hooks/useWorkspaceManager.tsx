@@ -9,6 +9,16 @@ export const useWorkspaceManager = () => {
 
   const createWorkspace = useCallback(async (data: CreateWorkspaceData, userId: string): Promise<Workspace> => {
     try {
+      console.log('Creating workspace with data:', { ...data, owner_id: userId });
+      
+      // Verificar se o usuário está autenticado
+      const { data: { session } } = await supabase.auth.getSession();
+      console.log('Current session:', session?.user?.id);
+      
+      if (!session?.user) {
+        throw new Error('Usuário não autenticado');
+      }
+
       const { data: workspaceData, error: workspaceError } = await supabase
         .from('workspaces')
         .insert({
@@ -18,7 +28,12 @@ export const useWorkspaceManager = () => {
         .select()
         .single();
 
-      if (workspaceError) throw workspaceError;
+      if (workspaceError) {
+        console.error('Workspace creation error:', workspaceError);
+        throw workspaceError;
+      }
+
+      console.log('Workspace created successfully:', workspaceData);
 
       const { error: memberError } = await supabase
         .from('workspace_members')
@@ -28,7 +43,10 @@ export const useWorkspaceManager = () => {
           role: 'owner',
         });
 
-      if (memberError) throw memberError;
+      if (memberError) {
+        console.error('Member creation error:', memberError);
+        throw memberError;
+      }
 
       toast({
         title: "Sucesso",
@@ -40,7 +58,7 @@ export const useWorkspaceManager = () => {
       console.error('Error creating workspace:', error);
       toast({
         title: "Erro",
-        description: "Erro ao criar workspace",
+        description: error.message || "Erro ao criar workspace",
         variant: "destructive",
       });
       throw error;
