@@ -1,7 +1,6 @@
 
 import { useState, useEffect } from 'react';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
-import { supabase } from '@/integrations/supabase/client';
 import { FinancialDashboardMetrics, CashFlowProjection } from '@/types/financial';
 import { useToast } from '@/hooks/use-toast';
 
@@ -20,114 +19,23 @@ export const useFinancialMetrics = () => {
       setIsLoading(true);
       setError(null);
 
-      const now = new Date();
-      const currentMonth = now.getMonth() + 1;
-      const currentYear = now.getFullYear();
-      const previousMonth = currentMonth === 1 ? 12 : currentMonth - 1;
-      const previousYear = currentMonth === 1 ? currentYear - 1 : currentYear;
+      // Mock data until database tables are created
+      await new Promise(resolve => setTimeout(resolve, 500));
 
-      // Current month revenue
-      const { data: currentRevenue } = await supabase
-        .from('financial_transactions')
-        .select('amount')
-        .eq('workspace_id', currentWorkspace.id)
-        .eq('transaction_type', 'income')
-        .eq('status', 'paid')
-        .gte('payment_date', `${currentYear}-${currentMonth.toString().padStart(2, '0')}-01`)
-        .lt('payment_date', `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}-01`);
-
-      // Previous month revenue
-      const { data: previousRevenue } = await supabase
-        .from('financial_transactions')
-        .select('amount')
-        .eq('workspace_id', currentWorkspace.id)
-        .eq('transaction_type', 'income')
-        .eq('status', 'paid')
-        .gte('payment_date', `${previousYear}-${previousMonth.toString().padStart(2, '0')}-01`)
-        .lt('payment_date', `${previousYear}-${currentMonth.toString().padStart(2, '0')}-01`);
-
-      // Total to receive (today, 7 days, 30 days)
-      const today = now.toISOString().split('T')[0];
-      const next7Days = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-      const next30Days = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-
-      const { data: toReceiveToday } = await supabase
-        .from('financial_transactions')
-        .select('amount')
-        .eq('workspace_id', currentWorkspace.id)
-        .eq('transaction_type', 'income')
-        .eq('status', 'pending')
-        .eq('due_date', today);
-
-      const { data: toReceive7Days } = await supabase
-        .from('financial_transactions')
-        .select('amount')
-        .eq('workspace_id', currentWorkspace.id)
-        .eq('transaction_type', 'income')
-        .eq('status', 'pending')
-        .lte('due_date', next7Days);
-
-      const { data: toReceive30Days } = await supabase
-        .from('financial_transactions')
-        .select('amount')
-        .eq('workspace_id', currentWorkspace.id)
-        .eq('transaction_type', 'income')
-        .eq('status', 'pending')
-        .lte('due_date', next30Days);
-
-      // Current month expenses
-      const { data: currentExpenses } = await supabase
-        .from('financial_transactions')
-        .select('amount')
-        .eq('workspace_id', currentWorkspace.id)
-        .eq('transaction_type', 'expense')
-        .eq('status', 'paid')
-        .gte('payment_date', `${currentYear}-${currentMonth.toString().padStart(2, '0')}-01`)
-        .lt('payment_date', `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}-01`);
-
-      // Overdue amount
-      const { data: overdueTransactions } = await supabase
-        .from('financial_transactions')
-        .select('amount')
-        .eq('workspace_id', currentWorkspace.id)
-        .eq('transaction_type', 'income')
-        .eq('status', 'overdue');
-
-      // Active contracts
-      const { data: activeContracts } = await supabase
-        .from('financial_contracts')
-        .select('id')
-        .eq('workspace_id', currentWorkspace.id)
-        .eq('status', 'active');
-
-      // Pending payments
-      const { data: pendingPayments } = await supabase
-        .from('financial_transactions')
-        .select('id')
-        .eq('workspace_id', currentWorkspace.id)
-        .eq('transaction_type', 'income')
-        .eq('status', 'pending');
-
-      // Calculate metrics
-      const currentMonthRevenue = currentRevenue?.reduce((sum, t) => sum + (t.amount || 0), 0) || 0;
-      const previousMonthRevenue = previousRevenue?.reduce((sum, t) => sum + (t.amount || 0), 0) || 0;
-      const currentMonthExpenses = currentExpenses?.reduce((sum, t) => sum + (t.amount || 0), 0) || 0;
-      const profitMargin = currentMonthRevenue > 0 ? ((currentMonthRevenue - currentMonthExpenses) / currentMonthRevenue) * 100 : 0;
-
-      const calculatedMetrics: FinancialDashboardMetrics = {
-        current_month_revenue: currentMonthRevenue,
-        previous_month_revenue: previousMonthRevenue,
-        total_to_receive_today: toReceiveToday?.reduce((sum, t) => sum + (t.amount || 0), 0) || 0,
-        total_to_receive_7_days: toReceive7Days?.reduce((sum, t) => sum + (t.amount || 0), 0) || 0,
-        total_to_receive_30_days: toReceive30Days?.reduce((sum, t) => sum + (t.amount || 0), 0) || 0,
-        total_expenses_month: currentMonthExpenses,
-        profit_margin: profitMargin,
-        overdue_amount: overdueTransactions?.reduce((sum, t) => sum + (t.amount || 0), 0) || 0,
-        active_contracts: activeContracts?.length || 0,
-        pending_payments: pendingPayments?.length || 0,
+      const mockMetrics: FinancialDashboardMetrics = {
+        current_month_revenue: 25000,
+        previous_month_revenue: 22000,
+        total_to_receive_today: 5000,
+        total_to_receive_7_days: 12000,
+        total_to_receive_30_days: 35000,
+        total_expenses_month: 8000,
+        profit_margin: 68,
+        overdue_amount: 2500,
+        active_contracts: 15,
+        pending_payments: 8,
       };
 
-      setMetrics(calculatedMetrics);
+      setMetrics(mockMetrics);
     } catch (err: any) {
       setError(err.message);
       console.error('Error loading financial metrics:', err);
@@ -145,53 +53,24 @@ export const useFinancialMetrics = () => {
     if (!currentWorkspace) return;
 
     try {
-      // Get next 6 months projection
-      const projections: CashFlowProjection[] = [];
+      // Mock cash flow data
+      const mockCashFlow: CashFlowProjection[] = [];
       const today = new Date();
       
       for (let i = 0; i < 6; i++) {
         const projectionDate = new Date(today.getFullYear(), today.getMonth() + i, 1);
-        const nextMonth = new Date(today.getFullYear(), today.getMonth() + i + 1, 1);
-        
         const monthStart = projectionDate.toISOString().split('T')[0];
-        const monthEnd = nextMonth.toISOString().split('T')[0];
-
-        // Projected income from installments and contracts
-        const { data: projectedIncome } = await supabase
-          .from('financial_installments')
-          .select('amount')
-          .eq('workspace_id', currentWorkspace.id)
-          .eq('status', 'pending')
-          .gte('due_date', monthStart)
-          .lt('due_date', monthEnd);
-
-        // Projected expenses (estimated based on historical data)
-        const { data: historicalExpenses } = await supabase
-          .from('financial_transactions')
-          .select('amount')
-          .eq('workspace_id', currentWorkspace.id)
-          .eq('transaction_type', 'expense')
-          .gte('created_at', new Date(projectionDate.getTime() - 365 * 24 * 60 * 60 * 1000).toISOString());
-
-        const avgMonthlyExpenses = historicalExpenses?.length 
-          ? historicalExpenses.reduce((sum, t) => sum + (t.amount || 0), 0) / 12 
-          : 0;
-
-        const income = projectedIncome?.reduce((sum, i) => sum + (i.amount || 0), 0) || 0;
-        const expenses = avgMonthlyExpenses;
-        const netFlow = income - expenses;
-        const accumulatedBalance = i === 0 ? netFlow : (projections[i - 1]?.accumulated_balance || 0) + netFlow;
-
-        projections.push({
+        
+        mockCashFlow.push({
           date: monthStart,
-          projected_income: income,
-          projected_expenses: expenses,
-          net_flow: netFlow,
-          accumulated_balance: accumulatedBalance
+          projected_income: 25000 + (Math.random() * 10000),
+          projected_expenses: 8000 + (Math.random() * 3000),
+          net_flow: 17000 + (Math.random() * 7000),
+          accumulated_balance: (i + 1) * 17000
         });
       }
 
-      setCashFlow(projections);
+      setCashFlow(mockCashFlow);
     } catch (err: any) {
       console.error('Error loading cash flow projection:', err);
     }
