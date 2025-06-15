@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -11,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, UserPlus, Users, Trash2, Mail } from 'lucide-react';
+import { Loader2, UserPlus, Users, Trash2, Mail, AlertTriangle } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,6 +28,7 @@ export const MembersManagement = () => {
   const { can } = usePermissions();
   const { toast } = useToast();
   const [members, setMembers] = useState<WorkspaceMember[]>([]);
+  const [orphanedMembers, setOrphanedMembers] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isInviting, setIsInviting] = useState(false);
   const [inviteForm, setInviteForm] = useState({
@@ -42,6 +42,8 @@ export const MembersManagement = () => {
     try {
       setIsLoading(true);
       
+      console.log('Loading members for workspace:', currentWorkspace.id);
+      
       // First get workspace members
       const { data: membersData, error: membersError } = await supabase
         .from('workspace_members')
@@ -49,33 +51,85 @@ export const MembersManagement = () => {
         .eq('workspace_id', currentWorkspace.id)
         .eq('status', 'active');
 
-      if (membersError) throw membersError;
+      if (membersError) {
+        console.error('Error loading workspace members:', membersError);
+        throw membersError;
+      }
 
-      // Then get profiles for each member
+      console.log('Found workspace members:', membersData?.length || 0);
+
+      if (!membersData || membersData.length === 0) {
+        setMembers([]);
+        setOrphanedMembers([]);
+        return;
+      }
+
+      // Get profiles for each member
       const memberIds = membersData.map(member => member.user_id);
+      console.log('Looking for profiles for user IDs:', memberIds);
+
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
         .select('id, email, full_name, avatar_url')
         .in('id', memberIds);
 
       if (profilesError) {
-        console.warn('Could not load profiles:', profilesError);
+        console.error('Error loading profiles:', profilesError);
+        // Continue even if profiles fail to load
       }
 
-      // Combine members with their profiles
-      const membersWithProfile: WorkspaceMember[] = membersData.map(member => ({
-        id: member.id,
-        workspace_id: member.workspace_id,
-        user_id: member.user_id,
-        role: member.role as 'owner' | 'admin' | 'editor' | 'viewer',
-        status: member.status as 'active' | 'pending' | 'suspended',
-        permissions: typeof member.permissions === 'object' && member.permissions !== null ? member.permissions as Record<string, any> : {},
-        last_activity: member.last_activity,
-        created_at: member.created_at,
-        profile: profilesData?.find(profile => profile.id === member.user_id) || undefined,
-      }));
+      console.log('Found profiles:', profilesData?.length || 0);
 
-      setMembers(membersWithProfile);
+      // Separate members with and without profiles
+      const validMembers: WorkspaceMember[] = [];
+      const orphaned: any[] = [];
+
+      membersData.forEach(member => {
+        const profile = profilesData?.find(p => p.id === member.user_id);
+        
+        if (profile) {
+          // Member has a valid profile
+          validMembers.push({
+            id: member.id,
+            workspace_id: member.workspace_id,
+            user_id: member.user_id,
+            role: member.role as 'owner' | 'admin' | 'editor' | 'viewer',
+            status: member.status as 'active' | 'pending' | 'suspended',
+            permissions: typeof member.permissions === 'object' && member.permissions !== null ? member.permissions as Record<string, any> : {},
+            last_activity: member.last_activity,
+            created_at: member.created_at,
+            profile: {
+              id: profile.id,
+              email: profile.email,
+              full_name: profile.full_name,
+              avatar_url: profile.avatar_url,
+            },
+          });
+        } else {
+          // Member doesn't have a profile (orphaned)
+          console.warn('Orphaned member found:', member.user_id);
+          orphaned.push({
+            ...member,
+            reason: 'Profile not found'
+          });
+        }
+      });
+
+      console.log('Valid members:', validMembers.length);
+      console.log('Orphaned members:', orphaned.length);
+
+      setMembers(validMembers);
+      setOrphanedMembers(orphaned);
+
+      // Show warning if there are orphaned members
+      if (orphaned.length > 0) {
+        toast({
+          title: "Membros órfãos encontrados",
+          description: `${orphaned.length} membro(s) sem perfil válido foram encontrados`,
+          variant: "destructive",
+        });
+      }
+
     } catch (error: any) {
       console.error('Error loading members:', error);
       toast({
@@ -85,6 +139,36 @@ export const MembersManagement = () => {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const cleanupOrphanedMembers = async () => {
+    if (!currentWorkspace || orphanedMembers.length === 0) return;
+
+    try {
+      const orphanedIds = orphanedMembers.map(member => member.id);
+      
+      const { error } = await supabase
+        .from('workspace_members')
+        .update({ status: 'suspended' })
+        .in('id', orphanedIds);
+
+      if (error) throw error;
+
+      toast({
+        title: "Membros órfãos removidos",
+        description: `${orphanedMembers.length} membro(s) órfão(s) foram removidos`,
+      });
+
+      // Reload members
+      loadMembers();
+    } catch (error: any) {
+      console.error('Error cleaning up orphaned members:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao remover membros órfãos",
+        variant: "destructive",
+      });
     }
   };
 
@@ -186,6 +270,44 @@ export const MembersManagement = () => {
 
   return (
     <div className="space-y-6">
+      {/* Orphaned Members Warning */}
+      {orphanedMembers.length > 0 && (
+        <Card className="border-orange-200 bg-orange-50">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-orange-800">
+              <AlertTriangle className="h-5 w-5" />
+              Membros Órfãos Detectados
+            </CardTitle>
+            <CardDescription className="text-orange-700">
+              {orphanedMembers.length} membro(s) sem perfil válido encontrado(s). 
+              Estes podem ser usuários que foram excluídos do sistema.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="space-y-2 mb-4">
+              {orphanedMembers.map((member, index) => (
+                <div key={index} className="flex items-center justify-between p-2 bg-white rounded border">
+                  <div>
+                    <p className="font-medium text-sm">ID: {member.user_id}</p>
+                    <p className="text-xs text-gray-500">Função: {getRoleLabel(member.role)}</p>
+                  </div>
+                  <Badge variant="outline" className="text-orange-700">
+                    Órfão
+                  </Badge>
+                </div>
+              ))}
+            </div>
+            <Button 
+              onClick={cleanupOrphanedMembers}
+              variant="outline" 
+              className="border-orange-300 text-orange-700 hover:bg-orange-100"
+            >
+              Remover Membros Órfãos
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Invite Member */}
       <Card>
         <CardHeader>

@@ -60,17 +60,20 @@ export const useWorkspaceOptions = () => {
     enabled: !!currentWorkspace?.id,
   });
 
-  // Buscar usuários da workspace
+  // Buscar usuários da workspace - com melhor tratamento de órfãos
   const { data: workspaceUsers = [] } = useQuery({
     queryKey: ['workspace-users', currentWorkspace?.id],
     queryFn: async () => {
       if (!currentWorkspace?.id) return [];
 
+      console.log('Loading workspace users for workspace:', currentWorkspace.id);
+
+      // Usar JOIN ao invés de select aninhado para garantir que só retornamos usuários com profiles válidos
       const { data, error } = await supabase
         .from('workspace_members')
         .select(`
           user_id,
-          profiles:user_id (
+          profiles!inner (
             id,
             full_name,
             email
@@ -79,13 +82,24 @@ export const useWorkspaceOptions = () => {
         .eq('workspace_id', currentWorkspace.id)
         .eq('status', 'active');
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error loading workspace users:', error);
+        throw error;
+      }
       
-      return data?.map((member: any) => ({
-        id: member.user_id,
-        full_name: member.profiles?.full_name || member.profiles?.email || 'Usuário sem nome',
-        email: member.profiles?.email || ''
-      })) || [];
+      console.log('Found workspace users with valid profiles:', data?.length || 0);
+      
+      // Filtrar e mapear apenas usuários com profiles válidos
+      const validUsers = data
+        ?.filter((member: any) => member.profiles && member.profiles.id)
+        .map((member: any) => ({
+          id: member.user_id,
+          full_name: member.profiles.full_name || member.profiles.email || 'Usuário sem nome',
+          email: member.profiles.email || ''
+        })) || [];
+
+      console.log('Valid users after filtering:', validUsers.length);
+      return validUsers;
     },
     enabled: !!currentWorkspace?.id,
   });
