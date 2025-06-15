@@ -37,7 +37,14 @@ export const useClientInteractions = (clientId?: string) => {
         throw queryError;
       }
 
-      setInteractions(data || []);
+      // Type cast the data to match our interface
+      const typedInteractions = (data || []).map(item => ({
+        ...item,
+        interaction_type: item.interaction_type as ClientInteraction['interaction_type'],
+        metadata: item.metadata || {}
+      })) as ClientInteraction[];
+
+      setInteractions(typedInteractions);
 
     } catch (err: any) {
       console.error('Error loading interactions:', err);
@@ -75,14 +82,21 @@ export const useClientInteractions = (clientId?: string) => {
         throw error;
       }
 
-      setInteractions(prev => [data, ...prev]);
+      // Type cast the returned data
+      const typedInteraction = {
+        ...data,
+        interaction_type: data.interaction_type as ClientInteraction['interaction_type'],
+        metadata: data.metadata || {}
+      } as ClientInteraction;
+
+      setInteractions(prev => [typedInteraction, ...prev]);
       
       toast({
         title: "Interação registrada",
         description: "Nova interação adicionada com sucesso.",
       });
 
-      return data;
+      return typedInteraction;
 
     } catch (err: any) {
       console.error('Error creating interaction:', err);
@@ -123,8 +137,15 @@ export const useClientInteractions = (clientId?: string) => {
         throw error;
       }
 
+      // Type cast the returned data
+      const typedInteraction = {
+        ...data,
+        interaction_type: data.interaction_type as ClientInteraction['interaction_type'],
+        metadata: data.metadata || {}
+      } as ClientInteraction;
+
       setInteractions(prev => prev.map(interaction => 
-        interaction.id === id ? data : interaction
+        interaction.id === id ? typedInteraction : interaction
       ));
       
       toast({

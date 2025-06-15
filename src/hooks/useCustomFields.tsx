@@ -30,7 +30,14 @@ export const useCustomFields = () => {
         throw queryError;
       }
 
-      setCustomFields(data || []);
+      // Type cast the data to match our interface
+      const typedFields = (data || []).map(item => ({
+        ...item,
+        field_type: item.field_type as CustomFieldDefinition['field_type'],
+        field_options: item.field_options || {}
+      })) as CustomFieldDefinition[];
+
+      setCustomFields(typedFields);
 
     } catch (err: any) {
       console.error('Error loading custom fields:', err);
@@ -61,14 +68,21 @@ export const useCustomFields = () => {
         throw error;
       }
 
-      setCustomFields(prev => [...prev, data].sort((a, b) => a.display_order - b.display_order));
+      // Type cast the returned data
+      const typedField = {
+        ...data,
+        field_type: data.field_type as CustomFieldDefinition['field_type'],
+        field_options: data.field_options || {}
+      } as CustomFieldDefinition;
+
+      setCustomFields(prev => [...prev, typedField].sort((a, b) => a.display_order - b.display_order));
       
       toast({
         title: "Campo criado",
         description: "Campo personalizado criado com sucesso.",
       });
 
-      return data;
+      return typedField;
 
     } catch (err: any) {
       console.error('Error creating custom field:', err);
