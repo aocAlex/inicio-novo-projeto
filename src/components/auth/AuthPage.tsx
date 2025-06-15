@@ -6,16 +6,18 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/contexts/AuthContext';
-import { Loader2, Scale } from 'lucide-react';
+import { Loader2, Scale, RefreshCw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
+import { cleanupAuthState } from '@/utils/authCleanup';
 
 export const AuthPage = () => {
-  const { signIn, signUp, user } = useAuth();
+  const { signIn, signUp, user, forceReset } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
 
   const [loginData, setLoginData] = useState({
     email: '',
@@ -36,6 +38,31 @@ export const AuthPage = () => {
     }
   }, [user, navigate]);
 
+  // Limpar cache ao carregar a página
+  useEffect(() => {
+    cleanupAuthState();
+  }, []);
+
+  const handleForceReset = async () => {
+    setIsResetting(true);
+    try {
+      await forceReset();
+      toast({
+        title: "Cache limpo",
+        description: "O cache de autenticação foi limpo. Tente fazer login novamente.",
+      });
+    } catch (error) {
+      console.error('Erro ao limpar cache:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao limpar cache, mas você pode tentar fazer login",
+        variant: "destructive",
+      });
+    } finally {
+      setIsResetting(false);
+    }
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -46,7 +73,19 @@ export const AuthPage = () => {
       
       if (error) {
         console.error('Erro no login:', error);
-        throw error;
+        
+        // Se o erro for relacionado a usuário não encontrado, sugerir limpeza de cache
+        if (error.message.includes('Invalid login credentials') || 
+            error.message.includes('User not found')) {
+          toast({
+            title: "Erro no login",
+            description: "Credenciais inválidas. Se o problema persistir, clique em 'Limpar Cache'.",
+            variant: "destructive",
+          });
+        } else {
+          throw error;
+        }
+        return;
       }
 
       console.log('Login realizado com sucesso');
@@ -55,7 +94,6 @@ export const AuthPage = () => {
         description: "Login realizado com sucesso!",
       });
       
-      // Redirecionar para o dashboard
       navigate('/');
     } catch (error: any) {
       console.error('Login error:', error);
@@ -156,6 +194,20 @@ export const AuthPage = () => {
                   {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Entrar
                 </Button>
+                
+                <div className="flex justify-center pt-2">
+                  <Button 
+                    type="button" 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={handleForceReset}
+                    disabled={isResetting}
+                    className="text-xs text-gray-500 hover:text-gray-700"
+                  >
+                    {isResetting && <RefreshCw className="mr-1 h-3 w-3 animate-spin" />}
+                    Limpar Cache
+                  </Button>
+                </div>
               </form>
             </TabsContent>
             

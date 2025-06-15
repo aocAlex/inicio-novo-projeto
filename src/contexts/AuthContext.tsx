@@ -3,6 +3,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { Profile } from '@/types/workspace';
+import { cleanupAuthState, forceAuthReset } from '@/utils/authCleanup';
 
 interface AuthContextType {
   user: User | null;
@@ -13,6 +14,7 @@ interface AuthContextType {
   signUp: (email: string, password: string, fullName?: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   updateProfile: (data: Partial<Profile>) => Promise<void>;
+  forceReset: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -57,6 +59,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (fetchError) {
         console.error('Erro ao buscar perfil existente:', fetchError);
+        // Se o erro for de usuário não encontrado, limpar estado e redirecionar
+        if (fetchError.code === 'PGRST116' || fetchError.message.includes('JWT')) {
+          console.log('Usuário não existe no banco, limpando estado');
+          await forceReset();
+          return null;
+        }
         throw fetchError;
       }
 
@@ -89,6 +97,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (createError) {
         console.error('Erro ao criar perfil:', createError);
+        // Se não conseguir criar perfil, pode ser que o usuário não exista mais
+        if (createError.code === '23503') {
+          console.log('Usuário não existe no sistema de auth, limpando estado');
+          await forceReset();
+          return null;
+        }
+        
         if (createError.code === '23505') {
           const { data: duplicateProfile } = await supabase
             .from('profiles')
@@ -159,6 +174,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         } else {
           setProfile(null);
           setLoading(false);
+          
+          // Se o evento for SIGNED_OUT, garantir limpeza completa
+          if (event === 'SIGNED_OUT') {
+            cleanupAuthState();
+          }
         }
       }
     );
@@ -169,6 +189,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         if (error) {
           console.error('Erro ao obter sessão:', error);
+          cleanupAuthState();
           setLoading(false);
           return;
         }
@@ -188,6 +209,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       } catch (error) {
         console.error('Erro na inicialização da auth:', error);
+        cleanupAuthState();
         setLoading(false);
       }
     };
@@ -203,6 +225,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signIn = async (email: string, password: string) => {
     console.log('Iniciando signIn para:', email);
     setLoading(true);
+    
+    // Limpar estado antes de tentar login
+    cleanupAuthState();
     
     const { error } = await supabase.auth.signInWithPassword({
       email,
@@ -220,6 +245,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signUp = async (email: string, password: string, fullName?: string) => {
     console.log('Iniciando signUp para:', email);
     setLoading(true);
+    
+    // Limpar estado antes de tentar cadastro
+    cleanupAuthState();
     
     const redirectUrl = `${window.location.origin}/`;
     
@@ -247,19 +275,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setSession(null);
     setProfile(null);
     
-    Object.keys(localStorage).forEach(key => {
-      if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
-        localStorage.removeItem(key);
-      }
-    });
-    
     try {
       await supabase.auth.signOut({ scope: 'global' });
     } catch (error) {
       console.error('Erro no signOut do Supabase:', error);
     }
     
+    cleanupAuthState();
     console.log('SignOut concluído');
+  };
+
+  const forceReset = async () => {
+    console.log('Forçando reset completo da autenticação');
+    
+    setUser(null);
+    setSession(null);
+    setProfile(null);
+    setLoading(false);
+    
+    try {
+      await supabase.auth.signOut({ scope: 'global' });
+    } catch (error) {
+      console.error('Erro no signOut durante reset:', error);
+    }
+    
+    await forceAuthReset();
   };
 
   const updateProfile = async (data: Partial<Profile>) => {
@@ -284,6 +324,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     signUp,
     signOut,
     updateProfile,
+    forceReset,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
