@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { useAuth } from './AuthContext';
 import { Workspace, WorkspaceMember, CreateWorkspaceData } from '@/types/workspace';
@@ -91,15 +90,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             id: user.id,
             email: user.email,
             full_name: user.email,
-            avatar_url: null,
-            preferences: {
-              notifications: true,
-              email_alerts: true,
-              theme: 'light' as const
-            },
-            last_login: null,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
+            avatar_url: null
           });
           setCurrentMember(memberWithProfile);
         }
