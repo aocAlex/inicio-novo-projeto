@@ -28,6 +28,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { AdvancedTemplateExecutor } from './AdvancedTemplateExecutor';
 import { 
   Search, 
   Plus, 
