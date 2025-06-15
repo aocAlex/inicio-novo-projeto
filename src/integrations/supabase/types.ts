@@ -1480,6 +1480,95 @@ export type Database = {
           },
         ]
       }
+      user_quota_logs: {
+        Row: {
+          action_type: string
+          created_at: string | null
+          id: string
+          is_admin_override: boolean | null
+          new_value: number | null
+          notes: string | null
+          old_value: number | null
+          performed_by: string | null
+          quota_limit: number | null
+          user_id: string
+          workspace_id: string | null
+        }
+        Insert: {
+          action_type: string
+          created_at?: string | null
+          id?: string
+          is_admin_override?: boolean | null
+          new_value?: number | null
+          notes?: string | null
+          old_value?: number | null
+          performed_by?: string | null
+          quota_limit?: number | null
+          user_id: string
+          workspace_id?: string | null
+        }
+        Update: {
+          action_type?: string
+          created_at?: string | null
+          id?: string
+          is_admin_override?: boolean | null
+          new_value?: number | null
+          notes?: string | null
+          old_value?: number | null
+          performed_by?: string | null
+          quota_limit?: number | null
+          user_id?: string
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_quota_logs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_workspace_quotas: {
+        Row: {
+          admin_notes: string | null
+          created_at: string | null
+          current_workspaces: number
+          id: string
+          is_suspended: boolean | null
+          is_unlimited: boolean | null
+          last_modified_by: string | null
+          max_workspaces: number
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          created_at?: string | null
+          current_workspaces?: number
+          id?: string
+          is_suspended?: boolean | null
+          is_unlimited?: boolean | null
+          last_modified_by?: string | null
+          max_workspaces?: number
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          created_at?: string | null
+          current_workspaces?: number
+          id?: string
+          is_suspended?: boolean | null
+          is_unlimited?: boolean | null
+          last_modified_by?: string | null
+          max_workspaces?: number
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       workspace_calendar_settings: {
         Row: {
           city_holidays: Json | null
@@ -1767,6 +1856,10 @@ export type Database = {
       }
       is_super_admin: {
         Args: { user_id: string }
+        Returns: boolean
+      }
+      user_can_create_workspace: {
+        Args: { p_user_id: string }
         Returns: boolean
       }
       user_has_workspace_access: {

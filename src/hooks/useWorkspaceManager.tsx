@@ -30,6 +30,23 @@ export const useWorkspaceManager = () => {
 
       console.log('✅ User authentication verified');
 
+      // Verificar quota antes de criar
+      const { data: quotaData } = await supabase
+        .from('user_workspace_quotas')
+        .select('*')
+        .eq('user_id', userId)
+        .single();
+
+      if (quotaData) {
+        if (quotaData.is_suspended) {
+          throw new Error('Sua conta está suspensa. Entre em contato com o administrador.');
+        }
+        
+        if (!quotaData.is_unlimited && quotaData.current_workspaces >= quotaData.max_workspaces) {
+          throw new Error(`Você atingiu o limite de ${quotaData.max_workspaces} workspaces. Exclua uma workspace para criar uma nova.`);
+        }
+      }
+
       const insertData = {
         ...data,
         owner_id: userId,
@@ -54,24 +71,6 @@ export const useWorkspaceManager = () => {
       }
 
       console.log('✅ Workspace created successfully:', workspaceData);
-
-      // Criar membership do owner
-      console.log('Creating owner membership...');
-      const { error: memberError } = await supabase
-        .from('workspace_members')
-        .insert({
-          workspace_id: workspaceData.id,
-          user_id: userId,
-          role: 'owner',
-          status: 'active',
-        });
-
-      if (memberError) {
-        console.error('❌ Member creation error:', memberError);
-        throw memberError;
-      }
-
-      console.log('✅ Owner membership created successfully');
 
       toast({
         title: "Sucesso",

@@ -1,20 +1,22 @@
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useAuth } from './AuthContext';
-import { Workspace, WorkspaceMember, CreateWorkspaceData } from '@/types/workspace';
-import { useSimplifiedWorkspaceLoader } from '@/hooks/useSimplifiedWorkspaceLoader';
+import { useWorkspaceLoader } from '@/hooks/useWorkspaceLoader';
 import { useWorkspaceManager } from '@/hooks/useWorkspaceManager';
-import { useToast } from '@/hooks/use-toast';
+import { useWorkspaceQuota } from '@/hooks/useWorkspaceQuota';
 import { supabase } from '@/integrations/supabase/client';
+import { Workspace, WorkspaceMember, CreateWorkspaceData } from '@/types/workspace';
+import { useToast } from '@/hooks/use-toast';
 
 interface WorkspaceContextType {
   currentWorkspace: Workspace | null;
   workspaces: Workspace[];
+  memberData: WorkspaceMember[];
   isOwner: boolean;
   isLoading: boolean;
   error: string | null;
   switchWorkspace: (workspaceId: string) => Promise<void>;
-  createWorkspace: (data: CreateWorkspaceData) => Promise<Workspace>;
-  updateWorkspace: (id: string, data: Partial<Workspace>) => Promise<void>;
+  createWorkspace: (data: CreateWorkspaceData) => Promise<void>;
   refreshWorkspaces: () => Promise<void>;
 }
 
@@ -29,170 +31,162 @@ export const useWorkspace = () => {
 };
 
 export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user, profile, loading: authLoading } = useAuth();
+  const { user } = useAuth();
   const { toast } = useToast();
+  const { loadWorkspaces, error: loaderError } = useWorkspaceLoader();
+  const { createWorkspace: createWorkspaceManager } = useWorkspaceManager();
+  
   const [currentWorkspace, setCurrentWorkspace] = useState<Workspace | null>(null);
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
-  const [isOwner, setIsOwner] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [memberData, setMemberData] = useState<WorkspaceMember[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [hasInitialized, setHasInitialized] = useState(false);
 
-  const { loadUserWorkspaces } = useSimplifiedWorkspaceLoader();
-  const { createWorkspace: createWorkspaceHook, updateWorkspace: updateWorkspaceHook } = useWorkspaceManager();
+  // Check if current user is owner of current workspace
+  const isOwner = currentWorkspace?.owner_id === user?.id;
 
-  console.log('WorkspaceProvider render - user:', !!user, 'authLoading:', authLoading, 'hasInitialized:', hasInitialized, 'currentWorkspace:', !!currentWorkspace);
-
-  const initializeWorkspaces = useCallback(async () => {
-    if (!user?.id || authLoading || hasInitialized) {
-      console.log('Skipping initialization - conditions not met:', { 
-        hasUser: !!user?.id, 
-        authLoading,
-        hasInitialized
-      });
+  const refreshWorkspaces = useCallback(async () => {
+    if (!user?.id || !user?.email) {
+      console.log('🔄 WorkspaceContext - No user data for refresh');
       return;
     }
 
-    console.log('Starting workspace initialization for user:', user.id);
-    setIsLoading(true);
-    setError(null);
-
     try {
-      const { workspaces: userWorkspaces, membershipInfo } = await loadUserWorkspaces(user.id);
+      setIsLoading(true);
+      setError(null);
       
-      console.log('Loaded workspaces:', userWorkspaces.length, userWorkspaces);
-      setWorkspaces(userWorkspaces);
-
-      if (userWorkspaces.length > 0) {
-        // Selecionar workspace: preferir a atual do perfil, senão a primeira
-        const targetWorkspaceId = profile?.current_workspace_id || userWorkspaces[0].id;
-        const targetWorkspace = userWorkspaces.find(w => w.id === targetWorkspaceId) || userWorkspaces[0];
-        
-        console.log('Auto-selecting workspace:', targetWorkspace.id, targetWorkspace.name);
-        setCurrentWorkspace(targetWorkspace);
-        
-        // Verificar se é owner
-        const isWorkspaceOwner = targetWorkspace.owner_id === user.id;
-        setIsOwner(isWorkspaceOwner);
-        
-        console.log('User is owner:', isWorkspaceOwner);
-
-        // Atualizar workspace atual no perfil se necessário
-        if (profile?.current_workspace_id !== targetWorkspace.id) {
-          console.log('Updating current workspace in profile');
-          await supabase
-            .from('profiles')
-            .update({ current_workspace_id: targetWorkspace.id })
-            .eq('id', user.id);
+      console.log('🔄 WorkspaceContext - Refreshing workspaces for user:', user.id);
+      
+      const { workspaces: loadedWorkspaces, memberData: loadedMemberData } = await loadWorkspaces(user.id, user.email);
+      
+      setWorkspaces(loadedWorkspaces);
+      setMemberData(loadedMemberData);
+      
+      // Get current workspace from profile
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('current_workspace_id')
+        .eq('id', user.id)
+        .single();
+      
+      if (profile?.current_workspace_id) {
+        const workspace = loadedWorkspaces.find(w => w.id === profile.current_workspace_id);
+        if (workspace) {
+          setCurrentWorkspace(workspace);
+        } else {
+          // If current workspace not found, set to first available
+          if (loadedWorkspaces.length > 0) {
+            await switchWorkspace(loadedWorkspaces[0].id);
+          }
         }
-      } else {
-        console.log('No workspaces found for user');
-        setCurrentWorkspace(null);
-        setIsOwner(false);
+      } else if (loadedWorkspaces.length > 0) {
+        // No current workspace set, use first available
+        await switchWorkspace(loadedWorkspaces[0].id);
       }
-
-      setHasInitialized(true);
-      console.log('Workspace initialization completed successfully');
+      
+      console.log('✅ WorkspaceContext - Workspaces refreshed successfully');
       
     } catch (error: any) {
-      console.error('Error initializing workspaces:', error);
-      setError(error?.message || 'Erro ao carregar workspaces');
-      setWorkspaces([]);
-      setCurrentWorkspace(null);
-      setIsOwner(false);
+      console.error('❌ WorkspaceContext - Error refreshing workspaces:', error);
+      setError(error.message);
     } finally {
       setIsLoading(false);
     }
-  }, [user?.id, profile?.current_workspace_id, authLoading, hasInitialized, loadUserWorkspaces]);
+  }, [user?.id, user?.email, loadWorkspaces]);
 
   const switchWorkspace = useCallback(async (workspaceId: string) => {
     if (!user?.id) return;
-
+    
     try {
+      console.log('🔄 WorkspaceContext - Switching to workspace:', workspaceId);
+      
       const workspace = workspaces.find(w => w.id === workspaceId);
       if (!workspace) {
         throw new Error('Workspace não encontrada');
       }
-
-      setCurrentWorkspace(workspace);
-      setIsOwner(workspace.owner_id === user.id);
-
-      // Atualizar workspace atual no perfil
-      await supabase
+      
+      // Update current workspace in profile
+      const { error: updateError } = await supabase
         .from('profiles')
         .update({ current_workspace_id: workspaceId })
         .eq('id', user.id);
-
-      console.log('Switched to workspace:', workspaceId);
+      
+      if (updateError) {
+        throw updateError;
+      }
+      
+      setCurrentWorkspace(workspace);
+      
+      console.log('✅ WorkspaceContext - Workspace switched successfully');
+      
     } catch (error: any) {
-      console.error('Error switching workspace:', error);
+      console.error('❌ WorkspaceContext - Error switching workspace:', error);
       toast({
         title: "Erro",
         description: "Erro ao trocar workspace",
         variant: "destructive",
       });
     }
-  }, [user?.id, workspaces, toast]);
+  }, [workspaces, user?.id, toast]);
 
-  const createWorkspace = useCallback(async (data: CreateWorkspaceData): Promise<Workspace> => {
-    if (!user?.id) throw new Error('User not authenticated');
-
-    const workspace = await createWorkspaceHook(data, user.id);
-    
-    // Recarregar workspaces
-    setHasInitialized(false);
-    
-    return workspace;
-  }, [user?.id, createWorkspaceHook]);
-
-  const updateWorkspace = useCallback(async (id: string, data: Partial<Workspace>) => {
-    await updateWorkspaceHook(id, data);
-    
-    if (currentWorkspace?.id === id) {
-      setCurrentWorkspace(prev => prev ? { ...prev, ...data } : null);
+  const createWorkspace = useCallback(async (data: CreateWorkspaceData) => {
+    if (!user?.id) {
+      throw new Error('Usuário não autenticado');
     }
-    
-    setWorkspaces(prev => 
-      prev.map(w => w.id === id ? { ...w, ...data } : w)
-    );
-  }, [updateWorkspaceHook, currentWorkspace?.id]);
 
-  const refreshWorkspaces = useCallback(async () => {
-    setHasInitialized(false);
-  }, []);
-
-  // Initialize workspaces when conditions are met
-  useEffect(() => {
-    if (user?.id && !authLoading && !hasInitialized && !isLoading) {
-      console.log('Initializing workspaces...');
-      initializeWorkspaces();
+    try {
+      console.log('🔄 WorkspaceContext - Creating workspace');
+      
+      const newWorkspace = await createWorkspaceManager(data, user.id);
+      
+      // Refresh workspaces to get updated list and quota
+      await refreshWorkspaces();
+      
+      // Switch to the new workspace
+      await switchWorkspace(newWorkspace.id);
+      
+      console.log('✅ WorkspaceContext - Workspace created and switched successfully');
+      
+    } catch (error: any) {
+      console.error('❌ WorkspaceContext - Error creating workspace:', error);
+      throw error;
     }
-  }, [user?.id, authLoading, hasInitialized, isLoading, initializeWorkspaces]);
+  }, [user?.id, createWorkspaceManager, refreshWorkspaces, switchWorkspace]);
 
-  // Reset state when user logs out
+  // Load workspaces on user change
   useEffect(() => {
-    if (!user) {
-      console.log('User logged out, resetting workspace state');
-      setCurrentWorkspace(null);
+    if (user?.id && user?.email) {
+      refreshWorkspaces();
+    } else {
       setWorkspaces([]);
-      setIsOwner(false);
-      setHasInitialized(false);
+      setMemberData([]);
+      setCurrentWorkspace(null);
       setIsLoading(false);
-      setError(null);
     }
-  }, [user]);
+  }, [user?.id, user?.email, refreshWorkspaces]);
 
-  const value = {
+  // Update error from loader
+  useEffect(() => {
+    if (loaderError) {
+      setError(loaderError);
+    }
+  }, [loaderError]);
+
+  const contextValue: WorkspaceContextType = {
     currentWorkspace,
     workspaces,
+    memberData,
     isOwner,
     isLoading,
     error,
     switchWorkspace,
     createWorkspace,
-    updateWorkspace,
     refreshWorkspaces,
   };
 
-  return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>;
+  return (
+    <WorkspaceContext.Provider value={contextValue}>
+      {children}
+    </WorkspaceContext.Provider>
+  );
 };
