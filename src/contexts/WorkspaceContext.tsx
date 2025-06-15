@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { useAuth } from './AuthContext';
 import { Workspace, WorkspaceMember, CreateWorkspaceData } from '@/types/workspace';
@@ -41,10 +42,9 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const { switchWorkspace: switchWorkspaceHook } = useWorkspaceSwitcher();
   const { createWorkspace: createWorkspaceHook, updateWorkspace: updateWorkspaceHook } = useWorkspaceManager();
 
-  console.log('WorkspaceProvider render - user:', !!user, 'profile:', !!profile, 'authLoading:', authLoading, 'hasInitialized:', hasInitialized, 'isLoading:', isLoading);
+  console.log('WorkspaceProvider render - user:', !!user, 'authLoading:', authLoading, 'hasInitialized:', hasInitialized, 'isLoading:', isLoading);
 
   const initializeWorkspaces = useCallback(async () => {
-    // Simplified conditions - only check what's absolutely necessary
     if (!user?.id || !user?.email || authLoading || hasInitialized) {
       console.log('Skipping initialization - conditions not met:', { 
         hasUser: !!user?.id, 
@@ -60,29 +60,21 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setError(null);
 
     try {
-      // Load workspaces with automatic creation if none exist
       const { workspaces: userWorkspaces, memberData } = await loadWorkspaces(user.id, user.email);
       
       console.log('Loaded workspaces:', userWorkspaces.length);
 
-      // Filter valid workspaces
-      const validWorkspaces = userWorkspaces.filter(workspace => {
-        const memberInfo = memberData?.find(m => m.workspace_id === workspace.id);
-        return memberInfo && memberInfo.status === 'active';
-      });
+      setWorkspaces(userWorkspaces);
 
-      setWorkspaces(validWorkspaces);
-
-      if (validWorkspaces.length > 0) {
-        const targetWorkspaceId = profile?.current_workspace_id || validWorkspaces[0].id;
-        const targetWorkspace = validWorkspaces.find(w => w.id === targetWorkspaceId) || validWorkspaces[0];
+      if (userWorkspaces.length > 0) {
+        const targetWorkspaceId = profile?.current_workspace_id || userWorkspaces[0].id;
+        const targetWorkspace = userWorkspaces.find(w => w.id === targetWorkspaceId) || userWorkspaces[0];
         
         console.log('Auto-selecting workspace:', targetWorkspace.id);
         setCurrentWorkspace(targetWorkspace);
         
         const memberInfo = memberData?.find(m => m.workspace_id === targetWorkspace.id);
         if (memberInfo) {
-          // Create member with minimal profile data
           const profileData = profile || {
             id: user.id,
             email: user.email,
@@ -145,10 +137,10 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setHasInitialized(false);
   }, []);
 
-  // Simplified initialization effect - remove timeout to prevent delays
+  // Initialize workspaces when conditions are met
   useEffect(() => {
     if (user?.id && user?.email && !authLoading && !hasInitialized && !isLoading) {
-      console.log('Initializing workspaces immediately...');
+      console.log('Initializing workspaces...');
       initializeWorkspaces();
     }
   }, [user?.id, user?.email, authLoading, hasInitialized, isLoading, initializeWorkspaces]);

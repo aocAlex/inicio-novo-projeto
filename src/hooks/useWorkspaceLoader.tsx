@@ -53,64 +53,30 @@ export const useWorkspaceLoader = () => {
     }
   }, []);
 
-  const addUserToPublicWorkspaces = useCallback(async (userId: string) => {
-    console.log('Adding user to public workspaces:', userId);
-    
-    try {
-      // Get all public workspaces
-      const { data: publicWorkspaces, error: fetchError } = await supabase
-        .from('workspaces')
-        .select('id')
-        .eq('is_public', true);
-
-      if (fetchError) {
-        console.error('Error fetching public workspaces:', fetchError);
-        return;
-      }
-
-      if (!publicWorkspaces || publicWorkspaces.length === 0) {
-        console.log('No public workspaces found');
-        return;
-      }
-
-      // Add user to each public workspace as viewer
-      const memberships = publicWorkspaces.map(workspace => ({
-        workspace_id: workspace.id,
-        user_id: userId,
-        role: 'viewer' as const,
-        status: 'active' as const,
-      }));
-
-      const { error: insertError } = await supabase
-        .from('workspace_members')
-        .upsert(memberships, { 
-          onConflict: 'workspace_id,user_id',
-          ignoreDuplicates: true 
-        });
-
-      if (insertError) {
-        console.error('Error adding user to public workspaces:', insertError);
-      } else {
-        console.log('Successfully added user to public workspaces');
-      }
-    } catch (error) {
-      console.error('Error in addUserToPublicWorkspaces:', error);
-    }
-  }, []);
-
   const loadWorkspaces = useCallback(async (userId: string, userEmail: string) => {
     console.log('Loading workspaces for user:', userId);
     
     try {
       setError(null);
       
-      // First, ensure user is added to public workspaces
-      await addUserToPublicWorkspaces(userId);
-      
-      // Get the user's workspaces (including public ones they're now a member of)
+      // First, get workspaces the user owns
+      const { data: ownedWorkspaces, error: ownedError } = await supabase
+        .from('workspaces')
+        .select('*')
+        .eq('owner_id', userId);
+
+      if (ownedError) {
+        console.error('Error loading owned workspaces:', ownedError);
+        throw ownedError;
+      }
+
+      // Then get workspaces where user is a member
       const { data: memberData, error: memberError } = await supabase
         .from('workspace_members')
-        .select('workspace_id, role, status, permissions, last_activity, created_at, id')
+        .select(`
+          workspace_id, role, status, permissions, last_activity, created_at, id,
+          workspace:workspaces(*)
+        `)
         .eq('user_id', userId)
         .eq('status', 'active');
 
@@ -119,15 +85,25 @@ export const useWorkspaceLoader = () => {
         throw memberError;
       }
 
-      console.log('Member data loaded:', memberData);
+      console.log('Owned workspaces:', ownedWorkspaces);
+      console.log('Member data:', memberData);
+
+      // Combine owned workspaces with member workspaces
+      const allWorkspaces: Workspace[] = [...(ownedWorkspaces || [])];
+      const memberWorkspaces = memberData?.map(m => m.workspace).filter(Boolean) || [];
+      
+      // Add member workspaces that aren't already owned
+      memberWorkspaces.forEach(workspace => {
+        if (!allWorkspaces.find(w => w.id === workspace.id)) {
+          allWorkspaces.push(workspace);
+        }
+      });
 
       // If no workspaces found, create a default one
-      if (!memberData || memberData.length === 0) {
-        console.log('No workspace memberships found, creating default workspace');
-        
+      if (allWorkspaces.length === 0) {
+        console.log('No workspaces found, creating default workspace');
         const defaultWorkspace = await createDefaultWorkspace(userId, userEmail);
         
-        // Return the newly created workspace
         return { 
           workspaces: [defaultWorkspace], 
           memberData: [{
@@ -143,32 +119,34 @@ export const useWorkspaceLoader = () => {
         };
       }
 
-      // Get workspace details separately
-      const workspaceIds = memberData.map(m => m.workspace_id);
-      const { data: workspaceData, error: workspaceError } = await supabase
-        .from('workspaces')
-        .select('*')
-        .in('id', workspaceIds);
-
-      if (workspaceError) {
-        console.error('Error loading workspace data:', workspaceError);
-        throw workspaceError;
-      }
-
-      // Map the data together
-      const enrichedMemberData = memberData.map(member => {
-        const workspace = workspaceData?.find(w => w.id === member.workspace_id);
+      // Create member data for all workspaces
+      const enrichedMemberData = allWorkspaces.map(workspace => {
+        // Check if user is owner
+        if (workspace.owner_id === userId) {
+          return {
+            id: `owner-${workspace.id}`,
+            workspace_id: workspace.id,
+            user_id: userId,
+            role: 'owner' as const,
+            status: 'active' as const,
+            permissions: {},
+            last_activity: null,
+            created_at: new Date().toISOString(),
+            workspace
+          };
+        }
+        
+        // Find member data
+        const memberInfo = memberData?.find(m => m.workspace_id === workspace.id);
         return {
-          ...member,
+          ...memberInfo,
           workspace
         };
-      }).filter(member => member.workspace);
+      }).filter(Boolean);
 
-      const userWorkspaces = enrichedMemberData.map(member => member.workspace).filter(Boolean);
+      console.log('Found workspaces:', allWorkspaces.length);
       
-      console.log('Found workspaces:', userWorkspaces.length);
-      
-      return { workspaces: userWorkspaces, memberData: enrichedMemberData };
+      return { workspaces: allWorkspaces, memberData: enrichedMemberData };
 
     } catch (error: any) {
       console.error('Error loading workspaces:', error);
@@ -180,7 +158,7 @@ export const useWorkspaceLoader = () => {
       });
       throw error;
     }
-  }, [toast, createDefaultWorkspace, addUserToPublicWorkspaces]);
+  }, [toast, createDefaultWorkspace]);
 
   return {
     loadWorkspaces,
