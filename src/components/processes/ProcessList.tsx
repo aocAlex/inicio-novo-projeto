@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Process, ProcessFilters } from '@/types/process';
 import { Button } from '@/components/ui/button';
@@ -48,35 +47,33 @@ export const ProcessList = ({
   onCreateNew,
 }: ProcessListProps) => {
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<Process['status'] | ''>('');
-  const [priorityFilter, setPriorityFilter] = useState<Process['priority'] | ''>('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [priorityFilter, setPriorityFilter] = useState<string>('all');
 
   const handleSearch = (value: string) => {
     setSearch(value);
     onFilter({
       search: value || undefined,
-      status: statusFilter || undefined,
-      priority: priorityFilter || undefined,
+      status: statusFilter !== 'all' ? statusFilter as Process['status'] : undefined,
+      priority: priorityFilter !== 'all' ? priorityFilter as Process['priority'] : undefined,
     });
   };
 
   const handleStatusFilter = (value: string) => {
-    const statusValue = value as Process['status'] | '';
-    setStatusFilter(statusValue);
+    setStatusFilter(value);
     onFilter({
       search: search || undefined,
-      status: statusValue || undefined,
-      priority: priorityFilter || undefined,
+      status: value !== 'all' ? value as Process['status'] : undefined,
+      priority: priorityFilter !== 'all' ? priorityFilter as Process['priority'] : undefined,
     });
   };
 
   const handlePriorityFilter = (value: string) => {
-    const priorityValue = value as Process['priority'] | '';
-    setPriorityFilter(priorityValue);
+    setPriorityFilter(value);
     onFilter({
       search: search || undefined,
-      status: statusFilter || undefined,
-      priority: priorityValue || undefined,
+      status: statusFilter !== 'all' ? statusFilter as Process['status'] : undefined,
+      priority: value !== 'all' ? value as Process['priority'] : undefined,
     });
   };
 
@@ -190,7 +187,7 @@ export const ProcessList = ({
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos os status</SelectItem>
+                <SelectItem value="all">Todos os status</SelectItem>
                 <SelectItem value="active">Ativo</SelectItem>
                 <SelectItem value="pending">Pendente</SelectItem>
                 <SelectItem value="suspended">Suspenso</SelectItem>
@@ -202,7 +199,7 @@ export const ProcessList = ({
                 <SelectValue placeholder="Prioridade" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todas as prioridades</SelectItem>
+                <SelectItem value="all">Todas as prioridades</SelectItem>
                 <SelectItem value="urgent">Urgente</SelectItem>
                 <SelectItem value="high">Alta</SelectItem>
                 <SelectItem value="medium">Média</SelectItem>

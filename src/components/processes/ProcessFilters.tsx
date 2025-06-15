@@ -20,16 +20,16 @@ interface ProcessFiltersProps {
 
 export const ProcessFilters = ({ onFilter, onClear }: ProcessFiltersProps) => {
   const [search, setSearch] = useState('');
-  const [status, setStatus] = useState<string>('');
-  const [priority, setPriority] = useState<string>('');
+  const [status, setStatus] = useState<string>('all');
+  const [priority, setPriority] = useState<string>('all');
   const [court, setCourt] = useState('');
 
   const handleFilter = () => {
     const filters: FilterTypes = {};
     
     if (search.trim()) filters.search = search.trim();
-    if (status) filters.status = status as any;
-    if (priority) filters.priority = priority as any;
+    if (status && status !== 'all') filters.status = status as any;
+    if (priority && priority !== 'all') filters.priority = priority as any;
     if (court.trim()) filters.court = court.trim();
     
     onFilter(filters);
@@ -37,13 +37,13 @@ export const ProcessFilters = ({ onFilter, onClear }: ProcessFiltersProps) => {
 
   const handleClear = () => {
     setSearch('');
-    setStatus('');
-    setPriority('');
+    setStatus('all');
+    setPriority('all');
     setCourt('');
     onClear();
   };
 
-  const hasFilters = search || status || priority || court;
+  const hasFilters = search || (status && status !== 'all') || (priority && priority !== 'all') || court;
 
   return (
     <Card>
@@ -75,7 +75,7 @@ export const ProcessFilters = ({ onFilter, onClear }: ProcessFiltersProps) => {
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Todos os status</SelectItem>
+              <SelectItem value="all">Todos os status</SelectItem>
               <SelectItem value="active">Ativo</SelectItem>
               <SelectItem value="pending">Pendente</SelectItem>
               <SelectItem value="suspended">Suspenso</SelectItem>
@@ -89,7 +89,7 @@ export const ProcessFilters = ({ onFilter, onClear }: ProcessFiltersProps) => {
               <SelectValue placeholder="Prioridade" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Todas as prioridades</SelectItem>
+              <SelectItem value="all">Todas as prioridades</SelectItem>
               <SelectItem value="urgent">Urgente</SelectItem>
               <SelectItem value="high">Alta</SelectItem>
               <SelectItem value="medium">Média</SelectItem>
