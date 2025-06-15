@@ -10,7 +10,7 @@ import {
   Settings,
   Calendar,
   ClipboardList,
-  ChevronLeft
+  FileContract
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -60,32 +60,39 @@ const navigation = [
     shortcut: '3'
   },
   { 
+    name: 'Contratos', 
+    href: '/contracts', 
+    icon: FileContract,
+    badge: null,
+    shortcut: '4'
+  },
+  { 
     name: 'Templates', 
     href: '/templates', 
     icon: FileText,
     badge: null,
-    shortcut: '4'
+    shortcut: '5'
   },
   { 
     name: 'Petições', 
     href: '/petitions', 
     icon: FolderOpen,
     badge: null,
-    shortcut: '5'
+    shortcut: '6'
   },
   { 
     name: 'Prazos', 
     href: '/deadlines', 
     icon: Calendar,
     badge: null,
-    shortcut: '6'
+    shortcut: '7'
   },
   { 
     name: 'Configurações', 
     href: '/settings', 
     icon: Settings,
     badge: null,
-    shortcut: '7'
+    shortcut: '8'
   },
 ];
 

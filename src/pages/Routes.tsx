@@ -1,82 +1,39 @@
 
 import React from 'react';
-import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { DashboardPage } from '@/components/dashboard/DashboardPage';
+import { Routes as RouterRoutes, Route, Navigate } from 'react-router-dom';
+import { ProtectedRoute } from '@/components/ProtectedRoute';
+import { Dashboard } from './Dashboard';
+import { Clients } from './Clients';
+import { Processes } from './Processes';
+import { TemplatesPage } from './TemplatesPage';
+import { TemplateEditorPage } from './TemplateEditorPage';
+import { PetitionsPage } from './PetitionsPage';
+import { DeadlinesPage } from './DeadlinesPage';
+import { ContractsPage } from './ContractsPage';
 import { SettingsPage } from '@/components/settings/SettingsPage';
-import { Clients } from '@/pages/Clients';
-import { Processes } from '@/pages/Processes';
-import { Templates } from '@/pages/Templates';
-import { Petitions } from '@/pages/Petitions';
-import { DeadlinesPage } from '@/pages/DeadlinesPage';
-import { Card, CardContent } from '@/components/ui/card';
-import { AlertTriangle } from 'lucide-react';
+import { SuperAdminPage } from './SuperAdminPage';
+import { NotFound } from './NotFound';
 
-export const AppRoutes = () => {
-  const location = useLocation();
-  
-  console.log('🛣️ AppRoutes - Rendering routes for:', location.pathname);
-  
-  // Fallback component for unknown routes
-  const NotFoundFallback = () => (
-    <Card className="w-full max-w-md mx-auto mt-8">
-      <CardContent className="p-6 text-center">
-        <AlertTriangle className="h-12 w-12 text-orange-500 mx-auto mb-4" />
-        <h2 className="text-lg font-semibold mb-2">Página não encontrada</h2>
-        <p className="text-gray-600 mb-4">
-          A página "{location.pathname}" não existe.
-        </p>
-        <p className="text-sm text-gray-500">
-          Redirecionando para o dashboard...
-        </p>
-      </CardContent>
-    </Card>
-  );
-  
+export const Routes = () => {
   return (
-    <Routes>
-      {/* Main app routes */}
-      <Route 
-        path="/dashboard" 
-        element={<DashboardPage />} 
-      />
-      <Route 
-        path="/clients" 
-        element={<Clients />} 
-      />
-      <Route 
-        path="/processes" 
-        element={<Processes />} 
-      />
-      <Route 
-        path="/templates" 
-        element={<Templates />} 
-      />
-      <Route 
-        path="/petitions" 
-        element={<Petitions />} 
-      />
-      <Route 
-        path="/deadlines" 
-        element={<DeadlinesPage />} 
-      />
-      <Route 
-        path="/settings" 
-        element={<SettingsPage />} 
-      />
-      
-      {/* Root redirect */}
+    <RouterRoutes>
+      {/* Redirect root to dashboard */}
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
       
-      {/* Catch all unknown routes */}
-      <Route 
-        path="*" 
-        element={
-          <>
-            <NotFoundFallback />
-            <Navigate to="/dashboard" replace />
-          </>
-        } 
-      />
-    </Routes>
+      {/* Protected routes */}
+      <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+      <Route path="/clients" element={<ProtectedRoute><Clients /></ProtectedRoute>} />
+      <Route path="/processes" element={<ProtectedRoute><Processes /></ProtectedRoute>} />
+      <Route path="/contracts" element={<ProtectedRoute><ContractsPage /></ProtectedRoute>} />
+      <Route path="/templates" element={<ProtectedRoute><TemplatesPage /></ProtectedRoute>} />
+      <Route path="/templates/:id/editor" element={<ProtectedRoute><TemplateEditorPage /></ProtectedRoute>} />
+      <Route path="/petitions" element={<ProtectedRoute><PetitionsPage /></ProtectedRoute>} />
+      <Route path="/deadlines" element={<ProtectedRoute><DeadlinesPage /></ProtectedRoute>} />
+      <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+      <Route path="/superadmin" element={<ProtectedRoute><SuperAdminPage /></ProtectedRoute>} />
+      
+      {/* 404 route */}
+      <Route path="*" element={<NotFound />} />
+    </RouterRoutes>
   );
 };

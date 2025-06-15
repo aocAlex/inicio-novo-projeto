@@ -7,295 +7,263 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-interface ZapSignWebhookPayload {
-  open_id: number;
-  token: string;
-  status: string;
-  name: string;
-  created_by: {
-    email: string;
-  };
-  signers: Array<{
-    token: string;
-    name: string;
-    email: string;
-    status: string;
-    cpf?: string;
-    cnpj?: string;
-    phone?: string;
-    // ... outros campos do signatário
-  }>;
-  // ... outros campos do webhook
-}
-
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    const supabase = createClient(
+    const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    const payload: ZapSignWebhookPayload = await req.json()
-    console.log('Webhook recebido:', payload)
+    const payload = await req.json()
+    console.log('🔔 Webhook received:', JSON.stringify(payload, null, 2))
 
-    // Primeiro, registrar o webhook log
-    const { data: webhookLog, error: logError } = await supabase
+    // Extract key information from ZapSign webhook
+    const {
+      open_id,
+      token,
+      status,
+      name,
+      created_at,
+      updated_at,
+      signed_at,
+      original_file,
+      signed_file,
+      signers = [],
+      created_by,
+      extra_info = {}
+    } = payload
+
+    // Log the webhook first
+    const { data: webhookLog } = await supabaseClient
       .from('contract_webhook_logs')
       .insert({
-        event_type: payload.status || 'unknown',
-        zapsign_open_id: payload.open_id,
-        zapsign_token: payload.token,
+        event_type: payload.event_type || 'webhook_received',
+        zapsign_open_id: open_id,
+        zapsign_token: token,
         raw_payload: payload,
         processing_status: 'received',
         webhook_url: req.url,
-        execution_mode: 'production',
         user_agent: req.headers.get('user-agent'),
-        source_ip: req.headers.get('x-forwarded-for') || req.headers.get('remote-addr'),
+        source_ip: req.headers.get('x-forwarded-for'),
         request_headers: Object.fromEntries(req.headers.entries())
       })
       .select()
       .single()
 
-    if (logError) {
-      console.error('Erro ao registrar webhook log:', logError)
-      throw logError
-    }
-
-    // Atualizar status para processando
-    await supabase
-      .from('contract_webhook_logs')
-      .update({ processing_status: 'processing' })
-      .eq('id', webhookLog.id)
-
-    // Buscar workspace baseado no email do criador
-    const { data: workspaceData } = await supabase
-      .from('workspace_members')
-      .select('workspace_id')
-      .eq('user_id', '(SELECT id FROM profiles WHERE email = $1)', [payload.created_by.email])
-      .limit(1)
-      .single()
-
-    let workspaceId = workspaceData?.workspace_id
-
-    // Se não encontrar workspace, usar o primeiro disponível (fallback)
-    if (!workspaceId) {
-      const { data: firstWorkspace } = await supabase
-        .from('workspaces')
-        .select('id')
-        .limit(1)
+    // Try to find workspace by created_by email
+    let workspaceId = null
+    if (created_by?.email) {
+      const { data: profile } = await supabaseClient
+        .from('profiles')
+        .select('current_workspace_id')
+        .eq('email', created_by.email)
         .single()
       
-      workspaceId = firstWorkspace?.id
+      workspaceId = profile?.current_workspace_id
     }
 
     if (!workspaceId) {
-      throw new Error('Nenhuma workspace encontrada')
+      console.error('❌ Could not determine workspace for contract')
+      return new Response(
+        JSON.stringify({ error: 'Could not determine workspace' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
     }
 
-    // Verificar se o contrato já existe
-    let { data: existingContract } = await supabase
+    // Update webhook log with workspace
+    await supabaseClient
+      .from('contract_webhook_logs')
+      .update({ 
+        workspace_id: workspaceId,
+        processing_status: 'processing'
+      })
+      .eq('id', webhookLog.id)
+
+    // Prepare contract data
+    const contractData = {
+      workspace_id: workspaceId,
+      contract_name: name || 'Contrato sem nome',
+      zapsign_open_id: open_id,
+      zapsign_token: token,
+      status: status || 'pending',
+      zapsign_created_at: created_at,
+      zapsign_updated_at: updated_at,
+      signed_at: signed_at,
+      original_file_url: original_file?.url,
+      signed_file_url: signed_file?.url,
+      created_by_email: created_by?.email,
+      metadata: extra_info
+    }
+
+    // Upsert contract (insert or update if exists)
+    const { data: contract, error: contractError } = await supabaseClient
       .from('contracts')
-      .select('id')
-      .eq('zapsign_open_id', payload.open_id)
+      .upsert(contractData, { 
+        onConflict: 'zapsign_open_id',
+        ignoreDuplicates: false 
+      })
+      .select()
       .single()
 
-    let contractId = existingContract?.id
-
-    if (!existingContract) {
-      // Criar novo contrato
-      const { data: newContract, error: contractError } = await supabase
-        .from('contracts')
-        .insert({
-          workspace_id: workspaceId,
-          contract_name: payload.name,
-          zapsign_open_id: payload.open_id,
-          zapsign_token: payload.token,
-          status: payload.status,
-          created_by_email: payload.created_by.email,
-          metadata: payload,
-          zapsign_created_at: new Date().toISOString(),
-        })
-        .select()
-        .single()
-
-      if (contractError) {
-        throw contractError
-      }
-
-      contractId = newContract.id
-    } else {
-      // Atualizar contrato existente
-      await supabase
-        .from('contracts')
-        .update({
-          status: payload.status,
-          metadata: payload,
-          zapsign_updated_at: new Date().toISOString(),
-          signed_at: payload.status === 'signed' ? new Date().toISOString() : null,
-        })
-        .eq('id', contractId)
+    if (contractError) {
+      console.error('❌ Error upserting contract:', contractError)
+      throw contractError
     }
 
-    // Processar signatários
-    if (payload.signers && Array.isArray(payload.signers)) {
-      for (const signer of payload.signers) {
-        // Verificar se signatário já existe
-        const { data: existingSigner } = await supabase
-          .from('contract_signers')
-          .select('id')
-          .eq('zapsign_token', signer.token)
-          .single()
+    console.log('✅ Contract upserted:', contract.id)
 
-        if (!existingSigner) {
-          // Criar novo signatário
-          await supabase
-            .from('contract_signers')
-            .insert({
-              contract_id: contractId,
-              workspace_id: workspaceId,
-              zapsign_token: signer.token,
-              name: signer.name,
-              email: signer.email,
-              status: signer.status,
-              cpf: signer.cpf?.replace(/\D/g, ''),
-              cnpj: signer.cnpj?.replace(/\D/g, ''),
-              phone_number: signer.phone,
-              signed_at: signer.status === 'signed' ? new Date().toISOString() : null,
-            })
-        } else {
-          // Atualizar signatário existente
-          await supabase
-            .from('contract_signers')
-            .update({
-              status: signer.status,
-              signed_at: signer.status === 'signed' ? new Date().toISOString() : null,
-            })
-            .eq('id', existingSigner.id)
-        }
+    // Process signers
+    for (const signer of signers) {
+      const signerData = {
+        contract_id: contract.id,
+        workspace_id: workspaceId,
+        zapsign_token: signer.token,
+        external_id: signer.external_id,
+        name: signer.name,
+        email: signer.email,
+        phone_country: signer.phone_country || '55',
+        phone_number: signer.phone,
+        cpf: signer.cpf,
+        cnpj: signer.cnpj,
+        status: signer.status || 'pending',
+        sign_url: signer.sign_url,
+        times_viewed: signer.times_viewed || 0,
+        last_view_at: signer.last_view_at,
+        signed_at: signer.signed_at,
+        ip_address: signer.ip_address,
+        geo_latitude: signer.geo_latitude,
+        geo_longitude: signer.geo_longitude
       }
+
+      await supabaseClient
+        .from('contract_signers')
+        .upsert(signerData, { 
+          onConflict: 'zapsign_token',
+          ignoreDuplicates: false 
+        })
     }
 
-    // Tentar vinculação automática com cliente
-    if (payload.signers && payload.signers.length > 0) {
-      const mainSigner = payload.signers[0] // Usar primeiro signatário como principal
+    // Try to auto-link client
+    if (signers.length > 0) {
+      const primarySigner = signers[0]
       let clientId = null
-      let matchType = null
+      let matchedBy = null
       let confidence = 0
 
-      // Tentar buscar por CPF/CNPJ
-      if (mainSigner.cpf) {
-        const { data: clientByDoc } = await supabase
+      // Try to find client by CPF/CNPJ
+      if (primarySigner.cpf || primarySigner.cnpj) {
+        const document = primarySigner.cpf || primarySigner.cnpj
+        const { data: clientMatch } = await supabaseClient
           .rpc('find_client_by_document', {
             p_workspace_id: workspaceId,
-            p_document: mainSigner.cpf
+            p_document: document
           })
 
-        if (clientByDoc && clientByDoc.length > 0) {
-          clientId = clientByDoc[0].client_id
-          matchType = clientByDoc[0].match_type
-          confidence = clientByDoc[0].confidence
+        if (clientMatch && clientMatch.length > 0) {
+          clientId = clientMatch[0].client_id
+          matchedBy = clientMatch[0].match_type
+          confidence = clientMatch[0].confidence
         }
       }
 
-      // Se não encontrou por documento, tentar por email
-      if (!clientId && mainSigner.email) {
-        const { data: clientByEmail } = await supabase
+      // If not found, try by email
+      if (!clientId && primarySigner.email) {
+        const { data: clientMatch } = await supabaseClient
           .rpc('find_client_by_email', {
             p_workspace_id: workspaceId,
-            p_email: mainSigner.email
+            p_email: primarySigner.email
           })
 
-        if (clientByEmail && clientByEmail.length > 0) {
-          clientId = clientByEmail[0].client_id
-          matchType = clientByEmail[0].match_type
-          confidence = clientByEmail[0].confidence
+        if (clientMatch && clientMatch.length > 0) {
+          clientId = clientMatch[0].client_id
+          matchedBy = clientMatch[0].match_type
+          confidence = clientMatch[0].confidence
         }
       }
 
-      // Se não encontrou por email, tentar por nome
-      if (!clientId && mainSigner.name) {
-        const { data: clientByName } = await supabase
+      // If not found, try by name similarity
+      if (!clientId && primarySigner.name) {
+        const { data: clientMatch } = await supabaseClient
           .rpc('find_client_by_name', {
             p_workspace_id: workspaceId,
-            p_name: mainSigner.name
+            p_name: primarySigner.name
           })
 
-        if (clientByName && clientByName.length > 0) {
-          clientId = clientByName[0].client_id
-          matchType = clientByName[0].match_type
-          confidence = clientByName[0].confidence
+        if (clientMatch && clientMatch.length > 0) {
+          clientId = clientMatch[0].client_id
+          matchedBy = clientMatch[0].match_type
+          confidence = clientMatch[0].confidence
         }
       }
 
-      // Se encontrou cliente, vincular ao contrato
+      // Update contract with client link if found
       if (clientId) {
-        await supabase
+        await supabaseClient
           .from('contracts')
           .update({
             client_id: clientId,
-            matched_by: matchType,
-            matching_confidence: confidence,
+            matched_by: matchedBy,
+            matching_confidence: confidence
           })
-          .eq('id', contractId)
+          .eq('id', contract.id)
+
+        console.log(`✅ Client linked: ${clientId} (${matchedBy}, ${confidence})`)
       }
     }
 
-    // Criar entrada no histórico
-    await supabase
+    // Create history entry
+    await supabaseClient
       .from('contract_history')
       .insert({
-        contract_id: contractId,
+        contract_id: contract.id,
         workspace_id: workspaceId,
-        event_type: payload.status,
-        event_description: `Contrato ${payload.status} via webhook`,
-        new_values: payload,
-        ip_address: req.headers.get('x-forwarded-for') || req.headers.get('remote-addr'),
-        user_agent: req.headers.get('user-agent'),
+        event_type: status === 'signed' ? 'signed' : 'updated',
+        event_description: `Contract ${status} via webhook`,
+        new_values: contractData,
+        event_timestamp: new Date().toISOString()
       })
 
-    // Finalizar processamento do webhook
-    await supabase
+    // Mark webhook as processed
+    await supabaseClient
       .from('contract_webhook_logs')
-      .update({
+      .update({ 
         processing_status: 'processed',
         processed_at: new Date().toISOString(),
-        contract_id: contractId,
-        workspace_id: workspaceId,
-        processed_data: {
-          contract_id: contractId,
-          signers_processed: payload.signers?.length || 0,
-          client_linked: !!clientId
-        }
+        contract_id: contract.id,
+        processed_data: { contract_id: contract.id, client_linked: !!clientId }
       })
       .eq('id', webhookLog.id)
 
+    console.log('✅ Webhook processed successfully')
+
     return new Response(
-      JSON.stringify({
-        success: true,
-        message: 'Webhook processado com sucesso',
-        contract_id: contractId
+      JSON.stringify({ 
+        success: true, 
+        contract_id: contract.id,
+        message: 'Webhook processed successfully' 
       }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
+      { 
+        status: 200, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       }
     )
 
   } catch (error) {
-    console.error('Erro no webhook:', error)
+    console.error('❌ Webhook processing error:', error)
     
     return new Response(
-      JSON.stringify({
-        success: false,
-        error: error.message
+      JSON.stringify({ 
+        error: 'Internal server error',
+        message: error.message 
       }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500,
+      { 
+        status: 500, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       }
     )
   }
