@@ -30,28 +30,41 @@ export const useWorkspace = () => {
 };
 
 export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user, profile } = useAuth();
+  const { user, profile, loading: authLoading } = useAuth();
   const [currentWorkspace, setCurrentWorkspace] = useState<Workspace | null>(null);
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [currentMember, setCurrentMember] = useState<WorkspaceMember | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasInitialized, setHasInitialized] = useState(false);
+  const [initAttempts, setInitAttempts] = useState(0);
 
   const { loadWorkspaces } = useWorkspaceLoader();
   const { switchWorkspace: switchWorkspaceHook } = useWorkspaceSwitcher();
   const { createWorkspace: createWorkspaceHook, updateWorkspace: updateWorkspaceHook } = useWorkspaceManager();
 
-  console.log('WorkspaceProvider render - user:', !!user, 'profile:', !!profile, 'hasInitialized:', hasInitialized, 'isLoading:', isLoading);
+  console.log('WorkspaceProvider render - user:', !!user, 'profile:', !!profile, 'authLoading:', authLoading, 'hasInitialized:', hasInitialized, 'isLoading:', isLoading, 'initAttempts:', initAttempts);
 
   const initializeWorkspaces = useCallback(async () => {
-    if (!user?.id || !profile?.id || !user?.email || hasInitialized) {
+    if (!user?.id || !user?.email || authLoading || hasInitialized) {
       console.log('Skipping initialization - conditions not met:', { 
         hasUser: !!user?.id, 
-        hasProfile: !!profile?.id,
         hasEmail: !!user?.email,
+        authLoading,
         hasInitialized
       });
+      return;
+    }
+
+    // Aguardar um pouco mais se o perfil ainda não foi carregado e ainda não fizemos muitas tentativas
+    if (!profile?.id && initAttempts < 3) {
+      console.log('Profile not loaded yet, waiting... attempt:', initAttempts + 1);
+      setInitAttempts(prev => prev + 1);
+      setTimeout(() => {
+        if (!hasInitialized) {
+          initializeWorkspaces();
+        }
+      }, 1000);
       return;
     }
 
@@ -63,6 +76,8 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       // Load workspaces with automatic creation if none exist
       const { workspaces: userWorkspaces, memberData } = await loadWorkspaces(user.id, user.email);
       
+      console.log('Loaded workspaces:', userWorkspaces);
+
       // Filter valid workspaces
       const validWorkspaces = userWorkspaces.filter(workspace => {
         const memberInfo = memberData?.find(m => m.workspace_id === workspace.id);
@@ -72,32 +87,44 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       setWorkspaces(validWorkspaces);
 
       if (validWorkspaces.length > 0) {
-        const targetWorkspaceId = profile.current_workspace_id || validWorkspaces[0].id;
+        const targetWorkspaceId = profile?.current_workspace_id || validWorkspaces[0].id;
         const targetWorkspace = validWorkspaces.find(w => w.id === targetWorkspaceId) || validWorkspaces[0];
         
         console.log('Auto-selecting workspace:', targetWorkspace.id);
         setCurrentWorkspace(targetWorkspace);
         
         const memberInfo = memberData?.find(m => m.workspace_id === targetWorkspace.id);
-        if (memberInfo) {
+        if (memberInfo && profile) {
           const memberWithProfile = createMemberWithProfile(memberInfo, profile);
           setCurrentMember(memberWithProfile);
         }
       }
 
       setHasInitialized(true);
+      setInitAttempts(0);
       console.log('Workspace initialization completed successfully');
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error initializing workspaces:', error);
       setError(error?.message || 'Erro ao carregar workspaces');
       setWorkspaces([]);
       setCurrentWorkspace(null);
       setCurrentMember(null);
+      
+      // Se for um erro de permissão, tentar novamente após um tempo
+      if (error?.message?.includes('permission') || error?.message?.includes('policy')) {
+        console.log('Permission error, retrying in 2 seconds...');
+        setTimeout(() => {
+          if (!hasInitialized && initAttempts < 5) {
+            setInitAttempts(prev => prev + 1);
+            initializeWorkspaces();
+          }
+        }, 2000);
+      }
     } finally {
       setIsLoading(false);
     }
-  }, [user?.id, user?.email, profile?.id, profile?.current_workspace_id, hasInitialized, loadWorkspaces]);
+  }, [user?.id, user?.email, profile?.id, profile?.current_workspace_id, authLoading, hasInitialized, loadWorkspaces, initAttempts]);
 
   const switchWorkspace = useCallback(async (workspaceId: string) => {
     if (!user?.id || !profile) return;
@@ -116,6 +143,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
     const workspace = await createWorkspaceHook(data, user.id);
     setHasInitialized(false); // Force re-initialization
+    setInitAttempts(0);
     return workspace;
   }, [user?.id, createWorkspaceHook]);
 
@@ -133,15 +161,16 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const refreshWorkspaces = useCallback(async () => {
     setHasInitialized(false);
+    setInitAttempts(0);
   }, []);
 
   // Initialize workspaces when conditions are met
   useEffect(() => {
-    if (user?.id && profile?.id && user?.email && !hasInitialized && !isLoading) {
+    if (user?.id && user?.email && !authLoading && !hasInitialized && !isLoading) {
       console.log('Conditions met, initializing workspaces...');
       initializeWorkspaces();
     }
-  }, [user?.id, user?.email, profile?.id, hasInitialized, isLoading, initializeWorkspaces]);
+  }, [user?.id, user?.email, authLoading, hasInitialized, isLoading, initializeWorkspaces]);
 
   // Reset state when user logs out
   useEffect(() => {
@@ -153,6 +182,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       setHasInitialized(false);
       setIsLoading(false);
       setError(null);
+      setInitAttempts(0);
     }
   }, [user]);
 

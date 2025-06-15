@@ -23,7 +23,12 @@ export const useWorkspaceLoader = () => {
         .select()
         .single();
 
-      if (workspaceError) throw workspaceError;
+      if (workspaceError) {
+        console.error('Error creating workspace:', workspaceError);
+        throw workspaceError;
+      }
+
+      console.log('Workspace created successfully:', workspaceData);
 
       // Create membership
       const { error: memberError } = await supabase
@@ -35,12 +40,15 @@ export const useWorkspaceLoader = () => {
           status: 'active',
         });
 
-      if (memberError) throw memberError;
+      if (memberError) {
+        console.error('Error creating membership:', memberError);
+        throw memberError;
+      }
 
-      console.log('Default workspace created successfully:', workspaceData.id);
+      console.log('Membership created successfully for workspace:', workspaceData.id);
       return workspaceData;
     } catch (error) {
-      console.error('Error creating default workspace:', error);
+      console.error('Error in createDefaultWorkspace:', error);
       throw error;
     }
   }, []);
@@ -62,6 +70,8 @@ export const useWorkspaceLoader = () => {
         console.error('Error loading member data:', memberError);
         throw memberError;
       }
+
+      console.log('Member data loaded:', memberData);
 
       // If no workspaces found, create a default one
       if (!memberData || memberData.length === 0) {
@@ -117,7 +127,7 @@ export const useWorkspaceLoader = () => {
       setError(error.message);
       toast({
         title: "Erro",
-        description: "Erro ao carregar workspaces",
+        description: "Erro ao carregar workspaces: " + error.message,
         variant: "destructive",
       });
       throw error;
