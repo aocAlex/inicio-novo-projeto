@@ -34,47 +34,55 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [currentWorkspace, setCurrentWorkspace] = useState<Workspace | null>(null);
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [currentMember, setCurrentMember] = useState<WorkspaceMember | null>(null);
-  const [hasInitialized, setHasInitialized] = useState(false);
+  const [initialized, setInitialized] = useState(false);
 
   const { loadWorkspaces, isLoading, error, setIsLoading } = useWorkspaceLoader();
   const { switchWorkspace: switchWorkspaceHook } = useWorkspaceSwitcher();
   const { createWorkspace: createWorkspaceHook, updateWorkspace: updateWorkspaceHook } = useWorkspaceManager();
 
-  console.log('WorkspaceProvider render - user:', user?.id, 'hasInitialized:', hasInitialized, 'isLoading:', isLoading);
+  console.log('WorkspaceProvider render - user:', !!user, 'profile:', !!profile, 'initialized:', initialized, 'isLoading:', isLoading);
 
   const initializeWorkspaces = useCallback(async () => {
-    if (!user || !profile || hasInitialized) {
-      console.log('Skipping initialization - conditions not met');
+    if (!user?.id || !profile?.id || initialized) {
+      console.log('Skipping initialization - conditions not met:', { 
+        hasUser: !!user?.id, 
+        hasProfile: !!profile?.id, 
+        initialized 
+      });
       return;
     }
+
+    console.log('Starting workspace initialization for user:', user.id);
 
     try {
       const { workspaces: userWorkspaces, memberData } = await loadWorkspaces(user.id);
       setWorkspaces(userWorkspaces);
-      setHasInitialized(true);
 
-      // Auto-select first workspace if none selected
+      // Auto-select workspace
       if (userWorkspaces.length > 0 && !currentWorkspace) {
-        const targetWorkspaceId = profile?.current_workspace_id || userWorkspaces[0].id;
+        const targetWorkspaceId = profile.current_workspace_id || userWorkspaces[0].id;
         const targetWorkspace = userWorkspaces.find(w => w.id === targetWorkspaceId) || userWorkspaces[0];
         
         console.log('Auto-selecting workspace:', targetWorkspace.id);
         setCurrentWorkspace(targetWorkspace);
         
-        // Find member data for this workspace
+        // Set member data
         const memberInfo = memberData?.find(m => m.workspace_id === targetWorkspace.id);
-        if (memberInfo && profile) {
+        if (memberInfo) {
           const memberWithProfile = createMemberWithProfile(memberInfo, profile);
           setCurrentMember(memberWithProfile);
         }
       }
+
+      setInitialized(true);
+      console.log('Workspace initialization completed');
     } catch (error) {
       console.error('Error initializing workspaces:', error);
     }
-  }, [user, profile, hasInitialized, loadWorkspaces, currentWorkspace]);
+  }, [user?.id, profile?.id, profile?.current_workspace_id, initialized, loadWorkspaces, currentWorkspace]);
 
   const switchWorkspace = useCallback(async (workspaceId: string) => {
-    if (!user || !profile) return;
+    if (!user?.id || !profile) return;
 
     try {
       const { workspace, member } = await switchWorkspaceHook(workspaceId, user.id, profile);
@@ -83,16 +91,15 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     } catch (error) {
       console.error('Error switching workspace:', error);
     }
-  }, [user, profile, switchWorkspaceHook]);
+  }, [user?.id, profile, switchWorkspaceHook]);
 
   const createWorkspace = useCallback(async (data: CreateWorkspaceData): Promise<Workspace> => {
-    if (!user) throw new Error('User not authenticated');
+    if (!user?.id) throw new Error('User not authenticated');
 
     const workspace = await createWorkspaceHook(data, user.id);
-    // Refresh workspaces list
-    setHasInitialized(false);
+    setInitialized(false); // Force re-initialization to load new workspace
     return workspace;
-  }, [user, createWorkspaceHook]);
+  }, [user?.id, createWorkspaceHook]);
 
   const updateWorkspace = useCallback(async (id: string, data: Partial<Workspace>) => {
     await updateWorkspaceHook(id, data);
@@ -104,27 +111,38 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setWorkspaces(prev => 
       prev.map(w => w.id === id ? { ...w, ...data } : w)
     );
-  }, [updateWorkspaceHook, currentWorkspace]);
+  }, [updateWorkspaceHook, currentWorkspace?.id]);
 
   const refreshWorkspaces = useCallback(async () => {
-    setHasInitialized(false);
+    setInitialized(false);
   }, []);
 
-  // Initialize workspaces when user and profile are available
+  // Initialize workspaces when conditions are met
   useEffect(() => {
-    console.log('WorkspaceProvider useEffect - user:', !!user, 'profile:', !!profile, 'hasInitialized:', hasInitialized);
-    
-    if (user && profile && !hasInitialized) {
+    console.log('WorkspaceProvider useEffect - checking conditions:', {
+      hasUser: !!user?.id,
+      hasProfile: !!profile?.id,
+      initialized,
+      isLoading
+    });
+
+    if (user?.id && profile?.id && !initialized && !isLoading) {
+      console.log('Conditions met, initializing workspaces...');
       initializeWorkspaces();
-    } else if (!user) {
-      // Reset when user logs out
+    }
+  }, [user?.id, profile?.id, initialized, isLoading, initializeWorkspaces]);
+
+  // Reset state when user logs out
+  useEffect(() => {
+    if (!user) {
+      console.log('User logged out, resetting workspace state');
       setCurrentWorkspace(null);
       setWorkspaces([]);
       setCurrentMember(null);
+      setInitialized(false);
       setIsLoading(false);
-      setHasInitialized(false);
     }
-  }, [user, profile, hasInitialized, initializeWorkspaces, setIsLoading]);
+  }, [user, setIsLoading]);
 
   const value = {
     currentWorkspace,
