@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Process, CreateProcessData, UpdateProcessData } from '@/types/process';
 import { Client } from '@/types/client';
@@ -114,16 +115,8 @@ export const ProcessModal = ({
         // Update existing process
         await onSave(baseData as UpdateProcessData);
       } else {
-        // Create new process - validar clientes selecionados
-        const validClients = selectedClients.filter(client => 
-          client.client_id && client.client_id !== 'none'
-        );
-
-        const createData: CreateProcessData = {
-          ...baseData,
-          clients: validClients.length > 0 ? validClients : undefined,
-        };
-        await onSave(createData);
+        // Create new process - remove clients from the creation data
+        await onSave(baseData as CreateProcessData);
       }
 
       onClose();
@@ -289,69 +282,6 @@ export const ProcessModal = ({
               />
             </div>
           </div>
-
-          {!process && (
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label>Clientes Envolvidos</Label>
-                <Button type="button" variant="outline" size="sm" onClick={addClient}>
-                  <Plus className="h-3 w-3 mr-1" />
-                  Adicionar Cliente
-                </Button>
-              </div>
-
-              {selectedClients.map((selectedClient, index) => (
-                <div key={index} className="flex gap-2 items-end">
-                  <div className="flex-1">
-                    <Select 
-                      value={selectedClient.client_id}
-                      onValueChange={(value) => updateSelectedClient(index, 'client_id', value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecionar cliente" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">Selecionar cliente</SelectItem>
-                        {clients.map((client) => (
-                          <SelectItem key={client.id} value={client.id}>
-                            {client.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="w-32">
-                    <Select 
-                      value={selectedClient.role}
-                      onValueChange={(value: 'plaintiff' | 'defendant' | 'witness' | 'other') => 
-                        updateSelectedClient(index, 'role', value)
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="plaintiff">Autor</SelectItem>
-                        <SelectItem value="defendant">Réu</SelectItem>
-                        <SelectItem value="witness">Testemunha</SelectItem>
-                        <SelectItem value="other">Outro</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => removeSelectedClient(index)}
-                  >
-                    <X className="h-3 w-3" />
-                  </Button>
-                </div>
-              ))}
-            </div>
-          )}
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose}>

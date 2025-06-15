@@ -43,10 +43,6 @@ export interface CreateProcessData {
   assigned_lawyer?: string;
   case_value?: number;
   deadline_date?: string;
-  clients?: Array<{
-    client_id: string;
-    role: 'plaintiff' | 'defendant' | 'witness' | 'other';
-  }>;
 }
 
 export interface UpdateProcessData {

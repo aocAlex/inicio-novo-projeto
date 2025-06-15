@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -118,34 +117,6 @@ export const useProcesses = () => {
         status: safeProcessStatus(data.status),
         priority: safeProcessPriority(data.priority),
       };
-
-      // Adicionar clientes ao processo se fornecidos
-      if (processData.clients && processData.clients.length > 0) {
-        const clientInserts = processData.clients.map(client => ({
-          process_id: newProcess.id,
-          client_id: client.client_id,
-          role: client.role,
-        }));
-
-        const { error: clientError } = await supabase
-          .from('process_clients')
-          .insert(clientInserts);
-
-        if (clientError) {
-          console.error('Error adding clients to process:', clientError);
-          
-          // Se falhar ao adicionar clientes, remover o processo criado
-          await supabase.from('processes').delete().eq('id', newProcess.id);
-          
-          toast({
-            title: "Erro ao vincular clientes",
-            description: "Não foi possível vincular os clientes ao processo. Tente novamente.",
-            variant: "destructive",
-          });
-          
-          return null;
-        }
-      }
 
       setProcesses(prev => [newProcess, ...prev]);
 
