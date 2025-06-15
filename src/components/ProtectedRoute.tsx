@@ -33,14 +33,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   }
 
   if (!user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="mx-auto h-8 w-8 animate-spin text-blue-600" />
-          <p className="mt-2 text-gray-600">Redirecionando...</p>
-        </div>
-      </div>
-    );
+    return null; // Don't show loading spinner when redirecting
   }
 
   return <>{children}</>;

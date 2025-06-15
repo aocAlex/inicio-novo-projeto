@@ -1,18 +1,10 @@
 
-import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { Header } from '@/components/layout/Header';
 import { Sidebar } from '@/components/layout/Sidebar';
-import { Dashboard } from '@/pages/Dashboard';
-import { Clients } from '@/pages/Clients';
-import { Processes } from '@/pages/Processes';
-import { TemplatesPage } from '@/pages/TemplatesPage';
-import { TemplateEditorPage } from '@/pages/TemplateEditorPage';
-import { PetitionsPage } from '@/pages/PetitionsPage';
-import { SettingsPage } from '@/components/settings/SettingsPage';
 import { Loader2 } from 'lucide-react';
-import { Routes, Route, Outlet } from 'react-router-dom';
+import { Outlet } from 'react-router-dom';
 
 export const MainApp = () => {
   const { user } = useAuth();
