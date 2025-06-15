@@ -70,7 +70,7 @@ export const ContractsList: React.FC<ContractsListProps> = ({ onContractClick })
         <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
         <h3 className="text-lg font-medium mb-2">Nenhum contrato encontrado</h3>
         <p className="text-muted-foreground">
-          Os contratos aparecerão aqui quando forem recebidos via webhook do ZapSign.
+          Os contratos aparecerão aqui quando forem recebidos via webhook.
         </p>
       </Card>
     );

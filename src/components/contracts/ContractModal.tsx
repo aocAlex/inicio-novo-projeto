@@ -54,7 +54,7 @@ export const ContractModal: React.FC<ContractModalProps> = ({ open, onClose, con
         contract_type: '',
         zapsign_open_id: 0,
         zapsign_token: '',
-        status: 'pending',
+        status: 'pending' as Contract['status'],
         client_id: '',
         notes: ''
       });
@@ -193,23 +193,23 @@ export const ContractModal: React.FC<ContractModalProps> = ({ open, onClose, con
             {!contract && (
               <>
                 <div className="space-y-2">
-                  <Label htmlFor="zapsign_open_id">ZapSign Open ID</Label>
+                  <Label htmlFor="zapsign_open_id">Open ID</Label>
                   <Input
                     id="zapsign_open_id"
                     type="number"
                     value={formData.zapsign_open_id}
                     onChange={(e) => setFormData(prev => ({ ...prev, zapsign_open_id: parseInt(e.target.value) || 0 }))}
-                    placeholder="ID do ZapSign (opcional)"
+                    placeholder="ID da assinatura (opcional)"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="zapsign_token">ZapSign Token</Label>
+                  <Label htmlFor="zapsign_token">Token</Label>
                   <Input
                     id="zapsign_token"
                     value={formData.zapsign_token}
                     onChange={(e) => setFormData(prev => ({ ...prev, zapsign_token: e.target.value }))}
-                    placeholder="Token do ZapSign (opcional)"
+                    placeholder="Token da assinatura (opcional)"
                   />
                 </div>
               </>

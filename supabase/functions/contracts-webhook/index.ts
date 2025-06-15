@@ -22,7 +22,7 @@ serve(async (req) => {
     const payload = await req.json()
     console.log('🔔 Webhook received:', JSON.stringify(payload, null, 2))
 
-    // Extract key information from ZapSign webhook
+    // Extract key information from webhook
     const {
       open_id,
       token,

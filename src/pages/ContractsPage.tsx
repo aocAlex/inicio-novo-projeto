@@ -39,7 +39,7 @@ export const ContractsPage = () => {
         <div>
           <h1 className="text-3xl font-bold">Contratos</h1>
           <p className="text-muted-foreground">
-            Gerencie contratos recebidos via ZapSign
+            Gerencie contratos de assinatura eletrônica
           </p>
         </div>
         <Button onClick={handleCreateClick}>
