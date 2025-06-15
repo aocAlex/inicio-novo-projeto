@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './AuthContext';
@@ -34,81 +35,18 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [currentMember, setCurrentMember] = useState<WorkspaceMember | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [hasInitialized, setHasInitialized] = useState(false);
+  const [initialized, setInitialized] = useState(false);
 
-  const switchWorkspace = useCallback(async (workspaceId: string) => {
-    if (!user) return;
-
-    try {
-      // Load workspace details
-      const { data: workspaceData, error: workspaceError } = await supabase
-        .from('workspaces')
-        .select('*')
-        .eq('id', workspaceId)
-        .single();
-
-      if (workspaceError) throw workspaceError;
-
-      // Load member details
-      const { data: memberData, error: memberError } = await supabase
-        .from('workspace_members')
-        .select('*')
-        .eq('workspace_id', workspaceId)
-        .eq('user_id', user.id)
-        .single();
-
-      if (memberError) throw memberError;
-
-      setCurrentWorkspace(workspaceData);
-      
-      // Create typed member object
-      const memberWithProfile: WorkspaceMember = {
-        id: memberData.id,
-        workspace_id: memberData.workspace_id,
-        user_id: memberData.user_id,
-        role: ['owner', 'admin', 'editor', 'viewer'].includes(memberData.role) 
-          ? memberData.role as 'owner' | 'admin' | 'editor' | 'viewer'
-          : 'viewer',
-        permissions: memberData.permissions && typeof memberData.permissions === 'object' && !Array.isArray(memberData.permissions)
-          ? memberData.permissions as Record<string, any>
-          : {},
-        status: ['active', 'pending', 'suspended'].includes(memberData.status) 
-          ? memberData.status as 'active' | 'pending' | 'suspended'
-          : 'active',
-        last_activity: memberData.last_activity,
-        created_at: memberData.created_at,
-        profile: profile ? {
-          id: profile.id,
-          email: profile.email,
-          full_name: profile.full_name,
-          avatar_url: profile.avatar_url
-        } : undefined
-      };
-      
-      setCurrentMember(memberWithProfile);
-
-      // Update profile's current workspace
-      await supabase
-        .from('profiles')
-        .update({ current_workspace_id: workspaceId })
-        .eq('id', user.id);
-
-    } catch (error: any) {
-      console.error('Error switching workspace:', error);
-      setError(error.message);
-      toast({
-        title: "Erro",
-        description: "Erro ao trocar workspace",
-        variant: "destructive",
-      });
-    }
-  }, [user, profile, toast]);
+  console.log('WorkspaceProvider render - user:', user?.id, 'initialized:', initialized, 'isLoading:', isLoading);
 
   const loadWorkspaces = useCallback(async () => {
-    if (!user || hasInitialized) {
+    if (!user || initialized) {
+      console.log('Skipping loadWorkspaces - no user or already initialized');
       return;
     }
 
+    console.log('Loading workspaces for user:', user.id);
+    
     try {
       setIsLoading(true);
       setError(null);
@@ -127,15 +65,47 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       }
 
       const userWorkspaces = memberData?.map(member => member.workspace).filter(Boolean) || [];
+      console.log('Found workspaces:', userWorkspaces.length);
+      
       setWorkspaces(userWorkspaces);
+      setInitialized(true);
 
-      // Set current workspace if none is set and we have workspaces
+      // Auto-select first workspace if none selected
       if (userWorkspaces.length > 0 && !currentWorkspace) {
-        const workspaceId = profile?.current_workspace_id || userWorkspaces[0].id;
-        await switchWorkspace(workspaceId);
+        const targetWorkspaceId = profile?.current_workspace_id || userWorkspaces[0].id;
+        const targetWorkspace = userWorkspaces.find(w => w.id === targetWorkspaceId) || userWorkspaces[0];
+        
+        console.log('Auto-selecting workspace:', targetWorkspace.id);
+        setCurrentWorkspace(targetWorkspace);
+        
+        // Find member data for this workspace
+        const memberInfo = memberData?.find(m => m.workspace_id === targetWorkspace.id);
+        if (memberInfo && profile) {
+          const memberWithProfile: WorkspaceMember = {
+            id: memberInfo.id,
+            workspace_id: memberInfo.workspace_id,
+            user_id: memberInfo.user_id,
+            role: ['owner', 'admin', 'editor', 'viewer'].includes(memberInfo.role) 
+              ? memberInfo.role as 'owner' | 'admin' | 'editor' | 'viewer'
+              : 'viewer',
+            permissions: memberInfo.permissions && typeof memberInfo.permissions === 'object' && !Array.isArray(memberInfo.permissions)
+              ? memberInfo.permissions as Record<string, any>
+              : {},
+            status: ['active', 'pending', 'suspended'].includes(memberInfo.status) 
+              ? memberInfo.status as 'active' | 'pending' | 'suspended'
+              : 'active',
+            last_activity: memberInfo.last_activity,
+            created_at: memberInfo.created_at,
+            profile: {
+              id: profile.id,
+              email: profile.email,
+              full_name: profile.full_name,
+              avatar_url: profile.avatar_url
+            }
+          };
+          setCurrentMember(memberWithProfile);
+        }
       }
-
-      setHasInitialized(true);
 
     } catch (error: any) {
       console.error('Error loading workspaces:', error);
@@ -148,7 +118,73 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     } finally {
       setIsLoading(false);
     }
-  }, [user, hasInitialized, currentWorkspace, profile?.current_workspace_id, switchWorkspace, toast]);
+  }, [user, initialized, currentWorkspace, profile, toast]);
+
+  const switchWorkspace = useCallback(async (workspaceId: string) => {
+    if (!user || !profile) return;
+
+    console.log('Switching to workspace:', workspaceId);
+
+    try {
+      const { data: workspaceData, error: workspaceError } = await supabase
+        .from('workspaces')
+        .select('*')
+        .eq('id', workspaceId)
+        .single();
+
+      if (workspaceError) throw workspaceError;
+
+      const { data: memberData, error: memberError } = await supabase
+        .from('workspace_members')
+        .select('*')
+        .eq('workspace_id', workspaceId)
+        .eq('user_id', user.id)
+        .single();
+
+      if (memberError) throw memberError;
+
+      setCurrentWorkspace(workspaceData);
+      
+      const memberWithProfile: WorkspaceMember = {
+        id: memberData.id,
+        workspace_id: memberData.workspace_id,
+        user_id: memberData.user_id,
+        role: ['owner', 'admin', 'editor', 'viewer'].includes(memberData.role) 
+          ? memberData.role as 'owner' | 'admin' | 'editor' | 'viewer'
+          : 'viewer',
+        permissions: memberData.permissions && typeof memberData.permissions === 'object' && !Array.isArray(memberData.permissions)
+          ? memberData.permissions as Record<string, any>
+          : {},
+        status: ['active', 'pending', 'suspended'].includes(memberData.status) 
+          ? memberData.status as 'active' | 'pending' | 'suspended'
+          : 'active',
+        last_activity: memberData.last_activity,
+        created_at: memberData.created_at,
+        profile: {
+          id: profile.id,
+          email: profile.email,
+          full_name: profile.full_name,
+          avatar_url: profile.avatar_url
+        }
+      };
+      
+      setCurrentMember(memberWithProfile);
+
+      await supabase
+        .from('profiles')
+        .update({ current_workspace_id: workspaceId })
+        .eq('id', user.id);
+
+    } catch (error: any) {
+      console.error('Error switching workspace:', error);
+      setError(error.message);
+      toast({
+        title: "Erro",
+        description: "Erro ao trocar workspace",
+        variant: "destructive",
+      });
+    }
+  }, [user, profile, toast]);
 
   const createWorkspace = async (data: CreateWorkspaceData): Promise<Workspace> => {
     if (!user) throw new Error('User not authenticated');
@@ -165,7 +201,6 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
       if (workspaceError) throw workspaceError;
 
-      // Add user as owner
       const { error: memberError } = await supabase
         .from('workspace_members')
         .insert({
@@ -177,7 +212,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       if (memberError) throw memberError;
 
       // Refresh workspaces list
-      await refreshWorkspaces();
+      setInitialized(false);
 
       toast({
         title: "Sucesso",
@@ -205,7 +240,6 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
       if (error) throw error;
 
-      // Update local state
       if (currentWorkspace?.id === id) {
         setCurrentWorkspace(prev => prev ? { ...prev, ...data } : null);
       }
@@ -229,22 +263,24 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const refreshWorkspaces = useCallback(async () => {
-    setHasInitialized(false);
-    await loadWorkspaces();
-  }, [loadWorkspaces]);
+    setInitialized(false);
+  }, []);
 
+  // Simple effect - only run when user and profile are available and not initialized
   useEffect(() => {
-    if (user && profile !== undefined && !hasInitialized) {
+    console.log('WorkspaceProvider useEffect - user:', !!user, 'profile:', !!profile, 'initialized:', initialized);
+    
+    if (user && profile && !initialized) {
       loadWorkspaces();
     } else if (!user) {
-      // Reset state when user logs out
+      // Reset when user logs out
       setCurrentWorkspace(null);
       setWorkspaces([]);
       setCurrentMember(null);
       setIsLoading(false);
-      setHasInitialized(false);
+      setInitialized(false);
     }
-  }, [user, profile, hasInitialized, loadWorkspaces]);
+  }, [user, profile, initialized, loadWorkspaces]);
 
   const value = {
     currentWorkspace,
