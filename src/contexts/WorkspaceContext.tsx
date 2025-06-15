@@ -92,9 +92,12 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             email: user.email,
             full_name: user.email,
             avatar_url: null,
-            timezone: 'America/Sao_Paulo',
             current_workspace_id: targetWorkspace.id,
-            preferences: {},
+            preferences: {
+              notifications: true,
+              email_alerts: true,
+              theme: 'light' as const
+            },
             last_login: null,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
