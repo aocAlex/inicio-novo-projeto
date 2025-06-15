@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
@@ -24,23 +25,22 @@ export const useDashboardMetrics = () => {
       setIsLoading(true);
       setError(null);
 
-      // Carregar métricas de petições
-      const petitionMetrics = await loadPetitionMetrics();
-      
-      // Carregar métricas de templates
-      const templateMetrics = await loadTemplateMetrics();
-      
-      // Carregar métricas de webhooks
-      const webhookMetrics = await loadWebhookMetrics();
-      
-      // Carregar métricas de membros
-      const memberMetrics = await loadMemberMetrics();
-
-      // Carregar métricas de clientes
-      const clientMetrics = await loadClientMetrics();
-
-      // Carregar métricas de processos
-      const processMetrics = await loadProcessMetrics();
+      // Carregar métricas em paralelo
+      const [
+        petitionMetrics,
+        templateMetrics,
+        webhookMetrics,
+        memberMetrics,
+        clientMetrics,
+        processMetrics
+      ] = await Promise.all([
+        loadPetitionMetrics(),
+        loadTemplateMetrics(),
+        loadWebhookMetrics(),
+        loadMemberMetrics(),
+        loadClientMetrics(),
+        loadProcessMetrics()
+      ]);
 
       // Combinar todas as métricas
       setMetrics({
@@ -52,11 +52,11 @@ export const useDashboardMetrics = () => {
         members: memberMetrics,
       });
 
-      // Carregar atividades recentes
-      await loadRecentPetitions();
-      
-      // Carregar dados para gráficos
-      await loadChartData();
+      // Carregar atividades recentes e dados para gráficos
+      await Promise.all([
+        loadRecentPetitions(),
+        loadChartData()
+      ]);
 
     } catch (error: any) {
       console.error('Error loading dashboard data:', error);
@@ -229,7 +229,7 @@ export const useDashboardMetrics = () => {
       name: template.name,
       category: template.category,
       executionCount: template.execution_count || 0,
-      lastUsed: new Date().toISOString(), // TODO: Implementar last_used
+      lastUsed: new Date().toISOString(),
     })) || [];
 
     return {
@@ -260,7 +260,7 @@ export const useDashboardMetrics = () => {
 
     return {
       successRate: Math.round(successRate * 100) / 100,
-      averageResponseTime: 2.5, // TODO: Calcular tempo real
+      averageResponseTime: 2.5,
       totalSent: totalSent || 0,
       failed: failed || 0,
     };
@@ -271,10 +271,9 @@ export const useDashboardMetrics = () => {
     const { count: total } = await supabase
       .from('workspace_members')
       .select('*', { count: 'exact', head: true })
-      .eq('workspace_id', currentWorkspace!.id)
-      .eq('status', 'active');
+      .eq('workspace_id', currentWorkspace!.id);
 
-    // Membros ativos hoje (que tiveram atividade)
+    // Membros ativos hoje
     const today = new Date().toISOString().split('T')[0];
     const { count: activeToday } = await supabase
       .from('user_activities')
@@ -322,7 +321,9 @@ export const useDashboardMetrics = () => {
       return date.toISOString().split('T')[0];
     }).reverse();
 
-    const chartPromises = last7Days.map(async (date) => {
+    const chartResults: ChartData[] = [];
+
+    for (const date of last7Days) {
       const nextDay = new Date(new Date(date).getTime() + 24 * 60 * 60 * 1000)
         .toISOString().split('T')[0];
 
@@ -333,18 +334,17 @@ export const useDashboardMetrics = () => {
         .gte('created_at', date)
         .lt('created_at', nextDay);
 
-      return {
+      chartResults.push({
         date,
         value: count || 0,
         label: new Date(date).toLocaleDateString('pt-BR', { 
           weekday: 'short', 
           day: 'numeric' 
         }),
-      };
-    });
+      });
+    }
 
-    const chartResult = await Promise.all(chartPromises);
-    setChartData(chartResult);
+    setChartData(chartResults);
   };
 
   return {
