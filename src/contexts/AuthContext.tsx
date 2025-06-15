@@ -40,29 +40,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error('Erro ao carregar perfil:', error);
-        throw error;
+        // Não lançar erro, apenas logar e continuar
+        setProfile(null);
+        return;
       }
       
-      // Garantir que preferences seja um objeto com as propriedades corretas
-      const preferences = data.preferences && typeof data.preferences === 'object' 
-        ? data.preferences as any
-        : { notifications: true, email_alerts: true, theme: 'light' };
+      if (data) {
+        // Garantir que preferences seja um objeto com as propriedades corretas
+        const preferences = data.preferences && typeof data.preferences === 'object' 
+          ? data.preferences as any
+          : { notifications: true, email_alerts: true, theme: 'light' };
 
-      setProfile({
-        ...data,
-        preferences: {
-          notifications: preferences.notifications ?? true,
-          email_alerts: preferences.email_alerts ?? true,
-          theme: preferences.theme ?? 'light'
-        }
-      });
-      console.log('Perfil carregado com sucesso:', data);
+        setProfile({
+          ...data,
+          preferences: {
+            notifications: preferences.notifications ?? true,
+            email_alerts: preferences.email_alerts ?? true,
+            theme: preferences.theme ?? 'light'
+          }
+        });
+        console.log('Perfil carregado com sucesso:', data);
+      } else {
+        console.log('Nenhum perfil encontrado para o usuário');
+        setProfile(null);
+      }
     } catch (error) {
       console.error('Error loading profile:', error);
+      setProfile(null);
     }
   };
 
@@ -77,33 +85,59 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          await loadProfile(session.user.id);
+          // Usar setTimeout para evitar deadlock
+          setTimeout(() => {
+            loadProfile(session.user.id);
+          }, 0);
         } else {
           setProfile(null);
+          setLoading(false);
         }
-        
-        setLoading(false);
       }
     );
 
     // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log('Sessão existente encontrada:', session?.user?.id);
-      setSession(session);
-      setUser(session?.user ?? null);
-      
-      if (session?.user) {
-        loadProfile(session.user.id);
-      } else {
+    const initializeAuth = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('Erro ao obter sessão:', error);
+          setLoading(false);
+          return;
+        }
+
+        console.log('Sessão existente encontrada:', session?.user?.id);
+        setSession(session);
+        setUser(session?.user ?? null);
+        
+        if (session?.user) {
+          await loadProfile(session.user.id);
+        }
+        
+        setLoading(false);
+      } catch (error) {
+        console.error('Erro na inicialização da auth:', error);
         setLoading(false);
       }
-    });
+    };
+
+    initializeAuth();
 
     return () => {
       console.log('AuthProvider cleanup');
       subscription.unsubscribe();
     };
   }, []);
+
+  // Garantir que loading seja definido como false após carregar o perfil
+  useEffect(() => {
+    if (user && profile !== undefined) {
+      setLoading(false);
+    } else if (!user) {
+      setLoading(false);
+    }
+  }, [user, profile]);
 
   const signIn = async (email: string, password: string) => {
     console.log('Iniciando signIn para:', email);
