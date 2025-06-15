@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { useAuth } from './AuthContext';
 import { Workspace, WorkspaceMember, CreateWorkspaceData } from '@/types/workspace';
@@ -45,10 +44,11 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   console.log('WorkspaceProvider render - user:', !!user, 'profile:', !!profile, 'initialized:', initialized, 'isLoading:', isLoading, 'attempts:', initializationAttempts);
 
   const initializeWorkspaces = useCallback(async () => {
-    if (!user?.id || !profile?.id) {
-      console.log('Skipping initialization - missing user or profile:', { 
+    if (!user?.id || !profile?.id || !user?.email) {
+      console.log('Skipping initialization - missing user, profile, or email:', { 
         hasUser: !!user?.id, 
-        hasProfile: !!profile?.id 
+        hasProfile: !!profile?.id,
+        hasEmail: !!user?.email
       });
       return;
     }
@@ -87,7 +87,8 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         return;
       }
 
-      const { workspaces: userWorkspaces, memberData } = await loadWorkspaces(user.id);
+      // Load workspaces with automatic creation if none exist
+      const { workspaces: userWorkspaces, memberData } = await loadWorkspaces(user.id, user.email);
       
       // Filter valid workspaces
       const validWorkspaces = userWorkspaces.filter(workspace => {
@@ -128,7 +129,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         setIsLoading(false);
       }
     }
-  }, [user?.id, profile?.id, profile?.current_workspace_id, initialized, loadWorkspaces, currentWorkspace, initializationAttempts]);
+  }, [user?.id, user?.email, profile?.id, profile?.current_workspace_id, initialized, loadWorkspaces, currentWorkspace, initializationAttempts]);
 
   const switchWorkspace = useCallback(async (workspaceId: string) => {
     if (!user?.id || !profile) return;
@@ -172,16 +173,17 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     console.log('WorkspaceProvider useEffect - checking conditions:', {
       hasUser: !!user?.id,
       hasProfile: !!profile?.id,
+      hasEmail: !!user?.email,
       initialized,
       isLoading,
       attempts: initializationAttempts
     });
 
-    if (user?.id && profile?.id && !initialized && !isLoading && initializationAttempts < 3) {
+    if (user?.id && profile?.id && user?.email && !initialized && !isLoading && initializationAttempts < 3) {
       console.log('Conditions met, initializing workspaces...');
       initializeWorkspaces();
     }
-  }, [user?.id, profile?.id, initialized, isLoading, initializeWorkspaces, initializationAttempts]);
+  }, [user?.id, user?.email, profile?.id, initialized, isLoading, initializeWorkspaces, initializationAttempts]);
 
   useEffect(() => {
     if (!user) {

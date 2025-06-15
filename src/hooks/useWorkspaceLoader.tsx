@@ -9,14 +9,51 @@ export const useWorkspaceLoader = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const loadWorkspaces = useCallback(async (userId: string) => {
+  const createDefaultWorkspace = useCallback(async (userId: string, userEmail: string) => {
+    console.log('Creating default workspace for user:', userId);
+    
+    try {
+      // Create workspace
+      const { data: workspaceData, error: workspaceError } = await supabase
+        .from('workspaces')
+        .insert({
+          name: `Workspace de ${userEmail.split('@')[0]}`,
+          description: 'Workspace criada automaticamente',
+          owner_id: userId,
+        })
+        .select()
+        .single();
+
+      if (workspaceError) throw workspaceError;
+
+      // Create membership
+      const { error: memberError } = await supabase
+        .from('workspace_members')
+        .insert({
+          workspace_id: workspaceData.id,
+          user_id: userId,
+          role: 'owner',
+          status: 'active',
+        });
+
+      if (memberError) throw memberError;
+
+      console.log('Default workspace created successfully:', workspaceData.id);
+      return workspaceData;
+    } catch (error) {
+      console.error('Error creating default workspace:', error);
+      throw error;
+    }
+  }, []);
+
+  const loadWorkspaces = useCallback(async (userId: string, userEmail: string) => {
     console.log('Loading workspaces for user:', userId);
     
     try {
       setIsLoading(true);
       setError(null);
       
-      // First, get the user's workspaces directly without complex joins
+      // First, get the user's workspaces
       const { data: memberData, error: memberError } = await supabase
         .from('workspace_members')
         .select('workspace_id, role, status, permissions, last_activity, created_at, id')
@@ -28,9 +65,26 @@ export const useWorkspaceLoader = () => {
         throw memberError;
       }
 
+      // If no workspaces found, create a default one
       if (!memberData || memberData.length === 0) {
-        console.log('No workspace memberships found');
-        return { workspaces: [], memberData: [] };
+        console.log('No workspace memberships found, creating default workspace');
+        
+        const defaultWorkspace = await createDefaultWorkspace(userId, userEmail);
+        
+        // Return the newly created workspace
+        return { 
+          workspaces: [defaultWorkspace], 
+          memberData: [{
+            id: 'temp-id',
+            workspace_id: defaultWorkspace.id,
+            user_id: userId,
+            role: 'owner' as const,
+            status: 'active' as const,
+            permissions: {},
+            last_activity: null,
+            created_at: new Date().toISOString()
+          }]
+        };
       }
 
       // Get workspace details separately
@@ -72,7 +126,7 @@ export const useWorkspaceLoader = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [toast]);
+  }, [toast, createDefaultWorkspace]);
 
   return {
     loadWorkspaces,
