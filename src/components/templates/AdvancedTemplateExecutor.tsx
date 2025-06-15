@@ -9,11 +9,11 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Badge } from '@/components/ui/badge'
-import { AlertCircle, Play, Eye, FileText } from 'lucide-react'
+import { AlertCircle, FileText, X } from 'lucide-react'
 import { PetitionTemplate, TemplateField } from '@/types/templates'
 
 interface AdvancedTemplateExecutorProps {
@@ -30,7 +30,7 @@ export const AdvancedTemplateExecutor = ({
   onSuccess 
 }: AdvancedTemplateExecutorProps) => {
   const { executeTemplate } = useAdvancedTemplates()
-  const { generatePreview, validateFieldData } = useTemplatePreview()
+  const { validateFieldData } = useTemplatePreview()
   const { clients } = useClients()
   const { processes } = useProcesses()
   
@@ -39,8 +39,6 @@ export const AdvancedTemplateExecutor = ({
   const [selectedProcess, setSelectedProcess] = useState<string>('')
   const [validationErrors, setValidationErrors] = useState<Array<{ field: string; message: string }>>([])
   const [isExecuting, setIsExecuting] = useState(false)
-  const [showPreview, setShowPreview] = useState(false)
-  const [preview, setPreview] = useState<any>(null)
 
   useEffect(() => {
     // Inicializar dados com valores padrão
@@ -48,6 +46,8 @@ export const AdvancedTemplateExecutor = ({
     template.fields?.forEach(field => {
       if (field.field_options?.default) {
         initialData[field.field_key] = field.field_options.default
+      } else if (field.field_type === 'multiselect') {
+        initialData[field.field_key] = []
       }
     })
     setFilledData(initialData)
@@ -61,6 +61,34 @@ export const AdvancedTemplateExecutor = ({
     
     // Limpar erros de validação para este campo
     setValidationErrors(prev => prev.filter(error => error.field !== fieldKey))
+  }
+
+  const handleMultiSelectChange = (fieldKey: string, option: string, checked: boolean) => {
+    setFilledData(prev => {
+      const currentValues = prev[fieldKey] || []
+      let newValues
+      
+      if (checked) {
+        newValues = [...currentValues, option]
+      } else {
+        newValues = currentValues.filter((value: string) => value !== option)
+      }
+      
+      return {
+        ...prev,
+        [fieldKey]: newValues
+      }
+    })
+    
+    // Limpar erros de validação para este campo
+    setValidationErrors(prev => prev.filter(error => error.field !== fieldKey))
+  }
+
+  const removeMultiSelectValue = (fieldKey: string, valueToRemove: string) => {
+    setFilledData(prev => ({
+      ...prev,
+      [fieldKey]: (prev[fieldKey] || []).filter((value: string) => value !== valueToRemove)
+    }))
   }
 
   const handleAutoFillFromClient = (clientId: string) => {
@@ -116,18 +144,6 @@ export const AdvancedTemplateExecutor = ({
     setFilledData(prev => ({ ...prev, ...autoFillData }))
   }
 
-  const handlePreview = () => {
-    if (!template.fields) return
-    
-    const previewResult = generatePreview(
-      template.template_content, 
-      template.fields, 
-      filledData
-    )
-    setPreview(previewResult)
-    setShowPreview(true)
-  }
-
   const handleExecute = async () => {
     if (!template.fields) return
 
@@ -160,11 +176,11 @@ export const AdvancedTemplateExecutor = ({
 
   const renderField = (field: TemplateField) => {
     const error = validationErrors.find(e => e.field === field.field_key)
-    const value = filledData[field.field_key] || ''
+    const value = filledData[field.field_key] || (field.field_type === 'multiselect' ? [] : '')
 
     const baseProps = {
       id: field.field_key,
-      value,
+      value: field.field_type === 'multiselect' ? '' : value,
       onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => 
         handleFieldChange(field.field_key, e.target.value),
       placeholder: field.field_options?.placeholder || `Digite ${field.field_label.toLowerCase()}...`,
@@ -198,6 +214,54 @@ export const AdvancedTemplateExecutor = ({
               ))}
             </SelectContent>
           </Select>
+        )
+
+      case 'multiselect':
+        return (
+          <div className="space-y-2">
+            {/* Valores selecionados */}
+            {value.length > 0 && (
+              <div className="flex flex-wrap gap-1">
+                {value.map((selectedValue: string) => (
+                  <Badge 
+                    key={selectedValue} 
+                    variant="secondary" 
+                    className="flex items-center gap-1"
+                  >
+                    {selectedValue}
+                    <X 
+                      className="h-3 w-3 cursor-pointer hover:text-red-500" 
+                      onClick={() => removeMultiSelectValue(field.field_key, selectedValue)}
+                    />
+                  </Badge>
+                ))}
+              </div>
+            )}
+            
+            {/* Opções disponíveis */}
+            <div className="border rounded-md p-2 max-h-32 overflow-y-auto space-y-1">
+              {field.field_options?.options?.map((option: string) => {
+                const isSelected = value.includes(option)
+                return (
+                  <div key={option} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`${field.field_key}-${option}`}
+                      checked={isSelected}
+                      onCheckedChange={(checked) => 
+                        handleMultiSelectChange(field.field_key, option, !!checked)
+                      }
+                    />
+                    <Label 
+                      htmlFor={`${field.field_key}-${option}`}
+                      className="text-sm cursor-pointer flex-1"
+                    >
+                      {option}
+                    </Label>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
         )
         
       case 'checkbox':
@@ -255,198 +319,158 @@ export const AdvancedTemplateExecutor = ({
   }
 
   return (
-    <>
-      <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Play className="h-5 w-5" />
-              Executar Template: {template.name}
-            </DialogTitle>
-          </DialogHeader>
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <FileText className="h-5 w-5" />
+            Executar Template: {template.name}
+          </DialogTitle>
+        </DialogHeader>
 
-          <div className="grid grid-cols-3 gap-6 flex-1 overflow-hidden">
-            {/* Formulário */}
-            <div className="col-span-2 space-y-4 overflow-y-auto">
-              {/* Auto-preenchimento */}
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm">Auto-preenchimento</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div>
-                    <Label className="text-xs">Cliente (Opcional)</Label>
-                    <Select value={selectedClient} onValueChange={(value) => {
-                      setSelectedClient(value)
-                      handleAutoFillFromClient(value)
-                    }}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione um cliente..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {clients.map(client => (
-                          <SelectItem key={client.id} value={client.id}>
-                            {client.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div>
-                    <Label className="text-xs">Processo (Opcional)</Label>
-                    <Select value={selectedProcess} onValueChange={(value) => {
-                      setSelectedProcess(value)
-                      handleAutoFillFromProcess(value)
-                    }}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione um processo..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {processes.map(process => (
-                          <SelectItem key={process.id} value={process.id}>
-                            {process.title}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Campos do Template */}
-              <div className="space-y-4">
-                <h3 className="font-medium">Preencher Campos</h3>
+        <div className="grid grid-cols-3 gap-6 flex-1 overflow-hidden">
+          {/* Formulário */}
+          <div className="col-span-2 space-y-4 overflow-y-auto">
+            {/* Auto-preenchimento */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm">Auto-preenchimento</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div>
+                  <Label className="text-xs">Cliente (Opcional)</Label>
+                  <Select value={selectedClient} onValueChange={(value) => {
+                    setSelectedClient(value)
+                    handleAutoFillFromClient(value)
+                  }}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione um cliente..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {clients.map(client => (
+                        <SelectItem key={client.id} value={client.id}>
+                          {client.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
                 
-                {template.fields?.map((field) => {
-                  const error = validationErrors.find(e => e.field === field.field_key)
-                  
-                  return (
-                    <div key={field.id} className="space-y-1">
-                      <Label htmlFor={field.field_key} className="flex items-center gap-2">
-                        {field.field_label}
-                        {field.is_required && (
-                          <Badge variant="destructive" className="text-xs px-1 py-0">
-                            Obrigatório
-                          </Badge>
-                        )}
-                      </Label>
-                      
-                      {renderField(field)}
-                      
-                      {error && (
-                        <div className="flex items-center gap-1 text-red-600 text-xs">
-                          <AlertCircle className="h-3 w-3" />
-                          {error.message}
-                        </div>
-                      )}
-                      
-                      {field.field_options?.helpText && (
-                        <p className="text-xs text-gray-500">
-                          {field.field_options.helpText}
-                        </p>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
+                <div>
+                  <Label className="text-xs">Processo (Opcional)</Label>
+                  <Select value={selectedProcess} onValueChange={(value) => {
+                    setSelectedProcess(value)
+                    handleAutoFillFromProcess(value)
+                  }}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione um processo..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {processes.map(process => (
+                        <SelectItem key={process.id} value={process.id}>
+                          {process.title}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </CardContent>
+            </Card>
 
-            {/* Informações do Template */}
+            {/* Campos do Template */}
             <div className="space-y-4">
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm">Informações</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2 text-sm">
-                  <div>
-                    <span className="font-medium">Categoria:</span>
-                    <Badge variant="outline" className="ml-2 text-xs">
-                      {template.category}
-                    </Badge>
-                  </div>
-                  
-                  <div>
-                    <span className="font-medium">Campos:</span>
-                    <span className="ml-2">{template.fields?.length || 0}</span>
-                  </div>
-                  
-                  <div>
-                    <span className="font-medium">Execuções:</span>
-                    <span className="ml-2">{template.execution_count}</span>
-                  </div>
-                  
-                  {template.description && (
-                    <div>
-                      <span className="font-medium">Descrição:</span>
-                      <p className="text-gray-600 mt-1">{template.description}</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              <div className="space-y-2">
-                <Button 
-                  onClick={handlePreview}
-                  variant="outline" 
-                  className="w-full"
-                  size="sm"
-                >
-                  <Eye className="mr-2 h-4 w-4" />
-                  Visualizar Preview
-                </Button>
+              <h3 className="font-medium">Preencher Campos</h3>
+              
+              {template.fields?.map((field) => {
+                const error = validationErrors.find(e => e.field === field.field_key)
                 
-                <Button 
-                  onClick={handleExecute}
-                  disabled={isExecuting}
-                  className="w-full"
-                >
-                  {isExecuting ? (
-                    'Gerando Petição...'
-                  ) : (
-                    <>
-                      <FileText className="mr-2 h-4 w-4" />
-                      Gerar Petição
-                    </>
-                  )}
-                </Button>
-              </div>
+                return (
+                  <div key={field.id} className="space-y-1">
+                    <Label htmlFor={field.field_key} className="flex items-center gap-2">
+                      {field.field_label}
+                      {field.is_required && (
+                        <Badge variant="destructive" className="text-xs px-1 py-0">
+                          Obrigatório
+                        </Badge>
+                      )}
+                    </Label>
+                    
+                    {renderField(field)}
+                    
+                    {error && (
+                      <div className="flex items-center gap-1 text-red-600 text-xs">
+                        <AlertCircle className="h-3 w-3" />
+                        {error.message}
+                      </div>
+                    )}
+                    
+                    {field.field_options?.helpText && (
+                      <p className="text-xs text-gray-500">
+                        {field.field_options.helpText}
+                      </p>
+                    )}
+                  </div>
+                )
+              })}
             </div>
           </div>
-        </DialogContent>
-      </Dialog>
 
-      {/* Preview Modal */}
-      {showPreview && preview && (
-        <Dialog open={showPreview} onOpenChange={setShowPreview}>
-          <DialogContent className="max-w-4xl max-h-[80vh]">
-            <DialogHeader>
-              <DialogTitle>Preview da Petição</DialogTitle>
-            </DialogHeader>
-            
-            <div className="space-y-4 overflow-y-auto">
-              {preview.missing_fields.length > 0 && (
-                <div className="p-3 bg-yellow-50 border border-yellow-200 rounded">
-                  <div className="flex items-center gap-2 text-yellow-800">
-                    <AlertCircle className="h-4 w-4" />
-                    <span className="font-medium">Campos pendentes:</span>
-                  </div>
-                  <p className="text-sm text-yellow-700 mt-1">
-                    {preview.missing_fields.join(', ')}
-                  </p>
+          {/* Informações do Template */}
+          <div className="space-y-4">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm">Informações</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 text-sm">
+                <div>
+                  <span className="font-medium">Categoria:</span>
+                  <Badge variant="outline" className="ml-2 text-xs">
+                    {template.category}
+                  </Badge>
                 </div>
-              )}
-              
-              <div className="border rounded-lg p-4 bg-white">
-                <div 
-                  className="whitespace-pre-wrap text-sm leading-relaxed"
-                  dangerouslySetInnerHTML={{ __html: preview.preview_content }}
-                />
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
-    </>
+                
+                <div>
+                  <span className="font-medium">Campos:</span>
+                  <span className="ml-2">{template.fields?.length || 0}</span>
+                </div>
+                
+                <div>
+                  <span className="font-medium">Execuções:</span>
+                  <span className="ml-2">{template.execution_count}</span>
+                </div>
+                
+                {template.description && (
+                  <div>
+                    <span className="font-medium">Descrição:</span>
+                    <p className="text-gray-600 mt-1">{template.description}</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        {/* Botão fixo no rodapé */}
+        <DialogFooter className="border-t pt-4 mt-4">
+          <Button variant="outline" onClick={onClose}>
+            Cancelar
+          </Button>
+          <Button 
+            onClick={handleExecute}
+            disabled={isExecuting}
+            className="min-w-[140px]"
+          >
+            {isExecuting ? (
+              'Gerando Petição...'
+            ) : (
+              <>
+                <FileText className="mr-2 h-4 w-4" />
+                Gerar Petição
+              </>
+            )}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }
