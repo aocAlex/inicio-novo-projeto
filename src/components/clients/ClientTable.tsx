@@ -212,7 +212,7 @@ export const ClientTable = ({
             </TableCell>
           </TableRow>
         ))}
-      </tbody>
+      </TableBody>
     </Table>
   );
 };
