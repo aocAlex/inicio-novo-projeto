@@ -14,7 +14,7 @@ import {
 import { cn } from '@/lib/utils';
 
 const navigation = [
-  { name: 'Dashboard', href: '/', icon: LayoutDashboard },
+  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Clientes', href: '/clients', icon: Users },
   { name: 'Processos', href: '/processes', icon: Scale },
   { name: 'Templates', href: '/templates', icon: FileText },
@@ -25,6 +25,8 @@ const navigation = [
 
 export const Sidebar = () => {
   const location = useLocation();
+
+  console.log('Sidebar - Current location:', location.pathname);
 
   return (
     <div className="flex h-full w-64 flex-col bg-gray-900">
@@ -37,17 +39,26 @@ export const Sidebar = () => {
         </div>
         <nav className="mt-5 flex-1 space-y-1 px-2">
           {navigation.map((item) => {
-            const isActive = location.pathname === item.href;
+            const isActive = location.pathname === item.href || 
+                           (item.href !== '/dashboard' && location.pathname.startsWith(item.href));
+            
+            console.log(`Sidebar - Checking ${item.name}: href=${item.href}, current=${location.pathname}, isActive=${isActive}`);
+            
             return (
               <NavLink
                 key={item.name}
                 to={item.href}
-                className={cn(
-                  'group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors',
-                  isActive
-                    ? 'bg-gray-800 text-white'
-                    : 'text-gray-300 hover:bg-gray-700 hover:text-white'
-                )}
+                onClick={() => console.log(`Sidebar - Navigating to ${item.href}`)}
+                className={({ isActive: navIsActive }) => {
+                  const active = navIsActive || isActive;
+                  console.log(`Sidebar - NavLink ${item.name}: navIsActive=${navIsActive}, computed=${active}`);
+                  return cn(
+                    'group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors',
+                    active
+                      ? 'bg-gray-800 text-white'
+                      : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+                  );
+                }}
               >
                 <item.icon
                   className={cn(

@@ -22,6 +22,8 @@ export const AppRoutes = () => {
       <Route path="/petitions" element={<Petitions />} />
       <Route path="/deadlines" element={<DeadlinesPage />} />
       <Route path="/settings" element={<SettingsPage />} />
+      {/* Catch all routes that don't match and redirect to dashboard */}
+      <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
   );
 };
