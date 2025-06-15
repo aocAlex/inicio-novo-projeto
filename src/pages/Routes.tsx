@@ -28,6 +28,8 @@ export const Routes = () => {
       <Route path="/contracts" element={<ProtectedRoute><ContractsPage /></ProtectedRoute>} />
       <Route path="/financial" element={<ProtectedRoute><FinancialPage /></ProtectedRoute>} />
       <Route path="/templates" element={<ProtectedRoute><TemplatesPage /></ProtectedRoute>} />
+      <Route path="/templates/new" element={<ProtectedRoute><TemplateEditorPage /></ProtectedRoute>} />
+      <Route path="/templates/edit/:id" element={<ProtectedRoute><TemplateEditorPage /></ProtectedRoute>} />
       <Route path="/templates/:id/editor" element={<ProtectedRoute><TemplateEditorPage /></ProtectedRoute>} />
       <Route path="/petitions" element={<ProtectedRoute><PetitionsPage /></ProtectedRoute>} />
       <Route path="/deadlines" element={<ProtectedRoute><DeadlinesPage /></ProtectedRoute>} />
