@@ -54,14 +54,14 @@ export const ContractFilters: React.FC<ContractFiltersProps> = ({ onFilterChange
         <div className="space-y-2">
           <label className="text-sm font-medium">Status</label>
           <Select
-            value={filters.status || ''}
-            onValueChange={(value) => handleFilterChange('status', value || undefined)}
+            value={filters.status || 'all'}
+            onValueChange={(value) => handleFilterChange('status', value === 'all' ? undefined : value)}
           >
             <SelectTrigger>
               <SelectValue placeholder="Todos os status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Todos os status</SelectItem>
+              <SelectItem value="all">Todos os status</SelectItem>
               <SelectItem value="pending">Pendente</SelectItem>
               <SelectItem value="signed">Assinado</SelectItem>
               <SelectItem value="rejected">Rejeitado</SelectItem>
@@ -73,14 +73,14 @@ export const ContractFilters: React.FC<ContractFiltersProps> = ({ onFilterChange
         <div className="space-y-2">
           <label className="text-sm font-medium">Cliente</label>
           <Select
-            value={filters.client_id || ''}
-            onValueChange={(value) => handleFilterChange('client_id', value || undefined)}
+            value={filters.client_id || 'all'}
+            onValueChange={(value) => handleFilterChange('client_id', value === 'all' ? undefined : value)}
           >
             <SelectTrigger>
               <SelectValue placeholder="Todos os clientes" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Todos os clientes</SelectItem>
+              <SelectItem value="all">Todos os clientes</SelectItem>
               {clients.map((client) => (
                 <SelectItem key={client.id} value={client.id}>
                   {client.name}
