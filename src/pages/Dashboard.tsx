@@ -1,30 +1,50 @@
 
-import { useDashboardMetrics } from '@/hooks/useDashboardMetrics';
-import { MetricCard } from '@/components/dashboard/MetricCard';
-import { PetitionChart } from '@/components/dashboard/PetitionChart';
-import { RecentPetitions } from '@/components/dashboard/RecentPetitions';
-import { TemplateUsageCard } from '@/components/dashboard/TemplateUsageCard';
+import { useDashboardData } from '@/hooks/useDashboardData';
+import { DashboardCards } from '@/components/dashboard/DashboardCards';
+import { RecentActivity } from '@/components/dashboard/RecentActivity';
+import { QuickActions } from '@/components/dashboard/QuickActions';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { Button } from '@/components/ui/button';
-import { 
-  FileText, 
-  Users, 
-  Clock, 
-  CheckCircle, 
-  AlertCircle,
-  RefreshCw
-} from 'lucide-react';
+import { RefreshCw, AlertCircle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 export const Dashboard = () => {
   const { currentWorkspace } = useWorkspace();
-  const { 
-    metrics, 
-    recentPetitions, 
-    chartData, 
-    isLoading, 
-    error, 
-    refresh 
-  } = useDashboardMetrics();
+  const { metrics, isLoading, error, refresh } = useDashboardData();
+  const navigate = useNavigate();
+
+  // Mock de atividades recentes - posteriormente pode vir de uma API
+  const recentActivities = [
+    {
+      id: '1',
+      type: 'client' as const,
+      title: 'Novo cliente cadastrado',
+      description: 'João Silva adicionado ao CRM',
+      timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+    },
+    {
+      id: '2',
+      type: 'process' as const,
+      title: 'Processo atualizado',
+      description: 'Status alterado para "Em andamento"',
+      timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
+    },
+    {
+      id: '3',
+      type: 'petition' as const,
+      title: 'Petição executada',
+      description: 'Template "Ação de Cobrança" processado',
+      timestamp: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
+      status: 'success' as const,
+    },
+    {
+      id: '4',
+      type: 'template' as const,
+      title: 'Template criado',
+      description: 'Novo template "Contestação" disponível',
+      timestamp: new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString(),
+    },
+  ];
 
   if (!currentWorkspace) {
     return (
@@ -52,7 +72,7 @@ export const Dashboard = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -70,84 +90,24 @@ export const Dashboard = () => {
       </div>
 
       {/* Métricas Principais */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <MetricCard
-          title="Petições Hoje"
-          value={metrics?.petitions.today || 0}
-          description="Petições criadas hoje"
-          icon={FileText}
-          color="blue"
-        />
-        
-        <MetricCard
-          title="Petições Este Mês"
-          value={metrics?.petitions.thisMonth || 0}
-          description="Total do mês atual"
-          icon={CheckCircle}
-          color="green"
-        />
-        
-        <MetricCard
-          title="Taxa de Sucesso"
-          value={`${metrics?.petitions.successRate || 0}%`}
-          description="Webhooks bem-sucedidos"
-          icon={CheckCircle}
-          color="green"
-        />
-        
-        <MetricCard
-          title="Membros Ativos"
-          value={metrics?.members.total || 0}
-          description={`${metrics?.members.activeToday || 0} ativos hoje`}
-          icon={Users}
-          color="purple"
-        />
-      </div>
+      {metrics && (
+        <DashboardCards metrics={metrics} isLoading={isLoading} />
+      )}
 
-      {/* Gráficos e Tabelas */}
+      {/* Seção Inferior */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Gráfico de Petições */}
-        <div className="lg:col-span-2">
-          <PetitionChart data={chartData} isLoading={isLoading} />
-        </div>
-        
-        {/* Templates Mais Usados */}
-        <TemplateUsageCard 
-          templates={metrics?.templates.mostUsed || []} 
+        {/* Atividade Recente */}
+        <RecentActivity 
+          activities={recentActivities} 
           isLoading={isLoading} 
         />
         
-        {/* Petições Recentes */}
-        <RecentPetitions 
-          petitions={recentPetitions} 
-          isLoading={isLoading} 
-        />
-      </div>
-
-      {/* Métricas Adicionais */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <MetricCard
-          title="Total de Templates"
-          value={metrics?.templates.total || 0}
-          description="Templates disponíveis"
-          icon={FileText}
-          color="yellow"
-        />
-        
-        <MetricCard
-          title="Webhooks Enviados"
-          value={metrics?.webhooks.totalSent || 0}
-          description="Últimos 30 dias"
-          icon={Clock}
-          color="blue"
-        />
-        
-        <MetricCard
-          title="Tempo Médio"
-          value={`${metrics?.webhooks.averageResponseTime || 0}s`}
-          description="Processamento de webhooks"
-          icon={Clock}
-          color="purple"
+        {/* Ações Rápidas */}
+        <QuickActions
+          onCreateClient={() => navigate('/clients')}
+          onCreateProcess={() => navigate('/processes')}
+          onCreateTemplate={() => navigate('/templates')}
+          onExecutePetition={() => navigate('/petitions')}
         />
       </div>
     </div>
