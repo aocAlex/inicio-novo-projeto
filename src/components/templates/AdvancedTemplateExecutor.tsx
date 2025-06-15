@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
-import { AlertCircle, FileText, X, CheckCircle2, User, Briefcase, Eye, EyeOff } from 'lucide-react'
+import { AlertCircle, FileText, X, CheckCircle2, User, Briefcase } from 'lucide-react'
 import { PetitionTemplate, TemplateField } from '@/types/templates'
 
 interface AdvancedTemplateExecutorProps {
@@ -40,8 +40,6 @@ export const AdvancedTemplateExecutor = ({
   const [selectedProcess, setSelectedProcess] = useState<string>('')
   const [validationErrors, setValidationErrors] = useState<Array<{ field: string; message: string }>>([])
   const [isExecuting, setIsExecuting] = useState(false)
-  const [showPreview, setShowPreview] = useState(false)
-  const [currentStep, setCurrentStep] = useState<'auto-fill' | 'fields' | 'preview'>('auto-fill')
 
   useEffect(() => {
     // Inicializar dados com valores padrão
@@ -154,7 +152,6 @@ export const AdvancedTemplateExecutor = ({
     const validation = validateFieldData(template.fields, filledData)
     if (!validation.isValid) {
       setValidationErrors(validation.errors)
-      setCurrentStep('fields')
       return
     }
 
@@ -205,22 +202,6 @@ export const AdvancedTemplateExecutor = ({
   const completionPercentage = requiredFields.length > 0 
     ? Math.round((filledRequiredFields.length / requiredFields.length) * 100)
     : 100
-
-  const renderPreview = () => {
-    if (!template.template_content) return 'Nenhum conteúdo disponível'
-    
-    let preview = template.template_content
-    Object.entries(filledData).forEach(([key, value]) => {
-      const regex = new RegExp(`\\{\\{\\s*${key}\\s*\\}\\}`, 'g')
-      if (Array.isArray(value)) {
-        preview = preview.replace(regex, value.join(', '))
-      } else {
-        preview = preview.replace(regex, value || `[${key}]`)
-      }
-    })
-    
-    return preview
-  }
 
   const renderField = (field: TemplateField) => {
     const error = validationErrors.find(e => e.field === field.field_key)
@@ -379,51 +360,9 @@ export const AdvancedTemplateExecutor = ({
     }
   }
 
-  const StepNavigation = () => (
-    <div className="flex items-center justify-center space-x-4 mb-6">
-      <div className={`flex items-center space-x-2 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
-        currentStep === 'auto-fill' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-      }`} onClick={() => setCurrentStep('auto-fill')}>
-        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-          currentStep === 'auto-fill' ? 'bg-blue-600 text-white' : 'bg-gray-400 text-white'
-        }`}>1</div>
-        <span className="text-sm font-medium">Auto-preenchimento</span>
-      </div>
-      
-      <div className="w-8 h-0.5 bg-gray-300"></div>
-      
-      <div className={`flex items-center space-x-2 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
-        currentStep === 'fields' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-      }`} onClick={() => setCurrentStep('fields')}>
-        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-          currentStep === 'fields' ? 'bg-blue-600 text-white' : completionPercentage === 100 ? 'bg-green-600 text-white' : 'bg-gray-400 text-white'
-        }`}>
-          {completionPercentage === 100 && currentStep !== 'fields' ? <CheckCircle2 className="w-3 h-3" /> : '2'}
-        </div>
-        <span className="text-sm font-medium">Preencher Campos</span>
-        {completionPercentage < 100 && (
-          <Badge variant="secondary" className="text-xs">
-            {completionPercentage}%
-          </Badge>
-        )}
-      </div>
-      
-      <div className="w-8 h-0.5 bg-gray-300"></div>
-      
-      <div className={`flex items-center space-x-2 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
-        currentStep === 'preview' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-      }`} onClick={() => setCurrentStep('preview')}>
-        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-          currentStep === 'preview' ? 'bg-blue-600 text-white' : 'bg-gray-400 text-white'
-        }`}>3</div>
-        <span className="text-sm font-medium">Preview</span>
-      </div>
-    </div>
-  )
-
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl max-h-[95vh] flex flex-col">
+      <DialogContent className="max-w-7xl max-h-[95vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5 text-blue-600" />
@@ -431,249 +370,201 @@ export const AdvancedTemplateExecutor = ({
           </DialogTitle>
         </DialogHeader>
 
-        <StepNavigation />
-
-        <div className="flex-1 overflow-hidden">
-          {currentStep === 'auto-fill' && (
-            <div className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <User className="h-5 w-5 text-blue-600" />
-                    Auto-preenchimento de Dados
-                  </CardTitle>
-                  <p className="text-sm text-gray-600">
-                    Selecione um cliente ou processo para preencher automaticamente os campos correspondentes
-                  </p>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium flex items-center gap-2">
-                        <User className="h-4 w-4" />
-                        Cliente (Opcional)
-                      </Label>
-                      <Select value={selectedClient} onValueChange={(value) => {
-                        setSelectedClient(value)
-                        handleAutoFillFromClient(value)
-                      }}>
-                        <SelectTrigger className="h-11">
-                          <SelectValue placeholder="Selecione um cliente..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {clients.map(client => (
-                            <SelectItem key={client.id} value={client.id}>
-                              <div className="flex flex-col">
-                                <span className="font-medium">{client.name}</span>
-                                <span className="text-xs text-gray-500">{client.email}</span>
-                              </div>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium flex items-center gap-2">
-                        <Briefcase className="h-4 w-4" />
-                        Processo (Opcional)
-                      </Label>
-                      <Select value={selectedProcess} onValueChange={(value) => {
-                        setSelectedProcess(value)
-                        handleAutoFillFromProcess(value)
-                      }}>
-                        <SelectTrigger className="h-11">
-                          <SelectValue placeholder="Selecione um processo..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {processes.map(process => (
-                            <SelectItem key={process.id} value={process.id}>
-                              <div className="flex flex-col">
-                                <span className="font-medium">{process.title}</span>
-                                <span className="text-xs text-gray-500">{process.process_number}</span>
-                              </div>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                  
-                  <div className="flex justify-end pt-4">
-                    <Button onClick={() => setCurrentStep('fields')}>
-                      Próximo: Preencher Campos
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-
-          {currentStep === 'fields' && (
-            <div className="space-y-6 max-h-[60vh] overflow-y-auto">
-              {/* Progress Bar */}
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium">Progresso dos Campos Obrigatórios</span>
-                    <span className="text-sm text-gray-600">{filledRequiredFields.length}/{requiredFields.length}</span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
-                      className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
-                      style={{width: `${completionPercentage}%`}}
-                    ></div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Campos do Template */}
-              <div className="space-y-4">
-                {template.fields?.map((field) => {
-                  const error = validationErrors.find(e => e.field === field.field_key)
-                  const isFilled = field.field_type === 'multiselect' 
-                    ? Array.isArray(filledData[field.field_key]) && filledData[field.field_key].length > 0
-                    : filledData[field.field_key] && filledData[field.field_key].toString().trim() !== ''
-                  
-                  return (
-                    <Card key={field.id} className={`transition-all duration-200 ${
-                      error ? 'border-red-300 bg-red-50' : 
-                      isFilled ? 'border-green-300 bg-green-50' : 
-                      'hover:border-gray-300'
-                    }`}>
-                      <CardContent className="p-4">
-                        <div className="space-y-3">
-                          <Label htmlFor={field.field_key} className="flex items-center gap-2 text-sm font-medium">
-                            {field.field_label}
-                            {field.is_required && (
-                              <Badge variant="destructive" className="text-xs px-2 py-0">
-                                Obrigatório
-                              </Badge>
-                            )}
-                            {isFilled && (
-                              <CheckCircle2 className="h-4 w-4 text-green-600" />
-                            )}
-                          </Label>
-                          
-                          {renderField(field)}
-                          
-                          {error && (
-                            <div className="flex items-center gap-2 text-red-600 text-sm">
-                              <AlertCircle className="h-4 w-4" />
-                              {error.message}
+        <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-6 overflow-hidden">
+          {/* Coluna Esquerda: Auto-preenchimento */}
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <User className="h-5 w-5 text-blue-600" />
+                  Auto-preenchimento de Dados
+                </CardTitle>
+                <p className="text-sm text-gray-600">
+                  Selecione um cliente ou processo para preencher automaticamente os campos correspondentes
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium flex items-center gap-2">
+                      <User className="h-4 w-4" />
+                      Cliente (Opcional)
+                    </Label>
+                    <Select value={selectedClient} onValueChange={(value) => {
+                      setSelectedClient(value)
+                      handleAutoFillFromClient(value)
+                    }}>
+                      <SelectTrigger className="h-11">
+                        <SelectValue placeholder="Selecione um cliente..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {clients.map(client => (
+                          <SelectItem key={client.id} value={client.id}>
+                            <div className="flex flex-col">
+                              <span className="font-medium">{client.name}</span>
+                              <span className="text-xs text-gray-500">{client.email}</span>
                             </div>
-                          )}
-                          
-                          {field.field_options?.helpText && (
-                            <p className="text-xs text-gray-500">
-                              {field.field_options.helpText}
-                            </p>
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )
-                })}
-              </div>
-              
-              <div className="flex justify-between pt-4">
-                <Button variant="outline" onClick={() => setCurrentStep('auto-fill')}>
-                  Voltar
-                </Button>
-                <Button 
-                  onClick={() => setCurrentStep('preview')}
-                  disabled={completionPercentage < 100}
-                >
-                  Próximo: Preview
-                </Button>
-              </div>
-            </div>
-          )}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium flex items-center gap-2">
+                      <Briefcase className="h-4 w-4" />
+                      Processo (Opcional)
+                    </Label>
+                    <Select value={selectedProcess} onValueChange={(value) => {
+                      setSelectedProcess(value)
+                      handleAutoFillFromProcess(value)
+                    }}>
+                      <SelectTrigger className="h-11">
+                        <SelectValue placeholder="Selecione um processo..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {processes.map(process => (
+                          <SelectItem key={process.id} value={process.id}>
+                            <div className="flex flex-col">
+                              <span className="font-medium">{process.title}</span>
+                              <span className="text-xs text-gray-500">{process.process_number}</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
-          {currentStep === 'preview' && (
+            {/* Progress Bar */}
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium">Progresso dos Campos Obrigatórios</span>
+                  <span className="text-sm text-gray-600">{filledRequiredFields.length}/{requiredFields.length}</span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div 
+                    className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
+                    style={{width: `${completionPercentage}%`}}
+                  ></div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Informações do Template */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm">Informações do Template</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-600">Categoria:</span>
+                  <Badge variant="outline" className="text-xs">
+                    {template.category}
+                  </Badge>
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-600">Campos:</span>
+                  <span className="font-medium">{template.fields?.length || 0}</span>
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-600">Execuções:</span>
+                  <span className="font-medium">{template.execution_count}</span>
+                </div>
+                
+                {template.description && (
+                  <>
+                    <Separator />
+                    <div>
+                      <span className="font-medium text-gray-600">Descrição:</span>
+                      <p className="text-gray-600 mt-1 text-xs leading-relaxed">{template.description}</p>
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Coluna Direita: Campos do Template */}
+          <div className="space-y-4 max-h-[70vh] overflow-y-auto">
             <div className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <Eye className="h-5 w-5 text-blue-600" />
-                    Preview da Petição
-                  </CardTitle>
-                  <p className="text-sm text-gray-600">
-                    Revise o conteúdo da petição antes de gerar o documento final
-                  </p>
-                </CardHeader>
-                <CardContent>
-                  <div className="border rounded-lg p-4 bg-gray-50 max-h-96 overflow-y-auto">
-                    <pre className="whitespace-pre-wrap text-sm font-mono leading-relaxed">
-                      {renderPreview()}
-                    </pre>
-                  </div>
-                </CardContent>
-              </Card>
-              
-              <div className="flex justify-between pt-4">
-                <Button variant="outline" onClick={() => setCurrentStep('fields')}>
-                  Voltar aos Campos
-                </Button>
-                <Button 
-                  onClick={handleExecute}
-                  disabled={isExecuting}
-                  className="min-w-[160px]"
-                  size="lg"
-                >
-                  {isExecuting ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      Gerando Petição...
-                    </>
-                  ) : (
-                    <>
-                      <FileText className="mr-2 h-4 w-4" />
-                      Gerar Petição Final
-                    </>
-                  )}
-                </Button>
-              </div>
+              {template.fields?.map((field) => {
+                const error = validationErrors.find(e => e.field === field.field_key)
+                const isFilled = field.field_type === 'multiselect' 
+                  ? Array.isArray(filledData[field.field_key]) && filledData[field.field_key].length > 0
+                  : filledData[field.field_key] && filledData[field.field_key].toString().trim() !== ''
+                
+                return (
+                  <Card key={field.id} className={`transition-all duration-200 ${
+                    error ? 'border-red-300 bg-red-50' : 
+                    isFilled ? 'border-green-300 bg-green-50' : 
+                    'hover:border-gray-300'
+                  }`}>
+                    <CardContent className="p-4">
+                      <div className="space-y-3">
+                        <Label htmlFor={field.field_key} className="flex items-center gap-2 text-sm font-medium">
+                          {field.field_label}
+                          {field.is_required && (
+                            <Badge variant="destructive" className="text-xs px-2 py-0">
+                              Obrigatório
+                            </Badge>
+                          )}
+                          {isFilled && (
+                            <CheckCircle2 className="h-4 w-4 text-green-600" />
+                          )}
+                        </Label>
+                        
+                        {renderField(field)}
+                        
+                        {error && (
+                          <div className="flex items-center gap-2 text-red-600 text-sm">
+                            <AlertCircle className="h-4 w-4" />
+                            {error.message}
+                          </div>
+                        )}
+                        
+                        {field.field_options?.helpText && (
+                          <p className="text-xs text-gray-500">
+                            {field.field_options.helpText}
+                          </p>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )
+              })}
             </div>
-          )}
+          </div>
         </div>
 
-        {/* Informações do Template na Sidebar */}
-        <div className="absolute right-4 top-20 w-64 space-y-4 hidden xl:block">
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm">Informações do Template</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 text-sm">
-              <div className="flex items-center justify-between">
-                <span className="text-gray-600">Categoria:</span>
-                <Badge variant="outline" className="text-xs">
-                  {template.category}
-                </Badge>
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <span className="text-gray-600">Campos:</span>
-                <span className="font-medium">{template.fields?.length || 0}</span>
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <span className="text-gray-600">Execuções:</span>
-                <span className="font-medium">{template.execution_count}</span>
-              </div>
-              
-              {template.description && (
-                <>
-                  <Separator />
-                  <div>
-                    <span className="font-medium text-gray-600">Descrição:</span>
-                    <p className="text-gray-600 mt-1 text-xs leading-relaxed">{template.description}</p>
-                  </div>
-                </>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+        <DialogFooter className="border-t pt-4">
+          <Button variant="outline" onClick={onClose}>
+            Cancelar
+          </Button>
+          <Button 
+            onClick={handleExecute}
+            disabled={isExecuting || completionPercentage < 100}
+            className="min-w-[160px]"
+            size="lg"
+          >
+            {isExecuting ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                Gerando Petição...
+              </>
+            ) : (
+              <>
+                <FileText className="mr-2 h-4 w-4" />
+                Gerar Petição Final
+              </>
+            )}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   )
