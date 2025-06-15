@@ -14,16 +14,26 @@ export const SettingsPage = () => {
   const { currentWorkspace, currentMember, isLoading } = useWorkspace();
 
   useEffect(() => {
-    console.log('SettingsPage - Debug info:', {
-      currentWorkspace: currentWorkspace?.id,
-      currentMember: currentMember?.role,
-      isLoading,
+    console.log('=== DEBUG: SettingsPage ===');
+    console.log('Current workspace:', {
+      id: currentWorkspace?.id,
+      name: currentWorkspace?.name,
+      owner_id: currentWorkspace?.owner_id
+    });
+    console.log('Current member:', {
+      id: currentMember?.id,
+      role: currentMember?.role,
+      status: currentMember?.status
+    });
+    console.log('Loading state:', isLoading);
+    console.log('Permissions:', {
       canManageWorkspace: can.manageWorkspace(),
       canManageMembers: can.manageMembers()
     });
   }, [currentWorkspace, currentMember, isLoading, can]);
 
   if (isLoading) {
+    console.log('SettingsPage: Showing loading state');
     return (
       <div className="p-6">
         <div className="flex items-center justify-center py-8">
@@ -37,6 +47,7 @@ export const SettingsPage = () => {
   }
 
   if (!currentWorkspace) {
+    console.log('SettingsPage: No workspace selected');
     return (
       <div className="p-6">
         <Card>
@@ -50,6 +61,8 @@ export const SettingsPage = () => {
       </div>
     );
   }
+
+  console.log('SettingsPage: Rendering settings interface');
 
   return (
     <div className="p-6">
