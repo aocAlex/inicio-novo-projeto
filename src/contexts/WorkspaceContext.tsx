@@ -34,9 +34,9 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [currentMember, setCurrentMember] = useState<WorkspaceMember | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [initialized, setInitialized] = useState(false);
+  const [hasInitialized, setHasInitialized] = useState(false);
 
-  const switchWorkspace = async (workspaceId: string) => {
+  const switchWorkspace = useCallback(async (workspaceId: string) => {
     if (!user) return;
 
     try {
@@ -102,15 +102,14 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         variant: "destructive",
       });
     }
-  };
+  }, [user, profile, toast]);
 
   const loadWorkspaces = useCallback(async () => {
-    if (!user || initialized) {
+    if (!user || hasInitialized) {
       return;
     }
 
     try {
-      console.log('Carregando workspaces para usuário:', user.id);
       setIsLoading(true);
       setError(null);
       
@@ -124,20 +123,19 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         .eq('status', 'active');
 
       if (memberError) {
-        console.error('Erro ao carregar workspace_members:', memberError);
         throw memberError;
       }
 
       const userWorkspaces = memberData?.map(member => member.workspace).filter(Boolean) || [];
       setWorkspaces(userWorkspaces);
 
-      // Set current workspace if none is set
-      if (!currentWorkspace && userWorkspaces.length > 0) {
+      // Set current workspace if none is set and we have workspaces
+      if (userWorkspaces.length > 0 && !currentWorkspace) {
         const workspaceId = profile?.current_workspace_id || userWorkspaces[0].id;
         await switchWorkspace(workspaceId);
       }
 
-      setInitialized(true);
+      setHasInitialized(true);
 
     } catch (error: any) {
       console.error('Error loading workspaces:', error);
@@ -150,7 +148,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     } finally {
       setIsLoading(false);
     }
-  }, [user?.id, initialized, currentWorkspace?.id, profile?.current_workspace_id]);
+  }, [user, hasInitialized, currentWorkspace, profile?.current_workspace_id, switchWorkspace, toast]);
 
   const createWorkspace = async (data: CreateWorkspaceData): Promise<Workspace> => {
     if (!user) throw new Error('User not authenticated');
@@ -179,7 +177,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       if (memberError) throw memberError;
 
       // Refresh workspaces list
-      await loadWorkspaces();
+      await refreshWorkspaces();
 
       toast({
         title: "Sucesso",
@@ -230,22 +228,23 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
   };
 
-  const refreshWorkspaces = async () => {
-    setInitialized(false);
+  const refreshWorkspaces = useCallback(async () => {
+    setHasInitialized(false);
     await loadWorkspaces();
-  };
+  }, [loadWorkspaces]);
 
   useEffect(() => {
-    if (user && profile !== undefined) {
+    if (user && profile !== undefined && !hasInitialized) {
       loadWorkspaces();
     } else if (!user) {
+      // Reset state when user logs out
       setCurrentWorkspace(null);
       setWorkspaces([]);
       setCurrentMember(null);
       setIsLoading(false);
-      setInitialized(false);
+      setHasInitialized(false);
     }
-  }, [user?.id, profile, loadWorkspaces]);
+  }, [user, profile, hasInitialized, loadWorkspaces]);
 
   const value = {
     currentWorkspace,
