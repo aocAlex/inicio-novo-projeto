@@ -1,26 +1,26 @@
 
 export const cleanupAuthState = () => {
-  console.log('Iniciando limpeza completa do estado de autenticação');
+  console.log('Starting complete auth state cleanup');
   
-  // Remove todas as chaves relacionadas ao Supabase do localStorage
+  // Remove all Supabase-related keys from localStorage
   Object.keys(localStorage).forEach(key => {
     if (key.startsWith('supabase.auth.') || key.includes('sb-') || key.startsWith('sb.')) {
-      console.log('Removendo chave do localStorage:', key);
+      console.log('Removing localStorage key:', key);
       localStorage.removeItem(key);
     }
   });
 
-  // Remove também do sessionStorage se existir
+  // Remove from sessionStorage if it exists
   if (typeof sessionStorage !== 'undefined') {
     Object.keys(sessionStorage).forEach(key => {
       if (key.startsWith('supabase.auth.') || key.includes('sb-') || key.startsWith('sb.')) {
-        console.log('Removendo chave do sessionStorage:', key);
+        console.log('Removing sessionStorage key:', key);
         sessionStorage.removeItem(key);
       }
     });
   }
 
-  // Remove outras chaves que podem estar relacionadas ao app
+  // Remove other app-related keys
   const keysToRemove = [
     'workspace_id',
     'current_workspace',
@@ -36,16 +36,16 @@ export const cleanupAuthState = () => {
     }
   });
 
-  console.log('Limpeza do estado de autenticação concluída');
+  console.log('Auth state cleanup completed');
 };
 
 export const forceAuthReset = async () => {
-  console.log('Forçando reset completo da autenticação');
+  console.log('Forcing complete auth reset');
   
-  // Limpar estado
+  // Clean up state
   cleanupAuthState();
   
-  // Forçar recarregamento da página para garantir estado limpo
+  // Force page reload to ensure clean state
   setTimeout(() => {
     window.location.href = '/auth';
   }, 100);

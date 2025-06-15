@@ -15,25 +15,28 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   useEffect(() => {
     console.log('ProtectedRoute - user:', !!user, 'loading:', loading);
     
+    // Only redirect if we're not loading and user is definitely not authenticated
     if (!loading && !user) {
-      console.log('Usuário não autenticado, redirecionando para /auth');
+      console.log('User not authenticated, redirecting to /auth');
       navigate('/auth', { replace: true });
     }
   }, [user, loading, navigate]);
 
+  // Show loading while auth is initializing
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="mx-auto h-8 w-8 animate-spin text-blue-600" />
-          <p className="mt-2 text-gray-600">Carregando...</p>
+          <p className="mt-2 text-gray-600">Verificando autenticação...</p>
         </div>
       </div>
     );
   }
 
+  // Don't render anything while redirecting
   if (!user) {
-    return null; // Don't show loading spinner when redirecting
+    return null;
   }
 
   return <>{children}</>;
