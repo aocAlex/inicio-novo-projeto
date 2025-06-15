@@ -34,6 +34,7 @@ const FIELD_TYPES = [
   { value: 'number', label: 'Número' },
   { value: 'currency', label: 'Moeda' },
   { value: 'select', label: 'Lista Suspensa' },
+  { value: 'multiselect', label: 'Múltipla Seleção' },
   { value: 'checkbox', label: 'Sim/Não' }
 ]
 
@@ -191,6 +192,7 @@ export const TemplateEditorPage = () => {
   const renderFieldSpecificOptions = (field: any, index: number) => {
     switch (field.field_type) {
       case 'select':
+      case 'multiselect':
         const options = field.field_options.options || []
         return (
           <div className="space-y-2">
