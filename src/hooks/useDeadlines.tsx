@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -38,6 +37,16 @@ export const useDeadlines = () => {
             id,
             full_name,
             email
+          ),
+          petition:petition_templates!deadlines_petition_id_fkey (
+            id,
+            name,
+            category
+          ),
+          petition_execution:petition_executions!deadlines_petition_execution_id_fkey (
+            id,
+            created_at,
+            filled_data
           )
         `)
         .eq('workspace_id', currentWorkspace.id)
@@ -88,6 +97,8 @@ export const useDeadlines = () => {
         due_date: format(data.due_date, 'yyyy-MM-dd'),
         process_id: data.process_id || null,
         client_id: data.client_id || null,
+        petition_id: data.petition_id || null,
+        petition_execution_id: data.petition_execution_id || null,
         assigned_to: data.assigned_to || null,
         priority: data.priority,
         business_days_only: data.business_days_only,
@@ -95,7 +106,7 @@ export const useDeadlines = () => {
         is_critical: data.is_critical,
         attachments: [],
         custom_fields: data.custom_fields || {},
-        created_by: user.data.user.id // Use directly the user ID from auth
+        created_by: user.data.user.id
       };
 
       const { data: result, error } = await supabase
@@ -116,6 +127,16 @@ export const useDeadlines = () => {
             id,
             full_name,
             email
+          ),
+          petition:petition_templates!deadlines_petition_id_fkey (
+            id,
+            name,
+            category
+          ),
+          petition_execution:petition_executions!deadlines_petition_execution_id_fkey (
+            id,
+            created_at,
+            filled_data
           )
         `)
         .single();
@@ -184,6 +205,16 @@ export const useDeadlines = () => {
             id,
             full_name,
             email
+          ),
+          petition:petition_templates!deadlines_petition_id_fkey (
+            id,
+            name,
+            category
+          ),
+          petition_execution:petition_executions!deadlines_petition_execution_id_fkey (
+            id,
+            created_at,
+            filled_data
           )
         `)
         .single();

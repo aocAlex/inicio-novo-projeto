@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,7 +11,10 @@ import {
   FileText,
   Trash2,
   Edit,
-  MoreHorizontal
+  MoreHorizontal,
+  Building,
+  Users,
+  Scroll
 } from 'lucide-react';
 import { Deadline } from '@/types/deadline';
 import { format, isAfter, differenceInDays } from 'date-fns';
@@ -164,7 +166,7 @@ export const DeadlinesList = ({
                   {deadline.is_critical && <AlertTriangle className="h-5 w-5 text-red-500" />}
                   {deadline.title}
                 </CardTitle>
-                <CardDescription className="flex items-center gap-4 mt-2">
+                <CardDescription className="flex items-center gap-4 mt-2 flex-wrap">
                   <span className="flex items-center gap-1">
                     <Calendar className="h-4 w-4" />
                     {format(new Date(deadline.due_date), 'dd/MM/yyyy', { locale: ptBR })}
@@ -177,6 +179,18 @@ export const DeadlinesList = ({
                     <span className="flex items-center gap-1">
                       <FileText className="h-4 w-4" />
                       {deadline.process.process_number}
+                    </span>
+                  )}
+                  {deadline.client && (
+                    <span className="flex items-center gap-1">
+                      <Building className="h-4 w-4" />
+                      {deadline.client.name}
+                    </span>
+                  )}
+                  {deadline.petition && (
+                    <span className="flex items-center gap-1">
+                      <Scroll className="h-4 w-4" />
+                      {deadline.petition.name}
                     </span>
                   )}
                   {deadline.assigned_user && (

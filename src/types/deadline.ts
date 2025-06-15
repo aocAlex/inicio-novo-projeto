@@ -5,6 +5,8 @@ export interface Deadline {
   process_id?: string;
   client_id?: string;
   template_id?: string;
+  petition_id?: string;
+  petition_execution_id?: string;
   title: string;
   description?: string;
   deadline_type: 'processual' | 'administrativo' | 'contratual' | 'fiscal' | 'personalizado';
@@ -38,6 +40,16 @@ export interface Deadline {
     full_name: string;
     email: string;
   };
+  petition?: {
+    id: string;
+    name: string;
+    category: string;
+  };
+  petition_execution?: {
+    id: string;
+    created_at: string;
+    filled_data: any;
+  };
 }
 
 export interface DeadlineFormData {
@@ -47,6 +59,8 @@ export interface DeadlineFormData {
   due_date: Date;
   process_id?: string;
   client_id?: string;
+  petition_id?: string;
+  petition_execution_id?: string;
   assigned_to?: string;
   priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
   business_days_only: boolean;

@@ -312,6 +312,8 @@ export type Database = {
           due_date: string
           id: string
           is_critical: boolean | null
+          petition_execution_id: string | null
+          petition_id: string | null
           priority: string | null
           process_id: string | null
           status: string | null
@@ -337,6 +339,8 @@ export type Database = {
           due_date: string
           id?: string
           is_critical?: boolean | null
+          petition_execution_id?: string | null
+          petition_id?: string | null
           priority?: string | null
           process_id?: string | null
           status?: string | null
@@ -362,6 +366,8 @@ export type Database = {
           due_date?: string
           id?: string
           is_critical?: boolean | null
+          petition_execution_id?: string | null
+          petition_id?: string | null
           priority?: string | null
           process_id?: string | null
           status?: string | null
@@ -393,6 +399,20 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "deadlines_petition_execution_id_fkey"
+            columns: ["petition_execution_id"]
+            isOneToOne: false
+            referencedRelation: "petition_executions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deadlines_petition_id_fkey"
+            columns: ["petition_id"]
+            isOneToOne: false
+            referencedRelation: "petition_templates"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "deadlines_process_id_fkey"
             columns: ["process_id"]
             isOneToOne: false
@@ -411,6 +431,34 @@ export type Database = {
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_deadlines_assigned_to"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_deadlines_client_id"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_deadlines_created_by"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_deadlines_process_id"
+            columns: ["process_id"]
+            isOneToOne: false
+            referencedRelation: "processes"
             referencedColumns: ["id"]
           },
         ]

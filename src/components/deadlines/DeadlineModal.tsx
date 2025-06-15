@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,6 +14,7 @@ import { CalendarIcon, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { useWorkspaceOptions } from '@/hooks/useWorkspaceOptions';
 
 interface DeadlineModalProps {
   open: boolean;
@@ -34,6 +34,7 @@ export const DeadlineModal: React.FC<DeadlineModalProps> = ({
   clientId
 }) => {
   const { toast } = useToast();
+  const { processes, clients, petitionTemplates, workspaceUsers } = useWorkspaceOptions();
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState<DeadlineFormData>({
     title: '',
@@ -42,6 +43,8 @@ export const DeadlineModal: React.FC<DeadlineModalProps> = ({
     due_date: new Date(),
     process_id: processId,
     client_id: clientId,
+    petition_id: '',
+    petition_execution_id: '',
     assigned_to: '',
     priority: 'MEDIUM',
     business_days_only: true,
@@ -59,6 +62,8 @@ export const DeadlineModal: React.FC<DeadlineModalProps> = ({
         due_date: new Date(deadline.due_date),
         process_id: deadline.process_id,
         client_id: deadline.client_id,
+        petition_id: deadline.petition_id || '',
+        petition_execution_id: deadline.petition_execution_id || '',
         assigned_to: deadline.assigned_to || '',
         priority: deadline.priority,
         business_days_only: deadline.business_days_only,
@@ -74,6 +79,8 @@ export const DeadlineModal: React.FC<DeadlineModalProps> = ({
         due_date: new Date(),
         process_id: processId,
         client_id: clientId,
+        petition_id: '',
+        petition_execution_id: '',
         assigned_to: '',
         priority: 'MEDIUM',
         business_days_only: true,
@@ -116,7 +123,7 @@ export const DeadlineModal: React.FC<DeadlineModalProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {deadline ? 'Editar Prazo' : 'Criar Novo Prazo'}
@@ -186,6 +193,105 @@ export const DeadlineModal: React.FC<DeadlineModalProps> = ({
                     <SelectItem value="CRITICAL">Crítica</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+            </div>
+
+            {/* Seção de Vinculações */}
+            <div className="border-t pt-4">
+              <h4 className="font-medium mb-3">Vinculações</h4>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="process_id">Processo</Label>
+                  <Select
+                    value={formData.process_id || "none"}
+                    onValueChange={(value) => setFormData(prev => ({ 
+                      ...prev, 
+                      process_id: value === "none" ? undefined : value 
+                    }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecionar processo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Nenhum processo</SelectItem>
+                      {processes.map((process) => (
+                        <SelectItem key={process.id} value={process.id}>
+                          {process.process_number} - {process.title}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="client_id">Cliente</Label>
+                  <Select
+                    value={formData.client_id || "none"}
+                    onValueChange={(value) => setFormData(prev => ({ 
+                      ...prev, 
+                      client_id: value === "none" ? undefined : value 
+                    }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecionar cliente" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Nenhum cliente</SelectItem>
+                      {clients.map((client) => (
+                        <SelectItem key={client.id} value={client.id}>
+                          {client.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="petition_id">Template de Petição</Label>
+                  <Select
+                    value={formData.petition_id || "none"}
+                    onValueChange={(value) => setFormData(prev => ({ 
+                      ...prev, 
+                      petition_id: value === "none" ? undefined : value 
+                    }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecionar petição" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Nenhuma petição</SelectItem>
+                      {petitionTemplates.map((petition) => (
+                        <SelectItem key={petition.id} value={petition.id}>
+                          {petition.name} ({petition.category})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="assigned_to">Responsável</Label>
+                  <Select
+                    value={formData.assigned_to || "none"}
+                    onValueChange={(value) => setFormData(prev => ({ 
+                      ...prev, 
+                      assigned_to: value === "none" ? undefined : value 
+                    }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecionar responsável" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Nenhum responsável</SelectItem>
+                      {workspaceUsers.map((user) => (
+                        <SelectItem key={user.id} value={user.id}>
+                          {user.full_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
 
