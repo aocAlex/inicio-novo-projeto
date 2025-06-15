@@ -1,6 +1,15 @@
 
 import { supabase } from '@/integrations/supabase/client';
 
+interface WorkspaceMember {
+  id: string;
+  user_id: string;
+}
+
+interface ProfileCheck {
+  id: string;
+}
+
 export const cleanupOrphanedMembers = async (workspaceId: string) => {
   try {
     console.log('Starting cleanup of orphaned members for workspace:', workspaceId);
@@ -10,7 +19,8 @@ export const cleanupOrphanedMembers = async (workspaceId: string) => {
       .from('workspace_members')
       .select('id, user_id')
       .eq('workspace_id', workspaceId)
-      .eq('status', 'active');
+      .eq('status', 'active')
+      .returns<WorkspaceMember[]>();
 
     if (allMembersError) {
       console.error('Error fetching all members:', allMembersError);
@@ -30,7 +40,8 @@ export const cleanupOrphanedMembers = async (workspaceId: string) => {
         .from('profiles')
         .select('id')
         .eq('id', member.user_id)
-        .single();
+        .single()
+        .returns<ProfileCheck>();
 
       if (profileError || !profile) {
         orphanedMembers.push(member);
@@ -73,7 +84,8 @@ export const validateMemberExists = async (userId: string): Promise<boolean> => 
       .from('profiles')
       .select('id')
       .eq('id', userId)
-      .single();
+      .single()
+      .returns<ProfileCheck>();
 
     if (error || !data) {
       console.error('Error validating user:', error);
