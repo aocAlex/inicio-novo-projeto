@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -33,7 +34,7 @@ export const DeadlinesPage = () => {
   const handleCreateDeadline = async (data: DeadlineFormData): Promise<Deadline> => {
     const result = await createDeadline(data);
     setShowCreateModal(false);
-    // Converter o resultado para o tipo Deadline
+    // Converter o resultado para o tipo Deadline com verificações de null
     const convertedResult: Deadline = {
       ...result,
       deadline_type: result.deadline_type as 'processual' | 'administrativo' | 'contratual' | 'fiscal' | 'personalizado',
@@ -41,8 +42,8 @@ export const DeadlinesPage = () => {
       priority: result.priority as 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL',
       attachments: Array.isArray(result.attachments) ? result.attachments : [],
       custom_fields: typeof result.custom_fields === 'object' && result.custom_fields !== null ? result.custom_fields : {},
-      process: result.process && typeof result.process === 'object' && 'id' in result.process ? result.process : undefined,
-      client: result.client && typeof result.client === 'object' && 'id' in result.client ? result.client : undefined,
+      process: result.process && typeof result.process === 'object' && 'id' in result.process && result.process.id ? result.process : undefined,
+      client: result.client && typeof result.client === 'object' && 'id' in result.client && result.client.id ? result.client : undefined,
       assigned_user: result.assigned_user && typeof result.assigned_user === 'object' && 'id' in result.assigned_user ? result.assigned_user : undefined,
       petition: result.petition && typeof result.petition === 'object' && 'id' in result.petition ? result.petition : undefined,
       petition_execution: result.petition_execution && typeof result.petition_execution === 'object' && 'id' in result.petition_execution ? result.petition_execution : undefined,
@@ -54,7 +55,7 @@ export const DeadlinesPage = () => {
     if (editingDeadline) {
       const result = await updateDeadline(editingDeadline.id, data);
       setEditingDeadline(undefined);
-      // Converter o resultado para o tipo Deadline
+      // Converter o resultado para o tipo Deadline com verificações de null
       const convertedResult: Deadline = {
         ...result,
         deadline_type: result.deadline_type as 'processual' | 'administrativo' | 'contratual' | 'fiscal' | 'personalizado',
@@ -62,8 +63,8 @@ export const DeadlinesPage = () => {
         priority: result.priority as 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL',
         attachments: Array.isArray(result.attachments) ? result.attachments : [],
         custom_fields: typeof result.custom_fields === 'object' && result.custom_fields !== null ? result.custom_fields : {},
-        process: result.process && typeof result.process === 'object' && 'id' in result.process ? result.process : undefined,
-        client: result.client && typeof result.client === 'object' && 'id' in result.client ? result.client : undefined,
+        process: result.process && typeof result.process === 'object' && 'id' in result.process && result.process.id ? result.process : undefined,
+        client: result.client && typeof result.client === 'object' && 'id' in result.client && result.client.id ? result.client : undefined,
         assigned_user: result.assigned_user && typeof result.assigned_user === 'object' && 'id' in result.assigned_user ? result.assigned_user : undefined,
         petition: result.petition && typeof result.petition === 'object' && 'id' in result.petition ? result.petition : undefined,
         petition_execution: result.petition_execution && typeof result.petition_execution === 'object' && 'id' in result.petition_execution ? result.petition_execution : undefined,

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -170,7 +171,7 @@ export const useDeadlines = () => {
         priority: newDeadline.priority as 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL',
         attachments: Array.isArray(newDeadline.attachments) ? newDeadline.attachments : [],
         custom_fields: typeof newDeadline.custom_fields === 'object' && newDeadline.custom_fields !== null ? newDeadline.custom_fields : {},
-        // Tratar relacionamentos que podem ser null ou inválidos
+        // Usar isValidRelation para conversão consistente
         process: isValidRelation(newDeadline.process) ? newDeadline.process : undefined,
         client: isValidRelation(newDeadline.client) ? newDeadline.client : undefined,
         assigned_user: isValidRelation(newDeadline.assigned_user) ? newDeadline.assigned_user : undefined,
@@ -254,7 +255,7 @@ export const useDeadlines = () => {
         priority: updatedDeadline.priority as 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL',
         attachments: Array.isArray(updatedDeadline.attachments) ? updatedDeadline.attachments : [],
         custom_fields: typeof updatedDeadline.custom_fields === 'object' && updatedDeadline.custom_fields !== null ? updatedDeadline.custom_fields : {},
-        // Tratar relacionamentos que podem ser null ou inválidos
+        // Usar isValidRelation para conversão consistente
         process: isValidRelation(updatedDeadline.process) ? updatedDeadline.process : undefined,
         client: isValidRelation(updatedDeadline.client) ? updatedDeadline.client : undefined,
         assigned_user: isValidRelation(updatedDeadline.assigned_user) ? updatedDeadline.assigned_user : undefined,
