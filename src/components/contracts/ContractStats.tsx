@@ -1,79 +1,73 @@
 
 import React from 'react';
-import { FileText, CheckCircle, Clock, TrendingUp } from 'lucide-react';
+import { FileSignature, Clock, CheckCircle, XCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useContracts } from '@/hooks/useContracts';
 
 export const ContractStats = () => {
   const { contracts } = useContracts();
 
-  const stats = {
-    total: contracts.length,
-    signed: contracts.filter(c => c.status === 'signed').length,
-    pending: contracts.filter(c => c.status === 'pending').length,
-    thisMonth: contracts.filter(c => {
-      const contractDate = new Date(c.created_at);
-      const now = new Date();
-      return contractDate.getMonth() === now.getMonth() && 
-             contractDate.getFullYear() === now.getFullYear();
-    }).length,
-  };
+  const stats = React.useMemo(() => {
+    const total = contracts.length;
+    const pending = contracts.filter(c => c.status === 'pending').length;
+    const signed = contracts.filter(c => c.status === 'signed').length;
+    const rejected = contracts.filter(c => c.status === 'rejected').length;
+    const expired = contracts.filter(c => c.status === 'expired').length;
 
-  const signatureRate = stats.total > 0 ? (stats.signed / stats.total * 100).toFixed(1) : '0';
+    return { total, pending, signed, rejected, expired };
+  }, [contracts]);
+
+  const statCards = [
+    {
+      title: 'Total de Contratos',
+      value: stats.total,
+      icon: FileSignature,
+      color: 'text-blue-600',
+      bgColor: 'bg-blue-100'
+    },
+    {
+      title: 'Pendentes',
+      value: stats.pending,
+      icon: Clock,
+      color: 'text-yellow-600',
+      bgColor: 'bg-yellow-100'
+    },
+    {
+      title: 'Assinados',
+      value: stats.signed,
+      icon: CheckCircle,
+      color: 'text-green-600',
+      bgColor: 'bg-green-100'
+    },
+    {
+      title: 'Rejeitados/Expirados',
+      value: stats.rejected + stats.expired,
+      icon: XCircle,
+      color: 'text-red-600',
+      bgColor: 'bg-red-100'
+    }
+  ];
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Total de Contratos</CardTitle>
-          <FileText className="h-4 w-4 text-muted-foreground" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">{stats.total}</div>
-          <p className="text-xs text-muted-foreground">
-            {stats.thisMonth} este mês
-          </p>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Contratos Assinados</CardTitle>
-          <CheckCircle className="h-4 w-4 text-muted-foreground" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">{stats.signed}</div>
-          <p className="text-xs text-muted-foreground">
-            {signatureRate}% de taxa de assinatura
-          </p>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Pendentes</CardTitle>
-          <Clock className="h-4 w-4 text-muted-foreground" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">{stats.pending}</div>
-          <p className="text-xs text-muted-foreground">
-            Aguardando assinatura
-          </p>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Taxa de Conversão</CardTitle>
-          <TrendingUp className="h-4 w-4 text-muted-foreground" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">{signatureRate}%</div>
-          <p className="text-xs text-muted-foreground">
-            Contratos assinados vs. total
-          </p>
-        </CardContent>
-      </Card>
+      {statCards.map((stat) => {
+        const Icon = stat.icon;
+        return (
+          <Card key={stat.title}>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                {stat.title}
+              </CardTitle>
+              <div className={`p-2 rounded-full ${stat.bgColor}`}>
+                <Icon className={`h-4 w-4 ${stat.color}`} />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stat.value}</div>
+            </CardContent>
+          </Card>
+        );
+      })}
     </div>
   );
 };

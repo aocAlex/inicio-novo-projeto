@@ -1,16 +1,16 @@
 
 import React, { useState, useEffect } from 'react';
-import { format } from 'date-fns';
-import { X, Download, User, Calendar, FileText, Eye, Link } from 'lucide-react';
+import { X } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useContracts } from '@/hooks/useContracts';
 import { useClients } from '@/hooks/useClients';
-import { Contract } from '@/types/contract';
-import { LinkClientModal } from './LinkClientModal';
+import { Contract, CreateContractData } from '@/types/contract';
+import { useToast } from '@/hooks/use-toast';
 
 interface ContractModalProps {
   open: boolean;
@@ -19,286 +19,224 @@ interface ContractModalProps {
 }
 
 export const ContractModal: React.FC<ContractModalProps> = ({ open, onClose, contract }) => {
-  const [fullContract, setFullContract] = useState<Contract | null>(null);
-  const [showLinkClient, setShowLinkClient] = useState(false);
-  const { getContract } = useContracts();
+  const { createContract, updateContract } = useContracts();
+  const { clients } = useClients();
+  const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
+
+  const [formData, setFormData] = useState({
+    contract_name: '',
+    contract_code: '',
+    contract_type: '',
+    zapsign_open_id: 0,
+    zapsign_token: '',
+    status: 'pending' as const,
+    client_id: '',
+    notes: ''
+  });
 
   useEffect(() => {
-    if (contract && open) {
-      loadFullContract();
+    if (contract) {
+      setFormData({
+        contract_name: contract.contract_name,
+        contract_code: contract.contract_code || '',
+        contract_type: contract.contract_type || '',
+        zapsign_open_id: contract.zapsign_open_id,
+        zapsign_token: contract.zapsign_token,
+        status: contract.status,
+        client_id: contract.client_id || '',
+        notes: contract.notes || ''
+      });
+    } else {
+      setFormData({
+        contract_name: '',
+        contract_code: '',
+        contract_type: '',
+        zapsign_open_id: 0,
+        zapsign_token: '',
+        status: 'pending',
+        client_id: '',
+        notes: ''
+      });
     }
   }, [contract, open]);
 
-  const loadFullContract = async () => {
-    if (!contract) return;
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     
-    const full = await getContract(contract.id);
-    setFullContract(full);
-  };
+    if (!formData.contract_name.trim()) {
+      toast({
+        title: "Erro",
+        description: "Nome do contrato é obrigatório",
+        variant: "destructive",
+      });
+      return;
+    }
 
-  const getStatusBadge = (status: Contract['status']) => {
-    const config = {
-      pending: { label: 'Pendente', variant: 'secondary' as const },
-      signed: { label: 'Assinado', variant: 'default' as const },
-      rejected: { label: 'Rejeitado', variant: 'destructive' as const },
-      expired: { label: 'Expirado', variant: 'outline' as const },
-    };
-    return <Badge variant={config[status].variant}>{config[status].label}</Badge>;
+    setIsLoading(true);
+    
+    try {
+      if (contract) {
+        // Atualizar contrato existente
+        await updateContract(contract.id, {
+          contract_name: formData.contract_name,
+          contract_code: formData.contract_code,
+          contract_type: formData.contract_type,
+          status: formData.status,
+          client_id: formData.client_id || undefined,
+          notes: formData.notes
+        });
+      } else {
+        // Criar novo contrato
+        const createData: CreateContractData = {
+          contract_name: formData.contract_name,
+          contract_code: formData.contract_code,
+          contract_type: formData.contract_type,
+          zapsign_open_id: formData.zapsign_open_id || Math.floor(Math.random() * 1000000),
+          zapsign_token: formData.zapsign_token || `token_${Date.now()}`,
+          status: formData.status,
+          client_id: formData.client_id || undefined,
+          notes: formData.notes
+        };
+        
+        await createContract(createData);
+      }
+      
+      onClose();
+    } catch (error) {
+      console.error('Erro ao salvar contrato:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
-
-  if (!contract || !fullContract) return null;
 
   return (
-    <>
-      <Dialog open={open} onOpenChange={onClose}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <DialogTitle className="text-xl">{fullContract.contract_name}</DialogTitle>
-                <div className="flex items-center gap-2 mt-2">
-                  {getStatusBadge(fullContract.status)}
-                  {fullContract.contract_type && (
-                    <Badge variant="outline">{fullContract.contract_type}</Badge>
-                  )}
-                </div>
-              </div>
-              <Button variant="outline" onClick={onClose}>
-                <X className="h-4 w-4" />
-              </Button>
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>
+            {contract ? 'Editar Contrato' : 'Novo Contrato'}
+          </DialogTitle>
+        </DialogHeader>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="contract_name">Nome do Contrato *</Label>
+              <Input
+                id="contract_name"
+                value={formData.contract_name}
+                onChange={(e) => setFormData(prev => ({ ...prev, contract_name: e.target.value }))}
+                placeholder="Ex: Contrato de Prestação de Serviços"
+                required
+              />
             </div>
-          </DialogHeader>
 
-          <Tabs defaultValue="details" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="details">Detalhes</TabsTrigger>
-              <TabsTrigger value="signers">Signatários</TabsTrigger>
-              <TabsTrigger value="files">Arquivos</TabsTrigger>
-            </TabsList>
+            <div className="space-y-2">
+              <Label htmlFor="contract_code">Código do Contrato</Label>
+              <Input
+                id="contract_code"
+                value={formData.contract_code}
+                onChange={(e) => setFormData(prev => ({ ...prev, contract_code: e.target.value }))}
+                placeholder="Ex: CTR-2024-001"
+              />
+            </div>
 
-            <TabsContent value="details" className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-sm">Informações Básicas</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground">Nome</label>
-                      <p>{fullContract.contract_name}</p>
-                    </div>
-                    {fullContract.contract_code && (
-                      <div>
-                        <label className="text-sm font-medium text-muted-foreground">Código</label>
-                        <p>{fullContract.contract_code}</p>
-                      </div>
-                    )}
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground">Status</label>
-                      <div className="mt-1">{getStatusBadge(fullContract.status)}</div>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground">ZapSign ID</label>
-                      <p>{fullContract.zapsign_open_id}</p>
-                    </div>
-                  </CardContent>
-                </Card>
+            <div className="space-y-2">
+              <Label htmlFor="contract_type">Tipo de Contrato</Label>
+              <Input
+                id="contract_type"
+                value={formData.contract_type}
+                onChange={(e) => setFormData(prev => ({ ...prev, contract_type: e.target.value }))}
+                placeholder="Ex: Prestação de Serviços"
+              />
+            </div>
 
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-sm flex items-center justify-between">
-                      Cliente Vinculado
-                      {!fullContract.client && (
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          onClick={() => setShowLinkClient(true)}
-                        >
-                          <Link className="h-4 w-4 mr-1" />
-                          Vincular
-                        </Button>
-                      )}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {fullContract.client ? (
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2">
-                          <User className="h-4 w-4" />
-                          <span className="font-medium">{fullContract.client.name}</span>
-                        </div>
-                        {fullContract.client.email && (
-                          <p className="text-sm text-muted-foreground">{fullContract.client.email}</p>
-                        )}
-                        {fullContract.matching_confidence && (
-                          <Badge variant="outline" className="text-xs">
-                            {Math.round(fullContract.matching_confidence * 100)}% confiança
-                            {fullContract.matched_by && ` (${fullContract.matched_by})`}
-                          </Badge>
-                        )}
-                      </div>
-                    ) : (
-                      <p className="text-muted-foreground">Nenhum cliente vinculado</p>
-                    )}
-                  </CardContent>
-                </Card>
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="status">Status</Label>
+              <Select
+                value={formData.status}
+                onValueChange={(value) => setFormData(prev => ({ ...prev, status: value as any }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pending">Pendente</SelectItem>
+                  <SelectItem value="signed">Assinado</SelectItem>
+                  <SelectItem value="rejected">Rejeitado</SelectItem>
+                  <SelectItem value="expired">Expirado</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-sm">Datas Importantes</CardTitle>
-                </CardHeader>
-                <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">Criado em</label>
-                    <p>{format(new Date(fullContract.created_at), 'dd/MM/yyyy HH:mm')}</p>
-                  </div>
-                  {fullContract.zapsign_created_at && (
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground">Criado no ZapSign</label>
-                      <p>{format(new Date(fullContract.zapsign_created_at), 'dd/MM/yyyy HH:mm')}</p>
-                    </div>
-                  )}
-                  {fullContract.signed_at && (
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground">Assinado em</label>
-                      <p>{format(new Date(fullContract.signed_at), 'dd/MM/yyyy HH:mm')}</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              {fullContract.notes && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-sm">Observações</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p>{fullContract.notes}</p>
-                  </CardContent>
-                </Card>
-              )}
-            </TabsContent>
-
-            <TabsContent value="signers" className="space-y-4">
-              {fullContract.signers && fullContract.signers.length > 0 ? (
-                <div className="space-y-3">
-                  {fullContract.signers.map((signer) => (
-                    <Card key={signer.id}>
-                      <CardContent className="pt-6">
-                        <div className="flex items-start justify-between">
-                          <div className="space-y-2">
-                            <div className="flex items-center gap-2">
-                              <h4 className="font-medium">{signer.name}</h4>
-                              <Badge 
-                                variant={signer.status === 'signed' ? 'default' : 'secondary'}
-                              >
-                                {signer.status === 'signed' ? 'Assinado' : 
-                                 signer.status === 'pending' ? 'Pendente' : 'Rejeitado'}
-                              </Badge>
-                            </div>
-                            <p className="text-sm text-muted-foreground">{signer.email}</p>
-                            {signer.cpf && (
-                              <p className="text-sm text-muted-foreground">CPF: {signer.cpf}</p>
-                            )}
-                            {signer.signed_at && (
-                              <p className="text-sm text-muted-foreground">
-                                Assinado em: {format(new Date(signer.signed_at), 'dd/MM/yyyy HH:mm')}
-                              </p>
-                            )}
-                          </div>
-                          {signer.sign_url && signer.status === 'pending' && (
-                            <Button 
-                              size="sm" 
-                              variant="outline"
-                              onClick={() => window.open(signer.sign_url, '_blank')}
-                            >
-                              <Eye className="h-4 w-4 mr-1" />
-                              Ver
-                            </Button>
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="client_id">Cliente</Label>
+              <Select
+                value={formData.client_id}
+                onValueChange={(value) => setFormData(prev => ({ ...prev, client_id: value === 'none' ? '' : value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione um cliente (opcional)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Nenhum cliente selecionado</SelectItem>
+                  {clients.map((client) => (
+                    <SelectItem key={client.id} value={client.id}>
+                      {client.name}
+                    </SelectItem>
                   ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {!contract && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="zapsign_open_id">ZapSign Open ID</Label>
+                  <Input
+                    id="zapsign_open_id"
+                    type="number"
+                    value={formData.zapsign_open_id}
+                    onChange={(e) => setFormData(prev => ({ ...prev, zapsign_open_id: parseInt(e.target.value) || 0 }))}
+                    placeholder="ID do ZapSign (opcional)"
+                  />
                 </div>
-              ) : (
-                <p className="text-center text-muted-foreground py-8">
-                  Nenhum signatário encontrado
-                </p>
-              )}
-            </TabsContent>
 
-            <TabsContent value="files" className="space-y-4">
-              <div className="grid gap-4">
-                {fullContract.original_file_url && (
-                  <Card>
-                    <CardContent className="pt-6">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <FileText className="h-5 w-5" />
-                          <div>
-                            <p className="font-medium">Arquivo Original</p>
-                            <p className="text-sm text-muted-foreground">Documento antes da assinatura</p>
-                          </div>
-                        </div>
-                        <Button 
-                          variant="outline" 
-                          onClick={() => window.open(fullContract.original_file_url, '_blank')}
-                        >
-                          <Download className="h-4 w-4 mr-1" />
-                          Download
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
+                <div className="space-y-2">
+                  <Label htmlFor="zapsign_token">ZapSign Token</Label>
+                  <Input
+                    id="zapsign_token"
+                    value={formData.zapsign_token}
+                    onChange={(e) => setFormData(prev => ({ ...prev, zapsign_token: e.target.value }))}
+                    placeholder="Token do ZapSign (opcional)"
+                  />
+                </div>
+              </>
+            )}
+          </div>
 
-                {fullContract.signed_file_url && (
-                  <Card>
-                    <CardContent className="pt-6">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <FileText className="h-5 w-5 text-green-600" />
-                          <div>
-                            <p className="font-medium">Arquivo Assinado</p>
-                            <p className="text-sm text-muted-foreground">Documento com todas as assinaturas</p>
-                          </div>
-                        </div>
-                        <Button 
-                          variant="outline" 
-                          onClick={() => window.open(fullContract.signed_file_url, '_blank')}
-                        >
-                          <Download className="h-4 w-4 mr-1" />
-                          Download
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
+          <div className="space-y-2">
+            <Label htmlFor="notes">Observações</Label>
+            <Textarea
+              id="notes"
+              value={formData.notes}
+              onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+              placeholder="Observações sobre o contrato..."
+              rows={3}
+            />
+          </div>
 
-                {!fullContract.original_file_url && !fullContract.signed_file_url && (
-                  <p className="text-center text-muted-foreground py-8">
-                    Nenhum arquivo disponível
-                  </p>
-                )}
-              </div>
-            </TabsContent>
-          </Tabs>
-        </DialogContent>
-      </Dialog>
-
-      {showLinkClient && (
-        <LinkClientModal
-          open={showLinkClient}
-          onClose={() => setShowLinkClient(false)}
-          contract={fullContract}
-          onLinked={() => {
-            setShowLinkClient(false);
-            loadFullContract();
-          }}
-        />
-      )}
-    </>
+          <div className="flex justify-end gap-3">
+            <Button type="button" variant="outline" onClick={onClose}>
+              Cancelar
+            </Button>
+            <Button type="submit" disabled={isLoading}>
+              {isLoading ? 'Salvando...' : contract ? 'Atualizar' : 'Criar Contrato'}
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 };

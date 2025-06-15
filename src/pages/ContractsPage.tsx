@@ -7,15 +7,30 @@ import { ContractFilters } from '@/components/contracts/ContractFilters';
 import { ContractStats } from '@/components/contracts/ContractStats';
 import { ContractModal } from '@/components/contracts/ContractModal';
 import { useContracts } from '@/hooks/useContracts';
-import { Contract } from '@/types/contract';
+import { Contract, ContractFilters as IContractFilters } from '@/types/contract';
 
 export const ContractsPage = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedContract, setSelectedContract] = useState<Contract | null>(null);
   const { loadContracts } = useContracts();
 
-  const handleFilterChange = (filters: any) => {
+  const handleFilterChange = (filters: IContractFilters) => {
     loadContracts(filters);
+  };
+
+  const handleCreateClick = () => {
+    setSelectedContract(null);
+    setShowCreateModal(true);
+  };
+
+  const handleContractClick = (contract: Contract) => {
+    setSelectedContract(contract);
+    setShowCreateModal(true);
+  };
+
+  const handleCloseModal = () => {
+    setShowCreateModal(false);
+    setSelectedContract(null);
   };
 
   return (
@@ -27,7 +42,7 @@ export const ContractsPage = () => {
             Gerencie contratos recebidos via ZapSign
           </p>
         </div>
-        <Button onClick={() => setShowCreateModal(true)}>
+        <Button onClick={handleCreateClick}>
           <Plus className="h-4 w-4 mr-2" />
           Novo Contrato
         </Button>
@@ -37,26 +52,14 @@ export const ContractsPage = () => {
 
       <div className="grid gap-6">
         <ContractFilters onFilterChange={handleFilterChange} />
-        <ContractsList 
-          onContractClick={setSelectedContract}
-        />
+        <ContractsList onContractClick={handleContractClick} />
       </div>
 
-      {showCreateModal && (
-        <ContractModal
-          open={showCreateModal}
-          onClose={() => setShowCreateModal(false)}
-          contract={null}
-        />
-      )}
-
-      {selectedContract && (
-        <ContractModal
-          open={!!selectedContract}
-          onClose={() => setSelectedContract(null)}
-          contract={selectedContract}
-        />
-      )}
+      <ContractModal
+        open={showCreateModal}
+        onClose={handleCloseModal}
+        contract={selectedContract}
+      />
     </div>
   );
 };

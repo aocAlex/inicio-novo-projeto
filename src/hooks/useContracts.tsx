@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -87,11 +86,20 @@ export const useContracts = () => {
   };
 
   const createContract = async (contractData: CreateContractData): Promise<Contract | null> => {
-    if (!currentWorkspace) return null;
+    if (!currentWorkspace) {
+      toast({
+        title: "Erro",
+        description: "Nenhuma workspace selecionada",
+        variant: "destructive",
+      });
+      return null;
+    }
 
     try {
       setIsLoading(true);
       setError(null);
+
+      console.log('Creating contract with data:', contractData);
 
       const { data, error } = await supabase
         .from('contracts')
@@ -99,10 +107,15 @@ export const useContracts = () => {
           ...contractData,
           workspace_id: currentWorkspace.id,
         })
-        .select()
+        .select(`
+          *,
+          client:clients(id, name, email),
+          signers:contract_signers(*)
+        `)
         .single();
 
       if (error) {
+        console.error('Supabase error:', error);
         throw error;
       }
 
@@ -116,6 +129,7 @@ export const useContracts = () => {
 
       return newContract;
     } catch (err: any) {
+      console.error('Error creating contract:', err);
       setError(err.message);
       toast({
         title: "Erro ao criar contrato",
@@ -140,7 +154,11 @@ export const useContracts = () => {
           updated_at: new Date().toISOString(),
         })
         .eq('id', id)
-        .select()
+        .select(`
+          *,
+          client:clients(id, name, email),
+          signers:contract_signers(*)
+        `)
         .single();
 
       if (error) {
