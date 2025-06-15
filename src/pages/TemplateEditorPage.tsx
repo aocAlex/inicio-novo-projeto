@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useAdvancedTemplates } from '@/hooks/useAdvancedTemplates'
@@ -12,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Plus, X, Save, ArrowLeft } from 'lucide-react'
-import { PetitionTemplate, CreateTemplateData, TemplateField } from '@/types/templates'
+import { PetitionTemplate, CreateTemplateData, TemplateField } from '@/types/petition'
 
 const CATEGORIES = [
   { value: 'civil', label: 'Civil' },

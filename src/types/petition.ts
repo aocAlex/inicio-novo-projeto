@@ -1,4 +1,3 @@
-
 export interface PetitionTemplate {
   id: string;
   workspace_id: string;
@@ -13,6 +12,7 @@ export interface PetitionTemplate {
   created_by: string | null;
   created_at: string;
   updated_at: string;
+  fields?: TemplateField[];
 }
 
 export interface TemplateField {
@@ -20,7 +20,7 @@ export interface TemplateField {
   template_id: string;
   field_key: string;
   field_title: string;
-  field_type: 'text' | 'textarea' | 'select' | 'date' | 'number' | 'email' | 'phone';
+  field_type: 'text' | 'textarea' | 'select' | 'date' | 'number' | 'email' | 'phone' | 'cpf' | 'cnpj' | 'cep' | 'currency' | 'percentage' | 'checkbox' | 'multiselect' | 'radio' | 'datetime' | 'time' | 'oab' | 'processo_numero';
   field_options: Record<string, any>;
   is_required: boolean;
   display_order: number;
@@ -80,6 +80,7 @@ export interface UpdateTemplateData {
   is_shared?: boolean;
   webhook_url?: string;
   webhook_enabled?: boolean;
+  fields?: Omit<TemplateField, 'id' | 'template_id' | 'created_at'>[];
 }
 
 export interface CreateExecutionData {

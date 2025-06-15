@@ -1,6 +1,13 @@
-
 import { useState, useCallback, useMemo } from 'react'
-import { TemplatePreview, TemplateField } from '@/types/templates'
+import { TemplateField } from '@/types/petition'
+
+export interface TemplatePreview {
+  original_content: string;
+  preview_content: string;
+  missing_fields: string[];
+  filled_fields: Record<string, any>;
+  orphan_variables: string[];
+}
 
 export const useTemplatePreview = () => {
   const [preview, setPreview] = useState<TemplatePreview | null>(null)

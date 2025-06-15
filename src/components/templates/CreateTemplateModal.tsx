@@ -23,7 +23,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { usePetitionTemplates } from '@/hooks/usePetitionTemplates';
 import { TemplateFieldsList } from './TemplateFieldsList';
-import { CreateTemplateData, PetitionTemplate } from '@/types/templates';
+import { CreateTemplateData, PetitionTemplate } from '@/types/petition';
 import { Loader2, FileText, Settings } from 'lucide-react';
 
 interface CreateTemplateModalProps {
