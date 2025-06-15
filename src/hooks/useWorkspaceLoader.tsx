@@ -53,13 +53,61 @@ export const useWorkspaceLoader = () => {
     }
   }, []);
 
+  const addUserToPublicWorkspaces = useCallback(async (userId: string) => {
+    console.log('Adding user to public workspaces:', userId);
+    
+    try {
+      // Get all public workspaces
+      const { data: publicWorkspaces, error: fetchError } = await supabase
+        .from('workspaces')
+        .select('id')
+        .eq('is_public', true);
+
+      if (fetchError) {
+        console.error('Error fetching public workspaces:', fetchError);
+        return;
+      }
+
+      if (!publicWorkspaces || publicWorkspaces.length === 0) {
+        console.log('No public workspaces found');
+        return;
+      }
+
+      // Add user to each public workspace as viewer
+      const memberships = publicWorkspaces.map(workspace => ({
+        workspace_id: workspace.id,
+        user_id: userId,
+        role: 'viewer' as const,
+        status: 'active' as const,
+      }));
+
+      const { error: insertError } = await supabase
+        .from('workspace_members')
+        .upsert(memberships, { 
+          onConflict: 'workspace_id,user_id',
+          ignoreDuplicates: true 
+        });
+
+      if (insertError) {
+        console.error('Error adding user to public workspaces:', insertError);
+      } else {
+        console.log('Successfully added user to public workspaces');
+      }
+    } catch (error) {
+      console.error('Error in addUserToPublicWorkspaces:', error);
+    }
+  }, []);
+
   const loadWorkspaces = useCallback(async (userId: string, userEmail: string) => {
     console.log('Loading workspaces for user:', userId);
     
     try {
       setError(null);
       
-      // First, get the user's workspaces
+      // First, ensure user is added to public workspaces
+      await addUserToPublicWorkspaces(userId);
+      
+      // Get the user's workspaces (including public ones they're now a member of)
       const { data: memberData, error: memberError } = await supabase
         .from('workspace_members')
         .select('workspace_id, role, status, permissions, last_activity, created_at, id')
@@ -132,7 +180,7 @@ export const useWorkspaceLoader = () => {
       });
       throw error;
     }
-  }, [toast, createDefaultWorkspace]);
+  }, [toast, createDefaultWorkspace, addUserToPublicWorkspaces]);
 
   return {
     loadWorkspaces,

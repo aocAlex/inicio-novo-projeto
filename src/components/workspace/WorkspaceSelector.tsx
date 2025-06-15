@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { CreateWorkspaceModal } from './CreateWorkspaceModal';
-import { ChevronDown, Building2, Plus, Check } from 'lucide-react';
+import { ChevronDown, Building2, Plus, Check, Globe } from 'lucide-react';
 
 export const WorkspaceSelector = () => {
   const { currentWorkspace, workspaces, switchWorkspace } = useWorkspace();
@@ -22,7 +22,11 @@ export const WorkspaceSelector = () => {
         <DropdownMenuTrigger asChild>
           <Button variant="outline" className="w-48 justify-between">
             <div className="flex items-center">
-              <Building2 className="mr-2 h-4 w-4" />
+              {currentWorkspace?.is_public ? (
+                <Globe className="mr-2 h-4 w-4 text-green-600" />
+              ) : (
+                <Building2 className="mr-2 h-4 w-4" />
+              )}
               <span className="truncate">
                 {currentWorkspace?.name || 'Selecionar workspace'}
               </span>
@@ -41,8 +45,15 @@ export const WorkspaceSelector = () => {
               className="flex items-center justify-between"
             >
               <div className="flex items-center">
-                <Building2 className="mr-2 h-4 w-4" />
+                {workspace.is_public ? (
+                  <Globe className="mr-2 h-4 w-4 text-green-600" />
+                ) : (
+                  <Building2 className="mr-2 h-4 w-4" />
+                )}
                 <span className="truncate">{workspace.name}</span>
+                {workspace.is_public && (
+                  <span className="ml-1 text-xs text-green-600">(Público)</span>
+                )}
               </div>
               {currentWorkspace?.id === workspace.id && (
                 <Check className="h-4 w-4 text-blue-600" />

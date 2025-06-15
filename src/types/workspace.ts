@@ -1,4 +1,3 @@
-
 export interface Workspace {
   id: string;
   name: string;
@@ -6,6 +5,7 @@ export interface Workspace {
   logo_url?: string;
   slug?: string;
   owner_id: string;
+  is_public?: boolean;
   created_at: string;
   updated_at: string;
 }
