@@ -104,7 +104,13 @@ export const ProcessModal: React.FC<ProcessModalProps> = ({ open, onClose, proce
 
       if (error) throw error;
 
-      setProcessClients(data || []);
+      // Tipo assertion segura para garantir que role seja do tipo correto
+      const typedData: ProcessClient[] = (data || []).map(item => ({
+        ...item,
+        role: item.role as 'plaintiff' | 'defendant' | 'witness' | 'other'
+      }));
+
+      setProcessClients(typedData);
     } catch (error) {
       console.error('Erro ao carregar clientes do processo:', error);
     }

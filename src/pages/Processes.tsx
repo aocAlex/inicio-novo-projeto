@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useProcesses } from '@/hooks/useProcesses';
 import { useSimplifiedPermissions } from '@/hooks/useSimplifiedPermissions';
@@ -182,12 +181,11 @@ export const Processes = () => {
 
       {/* Modal de Criar/Editar */}
       <ProcessModal
-        isOpen={isModalOpen}
+        open={isModalOpen}
         onClose={() => {
           setIsModalOpen(false);
           setEditingProcess(null);
         }}
-        onSave={handleSave}
         process={editingProcess}
       />
 

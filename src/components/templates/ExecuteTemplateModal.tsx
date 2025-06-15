@@ -25,7 +25,7 @@ import { useTemplateFields } from '@/hooks/useTemplateFields';
 import { DynamicFieldRenderer } from './DynamicFieldRenderer';
 import { CreateExecutionData } from '@/types/petition';
 import { Loader2, FileText } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ExecuteTemplateModalProps {
   isOpen: boolean;
