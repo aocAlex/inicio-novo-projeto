@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react'
 import { useAdvancedTemplates } from '@/hooks/useAdvancedTemplates'
 import { usePermissions } from '@/hooks/usePermissions'

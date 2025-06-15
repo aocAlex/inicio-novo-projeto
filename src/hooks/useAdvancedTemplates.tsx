@@ -55,13 +55,13 @@ export const useAdvancedTemplates = () => {
         throw new Error(queryError.message)
       }
 
-      // Ordenar campos por display_order
+      // Ordenar campos por display_order e fazer type casting
       const templatesWithSortedFields = (data || []).map(template => ({
         ...template,
-        fields: template.fields?.sort((a: TemplateField, b: TemplateField) => 
-          a.display_order - b.display_order
+        fields: template.fields?.sort((a: any, b: any) => 
+          (a.display_order || 0) - (b.display_order || 0)
         ) || []
-      }))
+      })) as PetitionTemplate[]
 
       setTemplates(templatesWithSortedFields)
 
@@ -102,6 +102,8 @@ export const useAdvancedTemplates = () => {
           category: data.category,
           template_content: data.template_content,
           is_shared: data.is_shared || false,
+          webhook_url: data.webhook_url,
+          webhook_enabled: data.webhook_enabled || false,
           created_by: (await supabase.auth.getUser()).data.user?.id
         })
         .select()
@@ -139,7 +141,7 @@ export const useAdvancedTemplates = () => {
       // 3. Recarregar templates
       await loadTemplates()
 
-      return templateData
+      return templateData as PetitionTemplate
 
     } catch (err: any) {
       console.error('Error creating template:', err)
@@ -290,6 +292,8 @@ export const useAdvancedTemplates = () => {
       category: originalTemplate.category,
       template_content: originalTemplate.template_content,
       is_shared: false,
+      webhook_url: originalTemplate.webhook_url,
+      webhook_enabled: originalTemplate.webhook_enabled,
       fields: originalTemplate.fields?.map(field => ({
         field_key: field.field_key,
         field_label: field.field_label,
@@ -321,12 +325,12 @@ export const useAdvancedTemplates = () => {
 
       // Ordenar campos
       if (data.fields) {
-        data.fields.sort((a: TemplateField, b: TemplateField) => 
-          a.display_order - b.display_order
+        data.fields.sort((a: any, b: any) => 
+          (a.display_order || 0) - (b.display_order || 0)
         )
       }
 
-      return data
+      return data as PetitionTemplate
 
     } catch (err: any) {
       console.error('Error getting template:', err)
@@ -398,8 +402,8 @@ export const useAdvancedTemplates = () => {
       })
 
       // Enviar webhook se configurado
-      if (template.webhook_url) {
-        await sendWebhook(template, execution, filledData, generatedContent)
+      if (template.webhook_url && template.webhook_enabled) {
+        await sendWebhook(template, execution as TemplateExecution, filledData, generatedContent)
       }
 
       toast({
@@ -407,7 +411,7 @@ export const useAdvancedTemplates = () => {
         description: "Petição foi gerada com sucesso.",
       })
 
-      return execution
+      return execution as TemplateExecution
 
     } catch (err: any) {
       console.error('Error executing template:', err)
