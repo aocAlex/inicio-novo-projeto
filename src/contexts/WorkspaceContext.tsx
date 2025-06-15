@@ -5,7 +5,7 @@ import { useWorkspaceLoader } from '@/hooks/useWorkspaceLoader';
 import { useWorkspaceSwitcher } from '@/hooks/useWorkspaceSwitcher';
 import { useWorkspaceManager } from '@/hooks/useWorkspaceManager';
 import { createMemberWithProfile } from '@/utils/workspaceUtils';
-import { supabase } from '@/utils/supabase';
+import { supabase } from '@/integrations/supabase/client';
 
 interface WorkspaceContextType {
   currentWorkspace: Workspace | null;
