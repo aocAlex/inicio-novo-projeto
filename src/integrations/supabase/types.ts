@@ -1004,6 +1004,48 @@ export type Database = {
           },
         ]
       }
+      petition_field_values: {
+        Row: {
+          created_at: string | null
+          execution_id: string
+          field_id: string
+          field_value: string | null
+          id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          execution_id: string
+          field_id: string
+          field_value?: string | null
+          id?: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          execution_id?: string
+          field_id?: string
+          field_value?: string | null
+          id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "petition_field_values_execution_id_fkey"
+            columns: ["execution_id"]
+            isOneToOne: false
+            referencedRelation: "petition_executions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "petition_field_values_field_id_fkey"
+            columns: ["field_id"]
+            isOneToOne: false
+            referencedRelation: "template_fields"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       petition_templates: {
         Row: {
           category: string | null

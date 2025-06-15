@@ -22,6 +22,8 @@ import { usePetitionTemplates } from '@/hooks/usePetitionTemplates';
 import { usePetitionExecutions } from '@/hooks/usePetitionExecutions';
 import { useProcesses } from '@/hooks/useProcesses';
 import { useClients } from '@/hooks/useClients';
+import { useTemplateFields } from '@/hooks/useTemplateFields';
+import { DynamicFieldRenderer } from './DynamicFieldRenderer';
 import { CreateExecutionData } from '@/types/petition';
 import { Loader2, FileText } from 'lucide-react';
 
@@ -45,6 +47,7 @@ export const ExecuteTemplateModal = ({
     webhook_url: '',
     filled_data: {} as Record<string, any>,
   });
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
   const [loadingTemplate, setLoadingTemplate] = useState(false);
 
@@ -52,6 +55,7 @@ export const ExecuteTemplateModal = ({
   const { createExecution } = usePetitionExecutions();
   const { processes } = useProcesses();
   const { clients } = useClients();
+  const { fields, loadFields } = useTemplateFields(templateId);
 
   useEffect(() => {
     if (isOpen && templateId) {
@@ -64,8 +68,31 @@ export const ExecuteTemplateModal = ({
         filled_data: {},
       });
       setTemplate(null);
+      setFieldErrors({});
     }
   }, [isOpen, templateId]);
+
+  useEffect(() => {
+    if (templateId) {
+      loadFields();
+    }
+  }, [templateId, loadFields]);
+
+  // Inicializar dados dos campos com valores padrão
+  useEffect(() => {
+    if (fields.length > 0) {
+      const initialData: Record<string, any> = {};
+      fields.forEach(field => {
+        if (field.default_value) {
+          initialData[field.field_key] = field.default_value;
+        }
+      });
+      setFormData(prev => ({
+        ...prev,
+        filled_data: { ...prev.filled_data, ...initialData },
+      }));
+    }
+  }, [fields]);
 
   const loadTemplate = async () => {
     if (!templateId) return;
@@ -75,16 +102,6 @@ export const ExecuteTemplateModal = ({
       const templateData = await getTemplate(templateId);
       if (templateData) {
         setTemplate(templateData);
-        // Extrair variáveis do template para criar campos de preenchimento
-        const variables = extractVariables(templateData.template_content);
-        const initialData: Record<string, any> = {};
-        variables.forEach(variable => {
-          initialData[variable] = '';
-        });
-        setFormData(prev => ({
-          ...prev,
-          filled_data: initialData,
-        }));
       }
     } catch (error) {
       console.error('Error loading template:', error);
@@ -93,25 +110,30 @@ export const ExecuteTemplateModal = ({
     }
   };
 
-  // Extrair variáveis do template ({{variavel}})
-  const extractVariables = (content: string): string[] => {
-    const regex = /\{\{([^}]+)\}\}/g;
-    const variables: string[] = [];
-    let match;
+  const validateFields = () => {
+    const errors: Record<string, string> = {};
     
-    while ((match = regex.exec(content)) !== null) {
-      const variable = match[1].trim();
-      if (!variables.includes(variable)) {
-        variables.push(variable);
+    fields.forEach(field => {
+      if (field.is_required) {
+        const value = formData.filled_data[field.field_key];
+        if (!value || (Array.isArray(value) && value.length === 0)) {
+          errors[field.field_key] = `${field.field_title} é obrigatório`;
+        }
       }
-    }
-    
-    return variables;
+    });
+
+    setFieldErrors(errors);
+    return Object.keys(errors).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!templateId) return;
+
+    // Validar campos obrigatórios
+    if (!validateFields()) {
+      return;
+    }
 
     setIsLoading(true);
 
@@ -167,23 +189,44 @@ export const ExecuteTemplateModal = ({
     }
   };
 
-  const handleDataChange = (field: string, value: any) => {
+  const handleFieldChange = (fieldKey: string, value: any) => {
     setFormData(prev => ({
       ...prev,
       filled_data: {
         ...prev.filled_data,
-        [field]: value,
+        [fieldKey]: value,
       },
     }));
+
+    // Limpar erro do campo se existir
+    if (fieldErrors[fieldKey]) {
+      setFieldErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[fieldKey];
+        return newErrors;
+      });
+    }
   };
 
   const renderPreview = () => {
     if (!template) return '';
     
     let preview = template.template_content;
+    
+    // Substituir campos personalizados
+    fields.forEach(field => {
+      const value = formData.filled_data[field.field_key];
+      const displayValue = value || `[${field.field_title}]`;
+      const regex = new RegExp(`\\{\\{\\s*${field.field_key}\\s*\\}\\}`, 'g');
+      preview = preview.replace(regex, displayValue);
+    });
+
+    // Substituir dados padrão do sistema
     Object.entries(formData.filled_data).forEach(([key, value]) => {
-      const regex = new RegExp(`\\{\\{\\s*${key}\\s*\\}\\}`, 'g');
-      preview = preview.replace(regex, value || `[${key}]`);
+      if (!fields.find(f => f.field_key === key)) {
+        const regex = new RegExp(`\\{\\{\\s*${key}\\s*\\}\\}`, 'g');
+        preview = preview.replace(regex, value || `[${key}]`);
+      }
     });
     
     return preview;
@@ -263,23 +306,19 @@ export const ExecuteTemplateModal = ({
               </p>
             </div>
 
-            {/* Campos dinâmicos baseados nas variáveis do template */}
-            {Object.keys(formData.filled_data).length > 0 && (
+            {/* Campos Personalizados */}
+            {fields.length > 0 && (
               <div className="space-y-4">
                 <h4 className="font-medium">Dados para preenchimento:</h4>
-                <div className="grid grid-cols-2 gap-4">
-                  {Object.keys(formData.filled_data).map((field) => (
-                    <div key={field} className="space-y-2">
-                      <Label htmlFor={field}>
-                        {field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                      </Label>
-                      <Input
-                        id={field}
-                        value={formData.filled_data[field]}
-                        onChange={(e) => handleDataChange(field, e.target.value)}
-                        placeholder={`Digite ${field.replace(/_/g, ' ')}`}
-                      />
-                    </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {fields.map((field) => (
+                    <DynamicFieldRenderer
+                      key={field.id}
+                      field={field}
+                      value={formData.filled_data[field.field_key]}
+                      onChange={(value) => handleFieldChange(field.field_key, value)}
+                      error={fieldErrors[field.field_key]}
+                    />
                   ))}
                 </div>
               </div>
