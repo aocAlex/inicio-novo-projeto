@@ -19,6 +19,20 @@ export const useCreateDeadline = () => {
       }
 
       console.log('Criando prazo:', data);
+      console.log('User ID:', user.id);
+      console.log('Workspace ID:', currentWorkspace.id);
+
+      // Verificar se o perfil do usuário existe
+      const { data: profileCheck, error: profileError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('id', user.id)
+        .single();
+
+      if (profileError || !profileCheck) {
+        console.error('Perfil do usuário não encontrado:', profileError);
+        throw new Error('Perfil do usuário não encontrado. Entre em contato com o administrador.');
+      }
 
       const deadlineData = {
         title: data.title,
@@ -41,6 +55,8 @@ export const useCreateDeadline = () => {
         created_by: user.id,
       };
 
+      console.log('Dados do prazo a serem inseridos:', deadlineData);
+
       const { data: result, error } = await supabase
         .from('deadlines')
         .insert(deadlineData)
@@ -56,6 +72,9 @@ export const useCreateDeadline = () => {
 
       if (error) {
         console.error('Erro ao criar prazo:', error);
+        if (error.code === '23503' && error.message.includes('deadlines_created_by_fkey')) {
+          throw new Error('Erro de permissão: seu perfil não foi encontrado. Entre em contato com o administrador.');
+        }
         throw error;
       }
 

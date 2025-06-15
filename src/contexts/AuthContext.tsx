@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -33,9 +32,61 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   console.log('AuthProvider - user:', user, 'loading:', loading);
 
-  const loadProfile = async (userId: string) => {
+  const createProfileIfNotExists = async (userId: string, userEmail: string, fullName?: string) => {
+    try {
+      console.log('Verificando se perfil existe para userId:', userId);
+      
+      // Primeiro, tentar buscar o perfil existente
+      const { data: existingProfile, error: fetchError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle();
+
+      if (fetchError) {
+        console.error('Erro ao buscar perfil existente:', fetchError);
+      }
+
+      if (existingProfile) {
+        console.log('Perfil já existe:', existingProfile);
+        return existingProfile;
+      }
+
+      // Se não existe, criar um novo perfil
+      console.log('Criando novo perfil para usuário:', userId);
+      const { data: newProfile, error: createError } = await supabase
+        .from('profiles')
+        .insert({
+          id: userId,
+          email: userEmail,
+          full_name: fullName || null,
+          preferences: {
+            notifications: true,
+            email_alerts: true,
+            theme: 'light'
+          }
+        })
+        .select()
+        .single();
+
+      if (createError) {
+        console.error('Erro ao criar perfil:', createError);
+        throw createError;
+      }
+
+      console.log('Novo perfil criado:', newProfile);
+      return newProfile;
+    } catch (error) {
+      console.error('Erro no createProfileIfNotExists:', error);
+      throw error;
+    }
+  };
+
+  const loadProfile = async (userId: string, userEmail: string, metadata?: any) => {
     try {
       console.log('Carregando perfil para userId:', userId);
+      
+      // Tentar buscar o perfil existente primeiro
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -44,32 +95,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (error) {
         console.error('Erro ao carregar perfil:', error);
-        // Não lançar erro, apenas logar e continuar
-        setProfile(null);
-        return;
       }
       
-      if (data) {
+      let profileData = data;
+
+      // Se não encontrou o perfil, criar um novo
+      if (!profileData) {
+        console.log('Perfil não encontrado, criando novo...');
+        profileData = await createProfileIfNotExists(userId, userEmail, metadata?.full_name);
+      }
+
+      if (profileData) {
         // Garantir que preferences seja um objeto com as propriedades corretas
-        const preferences = data.preferences && typeof data.preferences === 'object' 
-          ? data.preferences as any
+        const preferences = profileData.preferences && typeof profileData.preferences === 'object' 
+          ? profileData.preferences as any
           : { notifications: true, email_alerts: true, theme: 'light' };
 
         setProfile({
-          ...data,
+          ...profileData,
           preferences: {
             notifications: preferences.notifications ?? true,
             email_alerts: preferences.email_alerts ?? true,
             theme: preferences.theme ?? 'light'
           }
         });
-        console.log('Perfil carregado com sucesso:', data);
+        console.log('Perfil carregado/criado com sucesso:', profileData);
       } else {
-        console.log('Nenhum perfil encontrado para o usuário');
+        console.log('Nenhum perfil encontrado ou criado');
         setProfile(null);
       }
     } catch (error) {
-      console.error('Error loading profile:', error);
+      console.error('Error loading/creating profile:', error);
       setProfile(null);
     }
   };
@@ -87,7 +143,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (session?.user) {
           // Usar setTimeout para evitar deadlock
           setTimeout(() => {
-            loadProfile(session.user.id);
+            loadProfile(
+              session.user.id, 
+              session.user.email!, 
+              session.user.user_metadata
+            );
           }, 0);
         } else {
           setProfile(null);
@@ -112,7 +172,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          await loadProfile(session.user.id);
+          await loadProfile(
+            session.user.id, 
+            session.user.email!, 
+            session.user.user_metadata
+          );
         }
         
         setLoading(false);
