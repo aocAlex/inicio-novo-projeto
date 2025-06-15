@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -13,6 +12,8 @@ export interface Template {
   template_content: string;
   is_shared: boolean;
   execution_count: number;
+  webhook_url: string | null;
+  webhook_enabled: boolean;
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -24,6 +25,8 @@ export interface CreateTemplateData {
   category: string;
   template_content: string;
   is_shared?: boolean;
+  webhook_url?: string;
+  webhook_enabled?: boolean;
 }
 
 export interface UpdateTemplateData {
@@ -32,6 +35,8 @@ export interface UpdateTemplateData {
   category?: string;
   template_content?: string;
   is_shared?: boolean;
+  webhook_url?: string;
+  webhook_enabled?: boolean;
 }
 
 export const useTemplates = () => {
