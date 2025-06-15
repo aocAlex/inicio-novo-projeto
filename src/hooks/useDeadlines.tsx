@@ -77,6 +77,9 @@ export const useDeadlines = () => {
 
       console.log('Creating deadline:', data);
 
+      const user = await supabase.auth.getUser();
+      if (!user.data.user?.id) throw new Error('Usuário não autenticado');
+
       const deadlineData = {
         workspace_id: currentWorkspace.id,
         title: data.title,
@@ -92,7 +95,7 @@ export const useDeadlines = () => {
         is_critical: data.is_critical,
         attachments: [],
         custom_fields: data.custom_fields || {},
-        created_by: (await supabase.auth.getUser()).data.user?.id
+        created_by: user.data.user.id // Use directly the user ID from auth
       };
 
       const { data: result, error } = await supabase
