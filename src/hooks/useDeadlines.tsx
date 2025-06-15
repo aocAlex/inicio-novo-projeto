@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -27,45 +26,59 @@ const isValidRelation = (relation: any): boolean => {
   return relation.id && typeof relation.id === 'string' && relation.id.length > 0;
 };
 
-// Função auxiliar para converter relação segura
-const convertRelation = (relation: any, type: 'process' | 'client' | 'assigned_user' | 'petition' | 'petition_execution') => {
+// Funções auxiliares para converter relações específicas
+const convertProcessRelation = (relation: any) => {
   if (!isValidRelation(relation)) {
     return undefined;
   }
-  
-  switch (type) {
-    case 'process':
-      return {
-        id: relation.id,
-        title: relation.title || '',
-        process_number: relation.process_number || ''
-      };
-    case 'client':
-      return {
-        id: relation.id,
-        name: relation.name || ''
-      };
-    case 'assigned_user':
-      return {
-        id: relation.id,
-        full_name: relation.full_name || '',
-        email: relation.email || ''
-      };
-    case 'petition':
-      return {
-        id: relation.id,
-        name: relation.name || '',
-        category: relation.category || ''
-      };
-    case 'petition_execution':
-      return {
-        id: relation.id,
-        created_at: relation.created_at || '',
-        filled_data: relation.filled_data || {}
-      };
-    default:
-      return undefined;
+  return {
+    id: relation.id,
+    title: relation.title || '',
+    process_number: relation.process_number || ''
+  };
+};
+
+const convertClientRelation = (relation: any) => {
+  if (!isValidRelation(relation)) {
+    return undefined;
   }
+  return {
+    id: relation.id,
+    name: relation.name || ''
+  };
+};
+
+const convertAssignedUserRelation = (relation: any) => {
+  if (!isValidRelation(relation)) {
+    return undefined;
+  }
+  return {
+    id: relation.id,
+    full_name: relation.full_name || '',
+    email: relation.email || ''
+  };
+};
+
+const convertPetitionRelation = (relation: any) => {
+  if (!isValidRelation(relation)) {
+    return undefined;
+  }
+  return {
+    id: relation.id,
+    name: relation.name || '',
+    category: relation.category || ''
+  };
+};
+
+const convertPetitionExecutionRelation = (relation: any) => {
+  if (!isValidRelation(relation)) {
+    return undefined;
+  }
+  return {
+    id: relation.id,
+    created_at: relation.created_at || '',
+    filled_data: relation.filled_data || {}
+  };
 };
 
 export const useDeadlines = () => {
@@ -138,11 +151,11 @@ export const useDeadlines = () => {
           attachments: Array.isArray(item.attachments) ? item.attachments : [],
           custom_fields: typeof item.custom_fields === 'object' && item.custom_fields !== null ? item.custom_fields : {},
           // Usar funções auxiliares para conversão segura
-          process: convertRelation(item.process, 'process'),
-          client: convertRelation(item.client, 'client'),
-          assigned_user: convertRelation(item.assigned_user, 'assigned_user'),
-          petition: convertRelation(item.petition, 'petition'),
-          petition_execution: convertRelation(item.petition_execution, 'petition_execution'),
+          process: convertProcessRelation(item.process),
+          client: convertClientRelation(item.client),
+          assigned_user: convertAssignedUserRelation(item.assigned_user),
+          petition: convertPetitionRelation(item.petition),
+          petition_execution: convertPetitionExecutionRelation(item.petition_execution),
         };
       });
       setDeadlines(convertedDeadlines);
@@ -228,11 +241,11 @@ export const useDeadlines = () => {
         attachments: Array.isArray(newDeadline.attachments) ? newDeadline.attachments : [],
         custom_fields: typeof newDeadline.custom_fields === 'object' && newDeadline.custom_fields !== null ? newDeadline.custom_fields : {},
         // Usar funções auxiliares para conversão consistente
-        process: convertRelation(newDeadline.process, 'process'),
-        client: convertRelation(newDeadline.client, 'client'),
-        assigned_user: convertRelation(newDeadline.assigned_user, 'assigned_user'),
-        petition: convertRelation(newDeadline.petition, 'petition'),
-        petition_execution: convertRelation(newDeadline.petition_execution, 'petition_execution'),
+        process: convertProcessRelation(newDeadline.process),
+        client: convertClientRelation(newDeadline.client),
+        assigned_user: convertAssignedUserRelation(newDeadline.assigned_user),
+        petition: convertPetitionRelation(newDeadline.petition),
+        petition_execution: convertPetitionExecutionRelation(newDeadline.petition_execution),
       };
 
       setDeadlines(prev => [...prev, convertedDeadline]);
@@ -312,11 +325,11 @@ export const useDeadlines = () => {
         attachments: Array.isArray(updatedDeadline.attachments) ? updatedDeadline.attachments : [],
         custom_fields: typeof updatedDeadline.custom_fields === 'object' && updatedDeadline.custom_fields !== null ? updatedDeadline.custom_fields : {},
         // Usar funções auxiliares para conversão consistente
-        process: convertRelation(updatedDeadline.process, 'process'),
-        client: convertRelation(updatedDeadline.client, 'client'),
-        assigned_user: convertRelation(updatedDeadline.assigned_user, 'assigned_user'),
-        petition: convertRelation(updatedDeadline.petition, 'petition'),
-        petition_execution: convertRelation(updatedDeadline.petition_execution, 'petition_execution'),
+        process: convertProcessRelation(updatedDeadline.process),
+        client: convertClientRelation(updatedDeadline.client),
+        assigned_user: convertAssignedUserRelation(updatedDeadline.assigned_user),
+        petition: convertPetitionRelation(updatedDeadline.petition),
+        petition_execution: convertPetitionExecutionRelation(updatedDeadline.petition_execution),
       };
 
       setDeadlines(prev => 
