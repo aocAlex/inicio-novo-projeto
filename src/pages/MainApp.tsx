@@ -7,8 +7,8 @@ import { Sidebar } from '@/components/layout/Sidebar';
 import { Dashboard } from '@/pages/Dashboard';
 import { Clients } from '@/pages/Clients';
 import { Processes } from '@/pages/Processes';
-import { Templates } from '@/pages/Templates';
-import { Petitions } from '@/pages/Petitions';
+import { TemplatesPage } from '@/pages/TemplatesPage';
+import { PetitionsPage } from '@/pages/PetitionsPage';
 import { SettingsPage } from '@/components/settings/SettingsPage';
 import { Loader2 } from 'lucide-react';
 
@@ -55,11 +55,11 @@ export const MainApp = () => {
       case 'processes':
         return <Processes />;
       case 'templates':
-        return <Templates />;
+        return <TemplatesPage />;
       case 'petitions':
-        return <Petitions />;
+        return <PetitionsPage />;
       case 'executions':
-        return <Petitions />; // Mesmo componente
+        return <PetitionsPage />; // Mesmo componente
       case 'settings':
         return <SettingsPage />;
       default:

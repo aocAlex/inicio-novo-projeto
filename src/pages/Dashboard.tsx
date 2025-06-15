@@ -80,7 +80,7 @@ export const Dashboard = () => {
             Dashboard
           </h1>
           <p className="text-gray-600">
-            Visão geral das atividades de {currentWorkspace.name}
+            Visão geral das atividades de {currentWorkspace?.name}
           </p>
         </div>
         <Button onClick={refresh} variant="outline" disabled={isLoading}>
