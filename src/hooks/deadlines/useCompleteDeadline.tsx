@@ -25,8 +25,8 @@ export const useCompleteDeadline = () => {
           process:processes!fk_deadlines_process_id(id, title, process_number),
           client:clients!fk_deadlines_client_id(id, name),
           assigned_user:profiles!fk_deadlines_assigned_to(id, full_name, email),
-          petition:petition_templates(id, name, category),
-          petition_execution:petition_executions(id, created_at, filled_data)
+          petition:petition_templates!deadlines_petition_id_fkey(id, name, category),
+          petition_execution:petition_executions!deadlines_petition_execution_id_fkey(id, created_at, filled_data)
         `)
         .single();
 
