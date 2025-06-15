@@ -1,402 +1,255 @@
+
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { useToast } from '@/hooks/use-toast';
 import { Deadline, DeadlineFormData, DeadlineFilters } from '@/types/deadline';
-import { format, isAfter, differenceInDays, addDays } from 'date-fns';
-import { useToast } from '@/components/ui/use-toast';
-
-// Função auxiliar para verificar se um relacionamento é válido
-const isValidRelation = (relation: any): boolean => {
-  // Verificar se é um objeto válido sem propriedade error e com id
-  if (!relation || typeof relation !== 'object' || Array.isArray(relation)) {
-    return false;
-  }
-  
-  // Verificar se tem propriedade error ou se é uma string disfarçada ou tipo inválido
-  if ('error' in relation || 
-      typeof relation === 'string' || 
-      relation.constructor === String ||
-      relation.constructor === Object.constructor ||
-      Object.prototype.toString.call(relation) === '[object String]') {
-    return false;
-  }
-  
-  // Verificar se tem um id válido
-  return relation.id && typeof relation.id === 'string' && relation.id.length > 0;
-};
-
-// Funções auxiliares para converter relações específicas
-const convertProcessRelation = (relation: any) => {
-  if (!isValidRelation(relation)) {
-    return undefined;
-  }
-  return {
-    id: relation.id,
-    title: relation.title || '',
-    process_number: relation.process_number || ''
-  };
-};
-
-const convertClientRelation = (relation: any) => {
-  if (!isValidRelation(relation)) {
-    return undefined;
-  }
-  return {
-    id: relation.id,
-    name: relation.name || ''
-  };
-};
-
-const convertAssignedUserRelation = (relation: any) => {
-  if (!isValidRelation(relation)) {
-    return undefined;
-  }
-  return {
-    id: relation.id,
-    full_name: relation.full_name || '',
-    email: relation.email || ''
-  };
-};
-
-const convertPetitionRelation = (relation: any) => {
-  if (!isValidRelation(relation)) {
-    return undefined;
-  }
-  return {
-    id: relation.id,
-    name: relation.name || '',
-    category: relation.category || ''
-  };
-};
-
-const convertPetitionExecutionRelation = (relation: any) => {
-  if (!isValidRelation(relation)) {
-    return undefined;
-  }
-  return {
-    id: relation.id,
-    created_at: relation.created_at || '',
-    filled_data: relation.filled_data || {}
-  };
-};
+import { isAfter, subDays } from 'date-fns';
 
 export const useDeadlines = () => {
+  const { user } = useAuth();
   const { currentWorkspace } = useWorkspace();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [deadlines, setDeadlines] = useState<Deadline[]>([]);
+  const [filters, setFilters] = useState<DeadlineFilters>({});
 
-  // Buscar prazos
-  const { data: rawDeadlines, isLoading, error } = useQuery({
-    queryKey: ['deadlines', currentWorkspace?.id],
+  const {
+    data: deadlines = [],
+    isLoading,
+    error,
+    refetch
+  } = useQuery({
+    queryKey: ['deadlines', currentWorkspace?.id, filters],
     queryFn: async () => {
       if (!currentWorkspace?.id) return [];
-
-      console.log('Fetching deadlines for workspace:', currentWorkspace.id);
-
-      const { data, error } = await supabase
+      
+      console.log('Carregando prazos para workspace:', currentWorkspace.id);
+      
+      let query = supabase
         .from('deadlines')
         .select(`
           *,
-          process:processes (
-            id,
-            title,
-            process_number
-          ),
-          client:clients (
-            id,
-            name
-          ),
-          assigned_user:profiles!deadlines_assigned_to_fkey (
-            id,
-            full_name,
-            email
-          ),
-          petition:petition_templates!deadlines_petition_id_fkey (
-            id,
-            name,
-            category
-          ),
-          petition_execution:petition_executions!deadlines_petition_execution_id_fkey (
-            id,
-            created_at,
-            filled_data
-          )
+          process:processes!fk_deadlines_process_id(id, title, process_number),
+          client:clients!fk_deadlines_client_id(id, name),
+          assigned_user:profiles!fk_deadlines_assigned_to(id, full_name),
+          petition:petition_templates(id, name),
+          petition_execution:petition_executions(id)
         `)
         .eq('workspace_id', currentWorkspace.id)
         .order('due_date', { ascending: true });
 
-      if (error) {
-        console.error('Error fetching deadlines:', error);
-        throw error;
+      // Aplicar filtros
+      if (filters.status) {
+        query = query.eq('status', filters.status);
+      }
+      
+      if (filters.priority) {
+        query = query.eq('priority', filters.priority);
+      }
+      
+      if (filters.deadline_type) {
+        query = query.eq('deadline_type', filters.deadline_type);
+      }
+      
+      if (filters.assigned_to) {
+        query = query.eq('assigned_to', filters.assigned_to);
+      }
+      
+      if (filters.process_id) {
+        query = query.eq('process_id', filters.process_id);
+      }
+      
+      if (filters.client_id) {
+        query = query.eq('client_id', filters.client_id);
+      }
+      
+      if (filters.date_range?.from) {
+        query = query.gte('due_date', filters.date_range.from);
+      }
+      
+      if (filters.date_range?.to) {
+        query = query.lte('due_date', filters.date_range.to);
       }
 
-      console.log('Fetched deadlines:', data);
-      return data || [];
+      const { data, error } = await query;
+      
+      if (error) {
+        console.error('Erro ao carregar prazos:', error);
+        throw error;
+      }
+      
+      console.log('Prazos carregados:', data);
+      return data as Deadline[];
     },
     enabled: !!currentWorkspace?.id,
   });
 
-  // Atualizar estado local quando dados mudam
-  useEffect(() => {
-    if (rawDeadlines) {
-      // Converter os dados do Supabase para o tipo Deadline
-      const convertedDeadlines: Deadline[] = rawDeadlines.map((item: any) => {
-        return {
-          ...item,
-          deadline_type: item.deadline_type as 'processual' | 'administrativo' | 'contratual' | 'fiscal' | 'personalizado',
-          status: item.status as 'PENDENTE' | 'EM_ANDAMENTO' | 'CUMPRIDO' | 'PERDIDO' | 'SUSPENSO',
-          priority: item.priority as 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL',
-          attachments: Array.isArray(item.attachments) ? item.attachments : [],
-          custom_fields: typeof item.custom_fields === 'object' && item.custom_fields !== null ? item.custom_fields : {},
-          // Usar funções auxiliares para conversão segura
-          process: convertProcessRelation(item.process),
-          client: convertClientRelation(item.client),
-          assigned_user: convertAssignedUserRelation(item.assigned_user),
-          petition: convertPetitionRelation(item.petition),
-          petition_execution: convertPetitionExecutionRelation(item.petition_execution),
-        };
-      });
-      setDeadlines(convertedDeadlines);
-    }
-  }, [rawDeadlines]);
-
-  // Criar prazo
   const createDeadlineMutation = useMutation({
     mutationFn: async (data: DeadlineFormData) => {
-      if (!currentWorkspace?.id) throw new Error('Workspace não encontrado');
+      if (!currentWorkspace?.id || !user?.id) {
+        throw new Error('Workspace ou usuário não encontrado');
+      }
 
-      console.log('Creating deadline:', data);
-
-      const user = await supabase.auth.getUser();
-      if (!user.data.user?.id) throw new Error('Usuário não autenticado');
+      console.log('Criando prazo:', data);
 
       const deadlineData = {
-        workspace_id: currentWorkspace.id,
         title: data.title,
         description: data.description,
         deadline_type: data.deadline_type,
-        due_date: format(data.due_date, 'yyyy-MM-dd'),
+        due_date: data.due_date,
+        priority: data.priority,
+        status: data.status || 'PENDENTE',
+        is_critical: data.is_critical || false,
+        business_days_only: data.business_days_only ?? true,
+        anticipation_days: data.anticipation_days || 7,
         process_id: data.process_id || null,
         client_id: data.client_id || null,
+        assigned_to: data.assigned_to || null,
         petition_id: data.petition_id || null,
         petition_execution_id: data.petition_execution_id || null,
-        assigned_to: data.assigned_to || null,
-        priority: data.priority,
-        business_days_only: data.business_days_only,
-        anticipation_days: data.anticipation_days,
-        is_critical: data.is_critical,
-        attachments: [],
+        attachments: data.attachments || [],
         custom_fields: data.custom_fields || {},
-        created_by: user.data.user.id
+        workspace_id: currentWorkspace.id,
+        created_by: user.id,
       };
 
       const { data: result, error } = await supabase
         .from('deadlines')
-        .insert([deadlineData])
+        .insert(deadlineData)
         .select(`
           *,
-          process:processes (
-            id,
-            title,
-            process_number
-          ),
-          client:clients (
-            id,
-            name
-          ),
-          assigned_user:profiles!deadlines_assigned_to_fkey (
-            id,
-            full_name,
-            email
-          ),
-          petition:petition_templates!deadlines_petition_id_fkey (
-            id,
-            name,
-            category
-          ),
-          petition_execution:petition_executions!deadlines_petition_execution_id_fkey (
-            id,
-            created_at,
-            filled_data
-          )
+          process:processes!fk_deadlines_process_id(id, title, process_number),
+          client:clients!fk_deadlines_client_id(id, name),
+          assigned_user:profiles!fk_deadlines_assigned_to(id, full_name),
+          petition:petition_templates(id, name),
+          petition_execution:petition_executions(id)
         `)
         .single();
 
       if (error) {
-        console.error('Error creating deadline:', error);
+        console.error('Erro ao criar prazo:', error);
         throw error;
       }
 
-      return result;
-    },
-    onSuccess: (newDeadline) => {
-      // Converter para o tipo correto usando funções auxiliares
-      const convertedDeadline: Deadline = {
-        ...newDeadline,
-        deadline_type: newDeadline.deadline_type as 'processual' | 'administrativo' | 'contratual' | 'fiscal' | 'personalizado',
-        status: newDeadline.status as 'PENDENTE' | 'EM_ANDAMENTO' | 'CUMPRIDO' | 'PERDIDO' | 'SUSPENSO',
-        priority: newDeadline.priority as 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL',
-        attachments: Array.isArray(newDeadline.attachments) ? newDeadline.attachments : [],
-        custom_fields: typeof newDeadline.custom_fields === 'object' && newDeadline.custom_fields !== null ? newDeadline.custom_fields : {},
-        // Usar funções auxiliares para conversão consistente
-        process: convertProcessRelation(newDeadline.process),
-        client: convertClientRelation(newDeadline.client),
-        assigned_user: convertAssignedUserRelation(newDeadline.assigned_user),
-        petition: convertPetitionRelation(newDeadline.petition),
-        petition_execution: convertPetitionExecutionRelation(newDeadline.petition_execution),
-      };
-
-      setDeadlines(prev => [...prev, convertedDeadline]);
-      queryClient.invalidateQueries({ queryKey: ['deadlines'] });
-      toast({
-        title: 'Sucesso',
-        description: 'Prazo criado com sucesso!'
-      });
-    },
-    onError: (error) => {
-      console.error('Error creating deadline:', error);
-      toast({
-        title: 'Erro',
-        description: 'Erro ao criar prazo. Tente novamente.',
-        variant: 'destructive'
-      });
-    }
-  });
-
-  // Atualizar prazo
-  const updateDeadlineMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: Partial<DeadlineFormData> }) => {
-      console.log('Updating deadline:', id, data);
-
-      const updateData: any = { ...data };
-      if (data.due_date) {
-        updateData.due_date = format(data.due_date, 'yyyy-MM-dd');
-      }
-
-      const { data: result, error } = await supabase
-        .from('deadlines')
-        .update(updateData)
-        .eq('id', id)
-        .select(`
-          *,
-          process:processes (
-            id,
-            title,
-            process_number
-          ),
-          client:clients (
-            id,
-            name
-          ),
-          assigned_user:profiles!deadlines_assigned_to_fkey (
-            id,
-            full_name,
-            email
-          ),
-          petition:petition_templates!deadlines_petition_id_fkey (
-            id,
-            name,
-            category
-          ),
-          petition_execution:petition_executions!deadlines_petition_execution_id_fkey (
-            id,
-            created_at,
-            filled_data
-          )
-        `)
-        .single();
-
-      if (error) {
-        console.error('Error updating deadline:', error);
-        throw error;
-      }
-
-      return result;
-    },
-    onSuccess: (updatedDeadline) => {
-      // Converter para o tipo correto usando funções auxiliares
-      const convertedDeadline: Deadline = {
-        ...updatedDeadline,
-        deadline_type: updatedDeadline.deadline_type as 'processual' | 'administrativo' | 'contratual' | 'fiscal' | 'personalizado',
-        status: updatedDeadline.status as 'PENDENTE' | 'EM_ANDAMENTO' | 'CUMPRIDO' | 'PERDIDO' | 'SUSPENSO',
-        priority: updatedDeadline.priority as 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL',
-        attachments: Array.isArray(updatedDeadline.attachments) ? updatedDeadline.attachments : [],
-        custom_fields: typeof updatedDeadline.custom_fields === 'object' && updatedDeadline.custom_fields !== null ? updatedDeadline.custom_fields : {},
-        // Usar funções auxiliares para conversão consistente
-        process: convertProcessRelation(updatedDeadline.process),
-        client: convertClientRelation(updatedDeadline.client),
-        assigned_user: convertAssignedUserRelation(updatedDeadline.assigned_user),
-        petition: convertPetitionRelation(updatedDeadline.petition),
-        petition_execution: convertPetitionExecutionRelation(updatedDeadline.petition_execution),
-      };
-
-      setDeadlines(prev => 
-        prev.map(deadline => 
-          deadline.id === convertedDeadline.id ? convertedDeadline : deadline
-        )
-      );
-      queryClient.invalidateQueries({ queryKey: ['deadlines'] });
-      toast({
-        title: 'Sucesso',
-        description: 'Prazo atualizado com sucesso!'
-      });
-    },
-    onError: (error) => {
-      console.error('Error updating deadline:', error);
-      toast({
-        title: 'Erro',
-        description: 'Erro ao atualizar prazo. Tente novamente.',
-        variant: 'destructive'
-      });
-    }
-  });
-
-  // Completar prazo
-  const completeDeadlineMutation = useMutation({
-    mutationFn: async ({ id, notes }: { id: string; notes?: string }) => {
-      console.log('Completing deadline:', id, notes);
-
-      const { data: result, error } = await supabase
-        .from('deadlines')
-        .update({
-          status: 'CUMPRIDO',
-          completed_date: format(new Date(), 'yyyy-MM-dd'),
-          completion_notes: notes
-        })
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Error completing deadline:', error);
-        throw error;
-      }
-
+      console.log('Prazo criado com sucesso:', result);
       return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['deadlines'] });
       toast({
         title: 'Sucesso',
-        description: 'Prazo marcado como cumprido!'
+        description: 'Prazo criado com sucesso!',
       });
     },
-    onError: (error) => {
-      console.error('Error completing deadline:', error);
+    onError: (error: any) => {
+      console.error('Erro ao criar prazo:', error);
       toast({
         title: 'Erro',
-        description: 'Erro ao marcar prazo como cumprido. Tente novamente.',
-        variant: 'destructive'
+        description: error.message || 'Erro ao criar prazo',
+        variant: 'destructive',
       });
-    }
+    },
   });
 
-  // Deletar prazo
+  const updateDeadlineMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: Partial<DeadlineFormData> }) => {
+      console.log('Atualizando prazo:', id, data);
+
+      const { data: result, error } = await supabase
+        .from('deadlines')
+        .update({
+          ...data,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', id)
+        .select(`
+          *,
+          process:processes!fk_deadlines_process_id(id, title, process_number),
+          client:clients!fk_deadlines_client_id(id, name),
+          assigned_user:profiles!fk_deadlines_assigned_to(id, full_name),
+          petition:petition_templates(id, name),
+          petition_execution:petition_executions(id)
+        `)
+        .single();
+
+      if (error) {
+        console.error('Erro ao atualizar prazo:', error);
+        throw error;
+      }
+
+      console.log('Prazo atualizado com sucesso:', result);
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['deadlines'] });
+      toast({
+        title: 'Sucesso',
+        description: 'Prazo atualizado com sucesso!',
+      });
+    },
+    onError: (error: any) => {
+      console.error('Erro ao atualizar prazo:', error);
+      toast({
+        title: 'Erro',
+        description: error.message || 'Erro ao atualizar prazo',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const completeDeadlineMutation = useMutation({
+    mutationFn: async ({ id, notes }: { id: string; notes?: string }) => {
+      console.log('Marcando prazo como cumprido:', id);
+
+      const { data: result, error } = await supabase
+        .from('deadlines')
+        .update({
+          status: 'CUMPRIDO',
+          completed_date: new Date().toISOString().split('T')[0],
+          completion_notes: notes,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', id)
+        .select(`
+          *,
+          process:processes!fk_deadlines_process_id(id, title, process_number),
+          client:clients!fk_deadlines_client_id(id, name),
+          assigned_user:profiles!fk_deadlines_assigned_to(id, full_name),
+          petition:petition_templates(id, name),
+          petition_execution:petition_executions(id)
+        `)
+        .single();
+
+      if (error) {
+        console.error('Erro ao marcar prazo como cumprido:', error);
+        throw error;
+      }
+
+      console.log('Prazo marcado como cumprido:', result);
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['deadlines'] });
+      toast({
+        title: 'Sucesso',
+        description: 'Prazo marcado como cumprido!',
+      });
+    },
+    onError: (error: any) => {
+      console.error('Erro ao marcar prazo como cumprido:', error);
+      toast({
+        title: 'Erro',
+        description: error.message || 'Erro ao marcar prazo como cumprido',
+        variant: 'destructive',
+      });
+    },
+  });
+
   const deleteDeadlineMutation = useMutation({
     mutationFn: async (id: string) => {
-      console.log('Deleting deadline:', id);
+      console.log('Excluindo prazo:', id);
 
       const { error } = await supabase
         .from('deadlines')
@@ -404,66 +257,71 @@ export const useDeadlines = () => {
         .eq('id', id);
 
       if (error) {
-        console.error('Error deleting deadline:', error);
+        console.error('Erro ao excluir prazo:', error);
         throw error;
       }
 
-      return id;
+      console.log('Prazo excluído com sucesso');
     },
-    onSuccess: (deletedId) => {
-      setDeadlines(prev => prev.filter(deadline => deadline.id !== deletedId));
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['deadlines'] });
       toast({
         title: 'Sucesso',
-        description: 'Prazo excluído com sucesso!'
+        description: 'Prazo excluído com sucesso!',
       });
     },
-    onError: (error) => {
-      console.error('Error deleting deadline:', error);
+    onError: (error: any) => {
+      console.error('Erro ao excluir prazo:', error);
       toast({
         title: 'Erro',
-        description: 'Erro ao excluir prazo. Tente novamente.',
-        variant: 'destructive'
+        description: error.message || 'Erro ao excluir prazo',
+        variant: 'destructive',
       });
-    }
+    },
   });
 
-  // Filtrar prazos
-  const loadDeadlines = async (filters?: DeadlineFilters) => {
-    // Esta função pode ser expandida para aplicar filtros do lado servidor
-    queryClient.invalidateQueries({ queryKey: ['deadlines'] });
-  };
-
-  // Funções de utilidade
-  const getUpcomingDeadlines = (days: number) => {
-    const targetDate = addDays(new Date(), days);
+  // Funções auxiliares
+  const getUpcomingDeadlines = (days: number = 7) => {
+    const targetDate = new Date();
+    targetDate.setDate(targetDate.getDate() + days);
+    
     return deadlines.filter(deadline => {
       const dueDate = new Date(deadline.due_date);
-      const today = new Date();
-      return dueDate >= today && dueDate <= targetDate && deadline.status === 'PENDENTE';
+      return dueDate <= targetDate && deadline.status === 'PENDENTE';
     });
   };
 
   const getOverdueDeadlines = () => {
     const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
     return deadlines.filter(deadline => {
       const dueDate = new Date(deadline.due_date);
+      dueDate.setHours(0, 0, 0, 0);
       return isAfter(today, dueDate) && deadline.status === 'PENDENTE';
     });
+  };
+
+  const loadDeadlines = (newFilters?: DeadlineFilters) => {
+    if (newFilters) {
+      setFilters(newFilters);
+    }
+    refetch();
   };
 
   return {
     deadlines,
     isLoading,
     error,
-    createDeadline: (data: DeadlineFormData) => createDeadlineMutation.mutateAsync(data),
+    createDeadline: createDeadlineMutation.mutateAsync,
     updateDeadline: (id: string, data: Partial<DeadlineFormData>) => 
       updateDeadlineMutation.mutateAsync({ id, data }),
     completeDeadline: (id: string, notes?: string) => 
       completeDeadlineMutation.mutateAsync({ id, notes }),
-    deleteDeadline: (id: string) => deleteDeadlineMutation.mutateAsync(id),
-    loadDeadlines,
+    deleteDeadline: deleteDeadlineMutation.mutateAsync,
     getUpcomingDeadlines,
-    getOverdueDeadlines
+    getOverdueDeadlines,
+    loadDeadlines,
+    refetch,
   };
 };

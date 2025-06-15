@@ -413,13 +413,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "deadlines_process_id_fkey"
-            columns: ["process_id"]
-            isOneToOne: false
-            referencedRelation: "processes"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "deadlines_template_id_fkey"
             columns: ["template_id"]
             isOneToOne: false
