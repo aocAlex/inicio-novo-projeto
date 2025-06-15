@@ -12,6 +12,22 @@ export const useContracts = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const transformContractData = (data: any): Contract => {
+    return {
+      ...data,
+      matched_by: data.matched_by as Contract['matched_by'],
+      status: data.status as Contract['status'],
+      extra_docs: Array.isArray(data.extra_docs) ? data.extra_docs : [],
+      metadata: data.metadata || {},
+      contract_answers: data.contract_answers || {},
+      signers: (data.signers || []).map((signer: any) => ({
+        ...signer,
+        status: signer.status as ContractSigner['status'],
+        resend_attempts: signer.resend_attempts || { whatsapp: 0, email: 0, sms: 0 }
+      }))
+    };
+  };
+
   const loadContracts = async (filters?: ContractFilters) => {
     if (!currentWorkspace) return;
 
@@ -55,17 +71,7 @@ export const useContracts = () => {
         throw error;
       }
 
-      // Transform data to match Contract interface
-      const transformedContracts: Contract[] = (data || []).map(contract => ({
-        ...contract,
-        matched_by: contract.matched_by as Contract['matched_by'],
-        status: contract.status as Contract['status'],
-        signers: (contract.signers || []).map((signer: any) => ({
-          ...signer,
-          status: signer.status as ContractSigner['status']
-        }))
-      }));
-
+      const transformedContracts: Contract[] = (data || []).map(transformContractData);
       setContracts(transformedContracts);
     } catch (err: any) {
       setError(err.message);
@@ -100,12 +106,7 @@ export const useContracts = () => {
         throw error;
       }
 
-      const newContract: Contract = {
-        ...data,
-        matched_by: data.matched_by as Contract['matched_by'],
-        status: data.status as Contract['status']
-      };
-
+      const newContract: Contract = transformContractData(data);
       setContracts(prev => [newContract, ...prev]);
 
       toast({
@@ -146,11 +147,7 @@ export const useContracts = () => {
         throw error;
       }
 
-      const updatedContract: Contract = {
-        ...data,
-        matched_by: data.matched_by as Contract['matched_by'],
-        status: data.status as Contract['status']
-      };
+      const updatedContract: Contract = transformContractData(data);
 
       setContracts(prev => 
         prev.map(contract => 
@@ -201,11 +198,7 @@ export const useContracts = () => {
         throw error;
       }
 
-      const updatedContract: Contract = {
-        ...data,
-        matched_by: data.matched_by as Contract['matched_by'],
-        status: data.status as Contract['status']
-      };
+      const updatedContract: Contract = transformContractData(data);
 
       setContracts(prev => 
         prev.map(contract => 
@@ -248,15 +241,7 @@ export const useContracts = () => {
         throw error;
       }
 
-      return {
-        ...data,
-        matched_by: data.matched_by as Contract['matched_by'],
-        status: data.status as Contract['status'],
-        signers: (data.signers || []).map((signer: any) => ({
-          ...signer,
-          status: signer.status as ContractSigner['status']
-        }))
-      };
+      return transformContractData(data);
     } catch (err: any) {
       console.error('Error getting contract:', err);
       return null;
