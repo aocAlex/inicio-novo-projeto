@@ -125,6 +125,479 @@ export type Database = {
           },
         ]
       }
+      contract_history: {
+        Row: {
+          contract_id: string
+          created_at: string | null
+          event_description: string | null
+          event_timestamp: string | null
+          event_type: string
+          id: string
+          ip_address: unknown | null
+          new_values: Json | null
+          old_values: Json | null
+          performed_by: string | null
+          signer_email: string | null
+          signer_id: string | null
+          signer_name: string | null
+          user_agent: string | null
+          workspace_id: string
+        }
+        Insert: {
+          contract_id: string
+          created_at?: string | null
+          event_description?: string | null
+          event_timestamp?: string | null
+          event_type: string
+          id?: string
+          ip_address?: unknown | null
+          new_values?: Json | null
+          old_values?: Json | null
+          performed_by?: string | null
+          signer_email?: string | null
+          signer_id?: string | null
+          signer_name?: string | null
+          user_agent?: string | null
+          workspace_id: string
+        }
+        Update: {
+          contract_id?: string
+          created_at?: string | null
+          event_description?: string | null
+          event_timestamp?: string | null
+          event_type?: string
+          id?: string
+          ip_address?: unknown | null
+          new_values?: Json | null
+          old_values?: Json | null
+          performed_by?: string | null
+          signer_email?: string | null
+          signer_id?: string | null
+          signer_name?: string | null
+          user_agent?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_history_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_history_performed_by_fkey"
+            columns: ["performed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_history_signer_id_fkey"
+            columns: ["signer_id"]
+            isOneToOne: false
+            referencedRelation: "contract_signers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_history_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contract_signers: {
+        Row: {
+          address_city: string | null
+          address_neighborhood: string | null
+          address_number: string | null
+          address_state: string | null
+          address_street: string | null
+          address_zip: string | null
+          auth_mode: string | null
+          blank_email: boolean | null
+          blank_phone: boolean | null
+          civil_status: string | null
+          cnpj: string | null
+          contract_id: string
+          cpf: string | null
+          created_at: string | null
+          document_photo_url: string | null
+          document_verse_photo_url: string | null
+          email: string
+          external_id: string | null
+          geo_latitude: number | null
+          geo_longitude: number | null
+          hide_email: boolean | null
+          hide_phone: boolean | null
+          id: string
+          ip_address: unknown | null
+          last_view_at: string | null
+          liveness_photo_url: string | null
+          lock_email: boolean | null
+          lock_name: boolean | null
+          lock_phone: boolean | null
+          name: string
+          phone_country: string | null
+          phone_number: string | null
+          profession: string | null
+          qualification: string | null
+          redirect_link: string | null
+          require_document_photo: boolean | null
+          require_selfie_photo: boolean | null
+          resend_attempts: Json | null
+          rg_number: string | null
+          selfie_photo_url: string | null
+          selfie_photo_url2: string | null
+          selfie_validation_type: string | null
+          send_automatic_whatsapp_signed_file: boolean | null
+          send_via: string | null
+          sign_url: string | null
+          signature_image_url: string | null
+          signed_at: string | null
+          status: string
+          times_viewed: number | null
+          updated_at: string | null
+          visto_image_url: string | null
+          workspace_id: string
+          zapsign_token: string
+        }
+        Insert: {
+          address_city?: string | null
+          address_neighborhood?: string | null
+          address_number?: string | null
+          address_state?: string | null
+          address_street?: string | null
+          address_zip?: string | null
+          auth_mode?: string | null
+          blank_email?: boolean | null
+          blank_phone?: boolean | null
+          civil_status?: string | null
+          cnpj?: string | null
+          contract_id: string
+          cpf?: string | null
+          created_at?: string | null
+          document_photo_url?: string | null
+          document_verse_photo_url?: string | null
+          email: string
+          external_id?: string | null
+          geo_latitude?: number | null
+          geo_longitude?: number | null
+          hide_email?: boolean | null
+          hide_phone?: boolean | null
+          id?: string
+          ip_address?: unknown | null
+          last_view_at?: string | null
+          liveness_photo_url?: string | null
+          lock_email?: boolean | null
+          lock_name?: boolean | null
+          lock_phone?: boolean | null
+          name: string
+          phone_country?: string | null
+          phone_number?: string | null
+          profession?: string | null
+          qualification?: string | null
+          redirect_link?: string | null
+          require_document_photo?: boolean | null
+          require_selfie_photo?: boolean | null
+          resend_attempts?: Json | null
+          rg_number?: string | null
+          selfie_photo_url?: string | null
+          selfie_photo_url2?: string | null
+          selfie_validation_type?: string | null
+          send_automatic_whatsapp_signed_file?: boolean | null
+          send_via?: string | null
+          sign_url?: string | null
+          signature_image_url?: string | null
+          signed_at?: string | null
+          status: string
+          times_viewed?: number | null
+          updated_at?: string | null
+          visto_image_url?: string | null
+          workspace_id: string
+          zapsign_token: string
+        }
+        Update: {
+          address_city?: string | null
+          address_neighborhood?: string | null
+          address_number?: string | null
+          address_state?: string | null
+          address_street?: string | null
+          address_zip?: string | null
+          auth_mode?: string | null
+          blank_email?: boolean | null
+          blank_phone?: boolean | null
+          civil_status?: string | null
+          cnpj?: string | null
+          contract_id?: string
+          cpf?: string | null
+          created_at?: string | null
+          document_photo_url?: string | null
+          document_verse_photo_url?: string | null
+          email?: string
+          external_id?: string | null
+          geo_latitude?: number | null
+          geo_longitude?: number | null
+          hide_email?: boolean | null
+          hide_phone?: boolean | null
+          id?: string
+          ip_address?: unknown | null
+          last_view_at?: string | null
+          liveness_photo_url?: string | null
+          lock_email?: boolean | null
+          lock_name?: boolean | null
+          lock_phone?: boolean | null
+          name?: string
+          phone_country?: string | null
+          phone_number?: string | null
+          profession?: string | null
+          qualification?: string | null
+          redirect_link?: string | null
+          require_document_photo?: boolean | null
+          require_selfie_photo?: boolean | null
+          resend_attempts?: Json | null
+          rg_number?: string | null
+          selfie_photo_url?: string | null
+          selfie_photo_url2?: string | null
+          selfie_validation_type?: string | null
+          send_automatic_whatsapp_signed_file?: boolean | null
+          send_via?: string | null
+          sign_url?: string | null
+          signature_image_url?: string | null
+          signed_at?: string | null
+          status?: string
+          times_viewed?: number | null
+          updated_at?: string | null
+          visto_image_url?: string | null
+          workspace_id?: string
+          zapsign_token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_signers_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_signers_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contract_webhook_logs: {
+        Row: {
+          contract_id: string | null
+          created_at: string | null
+          error_message: string | null
+          event_type: string
+          execution_mode: string | null
+          id: string
+          processed_at: string | null
+          processed_data: Json | null
+          processing_attempts: number | null
+          processing_status: string | null
+          raw_payload: Json
+          received_at: string | null
+          request_headers: Json | null
+          source_ip: unknown | null
+          user_agent: string | null
+          webhook_url: string | null
+          workspace_id: string | null
+          zapsign_open_id: number | null
+          zapsign_token: string | null
+        }
+        Insert: {
+          contract_id?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          event_type: string
+          execution_mode?: string | null
+          id?: string
+          processed_at?: string | null
+          processed_data?: Json | null
+          processing_attempts?: number | null
+          processing_status?: string | null
+          raw_payload: Json
+          received_at?: string | null
+          request_headers?: Json | null
+          source_ip?: unknown | null
+          user_agent?: string | null
+          webhook_url?: string | null
+          workspace_id?: string | null
+          zapsign_open_id?: number | null
+          zapsign_token?: string | null
+        }
+        Update: {
+          contract_id?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          event_type?: string
+          execution_mode?: string | null
+          id?: string
+          processed_at?: string | null
+          processed_data?: Json | null
+          processing_attempts?: number | null
+          processing_status?: string | null
+          raw_payload?: Json
+          received_at?: string | null
+          request_headers?: Json | null
+          source_ip?: unknown | null
+          user_agent?: string | null
+          webhook_url?: string | null
+          workspace_id?: string | null
+          zapsign_open_id?: number | null
+          zapsign_token?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_webhook_logs_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_webhook_logs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contracts: {
+        Row: {
+          auto_reminder: number | null
+          brand_logo: string | null
+          brand_primary_color: string | null
+          client_id: string | null
+          contract_answers: Json | null
+          contract_code: string | null
+          contract_name: string
+          contract_type: string | null
+          created_at: string | null
+          created_by_email: string | null
+          created_through: string | null
+          deleted_at: string | null
+          disable_signer_emails: boolean | null
+          extra_docs: Json | null
+          folder_path: string | null
+          id: string
+          is_deleted: boolean | null
+          lang: string | null
+          matched_by: string | null
+          matching_confidence: number | null
+          metadata: Json | null
+          notes: string | null
+          original_file_url: string | null
+          signed_at: string | null
+          signed_file_only_finished: boolean | null
+          signed_file_url: string | null
+          status: string
+          updated_at: string | null
+          workspace_id: string
+          zapsign_created_at: string | null
+          zapsign_open_id: number
+          zapsign_template_token: string | null
+          zapsign_token: string
+          zapsign_updated_at: string | null
+        }
+        Insert: {
+          auto_reminder?: number | null
+          brand_logo?: string | null
+          brand_primary_color?: string | null
+          client_id?: string | null
+          contract_answers?: Json | null
+          contract_code?: string | null
+          contract_name: string
+          contract_type?: string | null
+          created_at?: string | null
+          created_by_email?: string | null
+          created_through?: string | null
+          deleted_at?: string | null
+          disable_signer_emails?: boolean | null
+          extra_docs?: Json | null
+          folder_path?: string | null
+          id?: string
+          is_deleted?: boolean | null
+          lang?: string | null
+          matched_by?: string | null
+          matching_confidence?: number | null
+          metadata?: Json | null
+          notes?: string | null
+          original_file_url?: string | null
+          signed_at?: string | null
+          signed_file_only_finished?: boolean | null
+          signed_file_url?: string | null
+          status: string
+          updated_at?: string | null
+          workspace_id: string
+          zapsign_created_at?: string | null
+          zapsign_open_id: number
+          zapsign_template_token?: string | null
+          zapsign_token: string
+          zapsign_updated_at?: string | null
+        }
+        Update: {
+          auto_reminder?: number | null
+          brand_logo?: string | null
+          brand_primary_color?: string | null
+          client_id?: string | null
+          contract_answers?: Json | null
+          contract_code?: string | null
+          contract_name?: string
+          contract_type?: string | null
+          created_at?: string | null
+          created_by_email?: string | null
+          created_through?: string | null
+          deleted_at?: string | null
+          disable_signer_emails?: boolean | null
+          extra_docs?: Json | null
+          folder_path?: string | null
+          id?: string
+          is_deleted?: boolean | null
+          lang?: string | null
+          matched_by?: string | null
+          matching_confidence?: number | null
+          metadata?: Json | null
+          notes?: string | null
+          original_file_url?: string | null
+          signed_at?: string | null
+          signed_file_only_finished?: boolean | null
+          signed_file_url?: string | null
+          status?: string
+          updated_at?: string | null
+          workspace_id?: string
+          zapsign_created_at?: string | null
+          zapsign_open_id?: number
+          zapsign_template_token?: string | null
+          zapsign_token?: string
+          zapsign_updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contracts_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contracts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       custom_field_definitions: {
         Row: {
           created_at: string
@@ -1095,6 +1568,50 @@ export type Database = {
         Args: { start_date: string; business_days: number }
         Returns: string
       }
+      find_client_by_document: {
+        Args: { p_workspace_id: string; p_document: string }
+        Returns: {
+          client_id: string
+          confidence: number
+          match_type: string
+        }[]
+      }
+      find_client_by_email: {
+        Args: { p_workspace_id: string; p_email: string }
+        Returns: {
+          client_id: string
+          confidence: number
+          match_type: string
+        }[]
+      }
+      find_client_by_name: {
+        Args: { p_workspace_id: string; p_name: string }
+        Returns: {
+          client_id: string
+          confidence: number
+          match_type: string
+        }[]
+      }
+      gtrgm_compress: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      gtrgm_decompress: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      gtrgm_in: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      gtrgm_options: {
+        Args: { "": unknown }
+        Returns: undefined
+      }
+      gtrgm_out: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
       increment_execution_retry_count: {
         Args: { execution_id: string }
         Returns: undefined
@@ -1106,6 +1623,18 @@ export type Database = {
       is_business_day: {
         Args: { check_date: string }
         Returns: boolean
+      }
+      set_limit: {
+        Args: { "": number }
+        Returns: number
+      }
+      show_limit: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
+      show_trgm: {
+        Args: { "": string }
+        Returns: string[]
       }
     }
     Enums: {

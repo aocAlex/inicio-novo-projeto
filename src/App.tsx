@@ -10,6 +10,7 @@ import { AuthPage } from '@/components/auth/AuthPage';
 import { Dashboard } from '@/pages/Dashboard';
 import { Clients } from '@/pages/Clients';
 import { Processes } from '@/pages/Processes';
+import { ContractsPage } from '@/pages/ContractsPage';
 import { TemplatesPage } from '@/pages/TemplatesPage';
 import { PetitionsPage } from '@/pages/PetitionsPage';
 import { DeadlinesPage } from '@/pages/DeadlinesPage';
