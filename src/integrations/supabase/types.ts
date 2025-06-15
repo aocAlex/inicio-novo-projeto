@@ -482,6 +482,7 @@ export type Database = {
           contract_code: string | null
           contract_name: string
           contract_type: string | null
+          contract_value: number | null
           created_at: string | null
           created_by_email: string | null
           created_through: string | null
@@ -518,6 +519,7 @@ export type Database = {
           contract_code?: string | null
           contract_name: string
           contract_type?: string | null
+          contract_value?: number | null
           created_at?: string | null
           created_by_email?: string | null
           created_through?: string | null
@@ -554,6 +556,7 @@ export type Database = {
           contract_code?: string | null
           contract_name?: string
           contract_type?: string | null
+          contract_value?: number | null
           created_at?: string | null
           created_by_email?: string | null
           created_through?: string | null

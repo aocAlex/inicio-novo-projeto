@@ -28,6 +28,7 @@ export const ContractModal: React.FC<ContractModalProps> = ({ open, onClose, con
     contract_name: '',
     contract_code: '',
     contract_type: '',
+    contract_value: '',
     zapsign_open_id: 0,
     zapsign_token: '',
     status: 'pending' as Contract['status'],
@@ -41,6 +42,7 @@ export const ContractModal: React.FC<ContractModalProps> = ({ open, onClose, con
         contract_name: contract.contract_name,
         contract_code: contract.contract_code || '',
         contract_type: contract.contract_type || '',
+        contract_value: contract.contract_value ? contract.contract_value.toString() : '',
         zapsign_open_id: contract.zapsign_open_id,
         zapsign_token: contract.zapsign_token,
         status: contract.status,
@@ -52,6 +54,7 @@ export const ContractModal: React.FC<ContractModalProps> = ({ open, onClose, con
         contract_name: '',
         contract_code: '',
         contract_type: '',
+        contract_value: '',
         zapsign_open_id: 0,
         zapsign_token: '',
         status: 'pending' as Contract['status'],
@@ -82,6 +85,7 @@ export const ContractModal: React.FC<ContractModalProps> = ({ open, onClose, con
           contract_name: formData.contract_name,
           contract_code: formData.contract_code,
           contract_type: formData.contract_type,
+          contract_value: formData.contract_value ? parseFloat(formData.contract_value) : undefined,
           status: formData.status,
           client_id: formData.client_id || undefined,
           notes: formData.notes
@@ -92,6 +96,7 @@ export const ContractModal: React.FC<ContractModalProps> = ({ open, onClose, con
           contract_name: formData.contract_name,
           contract_code: formData.contract_code,
           contract_type: formData.contract_type,
+          contract_value: formData.contract_value ? parseFloat(formData.contract_value) : undefined,
           zapsign_open_id: formData.zapsign_open_id || Math.floor(Math.random() * 1000000),
           zapsign_token: formData.zapsign_token || `token_${Date.now()}`,
           status: formData.status,
@@ -149,6 +154,19 @@ export const ContractModal: React.FC<ContractModalProps> = ({ open, onClose, con
                 value={formData.contract_type}
                 onChange={(e) => setFormData(prev => ({ ...prev, contract_type: e.target.value }))}
                 placeholder="Ex: Prestação de Serviços"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="contract_value">Valor do Contrato (R$)</Label>
+              <Input
+                id="contract_value"
+                type="number"
+                step="0.01"
+                min="0"
+                value={formData.contract_value}
+                onChange={(e) => setFormData(prev => ({ ...prev, contract_value: e.target.value }))}
+                placeholder="Ex: 15000.00"
               />
             </div>
 

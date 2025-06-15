@@ -1,7 +1,6 @@
-
 import React from 'react';
 import { format } from 'date-fns';
-import { FileText, Download, User, Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { FileText, Download, User, Clock, CheckCircle, XCircle, AlertCircle, DollarSign } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -46,6 +45,14 @@ export const ContractsList: React.FC<ContractsListProps> = ({ onContractClick })
         {Math.round(confidence * 100)}% ({matchType})
       </span>
     );
+  };
+
+  const formatCurrency = (value?: number) => {
+    if (!value) return null;
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    }).format(value);
   };
 
   if (isLoading) {
@@ -103,6 +110,15 @@ export const ContractsList: React.FC<ContractsListProps> = ({ onContractClick })
                     <AlertCircle className="h-4 w-4" />
                     Cliente não vinculado
                   </span>
+                )}
+                
+                {contract.contract_value && (
+                  <div className="flex items-center gap-1">
+                    <DollarSign className="h-4 w-4" />
+                    <span className="font-medium text-green-600">
+                      {formatCurrency(contract.contract_value)}
+                    </span>
+                  </div>
                 )}
               </div>
 

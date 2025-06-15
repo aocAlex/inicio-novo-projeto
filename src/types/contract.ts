@@ -1,4 +1,3 @@
-
 export interface Contract {
   id: string;
   workspace_id: string;
@@ -10,6 +9,7 @@ export interface Contract {
   contract_name: string;
   contract_code?: string;
   contract_type?: string;
+  contract_value?: number;
   folder_path?: string;
   
   // Dados ZapSign
@@ -181,6 +181,7 @@ export interface CreateContractData {
   contract_name: string;
   contract_code?: string;
   contract_type?: string;
+  contract_value?: number;
   zapsign_open_id: number;
   zapsign_token: string;
   status: Contract['status'];
@@ -192,6 +193,7 @@ export interface UpdateContractData {
   contract_name?: string;
   contract_code?: string;
   contract_type?: string;
+  contract_value?: number;
   status?: Contract['status'];
   client_id?: string;
   notes?: string;
