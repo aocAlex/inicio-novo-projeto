@@ -1,6 +1,30 @@
+
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
+
+interface Process {
+  id: string;
+  title: string;
+  process_number: string;
+}
+
+interface Client {
+  id: string;
+  name: string;
+}
+
+interface PetitionTemplate {
+  id: string;
+  name: string;
+  category: string;
+}
+
+interface WorkspaceUser {
+  id: string;
+  full_name: string;
+  email: string;
+}
 
 export const useWorkspaceOptions = () => {
   const { currentWorkspace } = useWorkspace();
@@ -8,7 +32,7 @@ export const useWorkspaceOptions = () => {
   // Buscar processos
   const { data: processes = [] } = useQuery({
     queryKey: ['workspace-processes', currentWorkspace?.id],
-    queryFn: async () => {
+    queryFn: async (): Promise<Process[]> => {
       if (!currentWorkspace?.id) return [];
 
       const { data, error } = await supabase
@@ -26,7 +50,7 @@ export const useWorkspaceOptions = () => {
   // Buscar clientes
   const { data: clients = [] } = useQuery({
     queryKey: ['workspace-clients', currentWorkspace?.id],
-    queryFn: async () => {
+    queryFn: async (): Promise<Client[]> => {
       if (!currentWorkspace?.id) return [];
 
       const { data, error } = await supabase
@@ -44,7 +68,7 @@ export const useWorkspaceOptions = () => {
   // Buscar templates de petições
   const { data: petitionTemplates = [] } = useQuery({
     queryKey: ['workspace-petition-templates', currentWorkspace?.id],
-    queryFn: async () => {
+    queryFn: async (): Promise<PetitionTemplate[]> => {
       if (!currentWorkspace?.id) return [];
 
       const { data, error } = await supabase
@@ -62,7 +86,7 @@ export const useWorkspaceOptions = () => {
   // Buscar usuários válidos da workspace usando consultas separadas
   const { data: workspaceUsers = [] } = useQuery({
     queryKey: ['workspace-users', currentWorkspace?.id],
-    queryFn: async () => {
+    queryFn: async (): Promise<WorkspaceUser[]> => {
       if (!currentWorkspace?.id) return [];
 
       console.log('Loading workspace users for workspace:', currentWorkspace.id);
@@ -71,8 +95,7 @@ export const useWorkspaceOptions = () => {
       const { data: membersData, error: membersError } = await supabase
         .from('workspace_members')
         .select('user_id')
-        .eq('workspace_id', currentWorkspace.id)
-        .eq('status', 'active');
+        .eq('workspace_id', currentWorkspace.id);
 
       if (membersError) {
         console.error('Error loading workspace members:', membersError);
@@ -99,7 +122,7 @@ export const useWorkspaceOptions = () => {
       console.log('Valid users found:', profilesData?.length || 0);
       
       // Map to expected format
-      const validUsers = profilesData?.map(profile => ({
+      const validUsers: WorkspaceUser[] = profilesData?.map(profile => ({
         id: profile.id,
         full_name: profile.full_name || profile.email || 'Usuário sem nome',
         email: profile.email || ''

@@ -1,4 +1,6 @@
+
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAdvancedTemplates } from '@/hooks/useAdvancedTemplates';
 import { useToast } from '@/hooks/use-toast';
 import { useSimplifiedPermissions } from '@/hooks/useSimplifiedPermissions';
@@ -6,6 +8,26 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { 
   Search, 
   Plus, 
@@ -14,7 +36,11 @@ import {
   Trash2, 
   Play,
   FileText,
-  Filter
+  Filter,
+  MoreHorizontal,
+  Copy,
+  Share2,
+  Settings
 } from 'lucide-react';
 
 const CATEGORIES = [
