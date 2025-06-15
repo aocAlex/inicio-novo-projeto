@@ -6,7 +6,6 @@ import { useToast } from '@/hooks/use-toast';
 
 export const useWorkspaceLoader = () => {
   const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const createDefaultWorkspace = useCallback(async (userId: string, userEmail: string) => {
@@ -50,7 +49,6 @@ export const useWorkspaceLoader = () => {
     console.log('Loading workspaces for user:', userId);
     
     try {
-      setIsLoading(true);
       setError(null);
       
       // First, get the user's workspaces
@@ -123,16 +121,12 @@ export const useWorkspaceLoader = () => {
         variant: "destructive",
       });
       throw error;
-    } finally {
-      setIsLoading(false);
     }
   }, [toast, createDefaultWorkspace]);
 
   return {
     loadWorkspaces,
-    isLoading,
     error,
-    setIsLoading,
     setError
   };
 };

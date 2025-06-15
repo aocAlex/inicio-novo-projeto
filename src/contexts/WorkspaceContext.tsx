@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { useAuth } from './AuthContext';
 import { Workspace, WorkspaceMember, CreateWorkspaceData } from '@/types/workspace';
@@ -35,13 +36,14 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [currentMember, setCurrentMember] = useState<WorkspaceMember | null>(null);
   const [initialized, setInitialized] = useState(false);
-  const [initializationAttempts, setInitializationAttempts] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const { loadWorkspaces, isLoading, error, setIsLoading } = useWorkspaceLoader();
+  const { loadWorkspaces } = useWorkspaceLoader();
   const { switchWorkspace: switchWorkspaceHook } = useWorkspaceSwitcher();
   const { createWorkspace: createWorkspaceHook, updateWorkspace: updateWorkspaceHook } = useWorkspaceManager();
 
-  console.log('WorkspaceProvider render - user:', !!user, 'profile:', !!profile, 'initialized:', initialized, 'isLoading:', isLoading, 'attempts:', initializationAttempts);
+  console.log('WorkspaceProvider render - user:', !!user, 'profile:', !!profile, 'initialized:', initialized, 'isLoading:', isLoading);
 
   const initializeWorkspaces = useCallback(async () => {
     if (!user?.id || !profile?.id || !user?.email) {
@@ -50,6 +52,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         hasProfile: !!profile?.id,
         hasEmail: !!user?.email
       });
+      setIsLoading(false);
       return;
     }
 
@@ -58,28 +61,17 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       return;
     }
 
-    // Prevent infinite loops by limiting attempts
-    if (initializationAttempts >= 3) {
-      console.log('Maximum initialization attempts reached, stopping');
-      setIsLoading(false);
-      return;
-    }
-
-    console.log('Starting workspace initialization for user:', user.id, 'attempt:', initializationAttempts + 1);
-    setInitializationAttempts(prev => prev + 1);
+    console.log('Starting workspace initialization for user:', user.id);
+    setIsLoading(true);
+    setError(null);
 
     try {
-      // Add a small delay to prevent rapid retries
-      if (initializationAttempts > 0) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      }
-
       // Check if user profile still exists
       const { data: profileExists, error: profileError } = await supabase
         .from('profiles')
         .select('id')
         .eq('id', user.id)
-        .single();
+        .maybeSingle();
 
       if (profileError || !profileExists) {
         console.error('User profile not found in database:', user.id);
@@ -113,23 +105,18 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       }
 
       setInitialized(true);
-      setInitializationAttempts(0); // Reset on success
       console.log('Workspace initialization completed successfully');
       
     } catch (error) {
       console.error('Error initializing workspaces:', error);
+      setError(error?.message || 'Erro ao carregar workspaces');
       setWorkspaces([]);
       setCurrentWorkspace(null);
       setCurrentMember(null);
-      
-      // Don't retry on infinite recursion errors
-      if (error?.message?.includes('infinite recursion')) {
-        console.error('Infinite recursion detected, stopping retries');
-        setInitializationAttempts(10); // Set high to prevent retries
-        setIsLoading(false);
-      }
+    } finally {
+      setIsLoading(false);
     }
-  }, [user?.id, user?.email, profile?.id, profile?.current_workspace_id, initialized, loadWorkspaces, currentWorkspace, initializationAttempts]);
+  }, [user?.id, user?.email, profile?.id, profile?.current_workspace_id, initialized, loadWorkspaces, currentWorkspace]);
 
   const switchWorkspace = useCallback(async (workspaceId: string) => {
     if (!user?.id || !profile) return;
@@ -148,7 +135,6 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
     const workspace = await createWorkspaceHook(data, user.id);
     setInitialized(false);
-    setInitializationAttempts(0);
     return workspace;
   }, [user?.id, createWorkspaceHook]);
 
@@ -166,7 +152,6 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const refreshWorkspaces = useCallback(async () => {
     setInitialized(false);
-    setInitializationAttempts(0);
   }, []);
 
   useEffect(() => {
@@ -175,15 +160,14 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       hasProfile: !!profile?.id,
       hasEmail: !!user?.email,
       initialized,
-      isLoading,
-      attempts: initializationAttempts
+      isLoading
     });
 
-    if (user?.id && profile?.id && user?.email && !initialized && !isLoading && initializationAttempts < 3) {
+    if (user?.id && profile?.id && user?.email && !initialized && !isLoading) {
       console.log('Conditions met, initializing workspaces...');
       initializeWorkspaces();
     }
-  }, [user?.id, user?.email, profile?.id, initialized, isLoading, initializeWorkspaces, initializationAttempts]);
+  }, [user?.id, user?.email, profile?.id, initialized, isLoading, initializeWorkspaces]);
 
   useEffect(() => {
     if (!user) {
@@ -192,10 +176,10 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       setWorkspaces([]);
       setCurrentMember(null);
       setInitialized(false);
-      setInitializationAttempts(0);
       setIsLoading(false);
+      setError(null);
     }
-  }, [user, setIsLoading]);
+  }, [user]);
 
   const value = {
     currentWorkspace,
