@@ -9,6 +9,7 @@ import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { AuthPage } from '@/components/auth/AuthPage';
 import { MainApp } from '@/pages/MainApp';
 import { SuperAdminPage } from '@/pages/SuperAdminPage';
+import Index from '@/pages/Index';
 import NotFound from '@/pages/NotFound';
 import './App.css';
 
@@ -27,22 +28,97 @@ function App() {
       <Router>
         <AuthProvider>
           <Routes>
+            {/* Root Route */}
+            <Route path="/" element={<Index />} />
+            
             {/* Public Routes */}
             <Route path="/auth" element={<AuthPage />} />
             
             {/* Protected Routes */}
             <Route
-              path="/*"
+              path="/dashboard/*"
               element={
                 <ProtectedRoute>
                   <WorkspaceProvider>
-                    <Routes>
-                      {/* SuperAdmin Routes */}
-                      <Route path="/superadmin/*" element={<SuperAdminPage />} />
-                      
-                      {/* Main App Routes */}
-                      <Route path="/*" element={<MainApp />} />
-                    </Routes>
+                    <MainApp />
+                  </WorkspaceProvider>
+                </ProtectedRoute>
+              }
+            />
+            
+            <Route
+              path="/clients/*"
+              element={
+                <ProtectedRoute>
+                  <WorkspaceProvider>
+                    <MainApp />
+                  </WorkspaceProvider>
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/processes/*"
+              element={
+                <ProtectedRoute>
+                  <WorkspaceProvider>
+                    <MainApp />
+                  </WorkspaceProvider>
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/templates/*"
+              element={
+                <ProtectedRoute>
+                  <WorkspaceProvider>
+                    <MainApp />
+                  </WorkspaceProvider>
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/petitions/*"
+              element={
+                <ProtectedRoute>
+                  <WorkspaceProvider>
+                    <MainApp />
+                  </WorkspaceProvider>
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/deadlines/*"
+              element={
+                <ProtectedRoute>
+                  <WorkspaceProvider>
+                    <MainApp />
+                  </WorkspaceProvider>
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/settings/*"
+              element={
+                <ProtectedRoute>
+                  <WorkspaceProvider>
+                    <MainApp />
+                  </WorkspaceProvider>
+                </ProtectedRoute>
+              }
+            />
+            
+            {/* SuperAdmin Routes */}
+            <Route
+              path="/superadmin/*"
+              element={
+                <ProtectedRoute>
+                  <WorkspaceProvider>
+                    <SuperAdminPage />
                   </WorkspaceProvider>
                 </ProtectedRoute>
               }

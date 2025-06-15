@@ -4,7 +4,7 @@ import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { Header } from '@/components/layout/Header';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { Loader2 } from 'lucide-react';
-import { Outlet } from 'react-router-dom';
+import { AppRoutes } from './Routes';
 
 export const MainApp = () => {
   const { user } = useAuth();
@@ -46,8 +46,8 @@ export const MainApp = () => {
       <Sidebar />
       <div className="flex-1 flex flex-col">
         <Header />
-        <main className="flex-1 overflow-auto">
-          <Outlet />
+        <main className="flex-1 overflow-auto p-6">
+          <AppRoutes />
         </main>
       </div>
     </div>
