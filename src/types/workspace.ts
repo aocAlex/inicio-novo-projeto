@@ -1,3 +1,4 @@
+
 export interface Workspace {
   id: string;
   name: string;
@@ -14,17 +15,28 @@ export interface WorkspaceMember {
   id: string;
   workspace_id: string;
   user_id: string;
-  role: 'owner' | 'admin' | 'editor' | 'viewer';
-  permissions: Record<string, any>;
-  status: 'active' | 'pending' | 'suspended';
-  last_activity?: string;
+  invited_by?: string;
+  joined_at: string;
   created_at: string;
+  updated_at: string;
   profile?: {
     id: string;
     email: string;
     full_name?: string;
     avatar_url?: string;
   };
+}
+
+export interface WorkspaceInvitation {
+  id: string;
+  workspace_id: string;
+  email: string;
+  invited_by: string;
+  token: string;
+  status: 'pending' | 'accepted' | 'declined' | 'expired';
+  created_at: string;
+  expires_at: string;
+  accepted_at?: string;
 }
 
 export interface Profile {
@@ -46,6 +58,7 @@ export interface CreateWorkspaceData {
   logo_url?: string;
 }
 
+// Outros tipos permanecem iguais
 export interface Client {
   id: string;
   workspace_id: string;

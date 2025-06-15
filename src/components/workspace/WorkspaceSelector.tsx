@@ -4,10 +4,10 @@ import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { CreateWorkspaceModal } from './CreateWorkspaceModal';
-import { ChevronDown, Building2, Plus, Check, Globe } from 'lucide-react';
+import { ChevronDown, Building2, Plus, Check, Crown, Users } from 'lucide-react';
 
 export const WorkspaceSelector = () => {
-  const { currentWorkspace, workspaces, switchWorkspace } = useWorkspace();
+  const { currentWorkspace, workspaces, isOwner, switchWorkspace } = useWorkspace();
   const [showCreateModal, setShowCreateModal] = useState(false);
 
   const handleWorkspaceSwitch = async (workspaceId: string) => {
@@ -16,16 +16,25 @@ export const WorkspaceSelector = () => {
     }
   };
 
+  const getWorkspaceIcon = (workspace: any) => {
+    const isCurrentOwner = workspace.owner_id === workspace.id; // Esta lógica será ajustada
+    return isCurrentOwner ? (
+      <Crown className="mr-2 h-4 w-4 text-yellow-600" />
+    ) : (
+      <Users className="mr-2 h-4 w-4 text-blue-600" />
+    );
+  };
+
   return (
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="outline" className="w-48 justify-between">
             <div className="flex items-center">
-              {currentWorkspace?.is_public ? (
-                <Globe className="mr-2 h-4 w-4 text-green-600" />
+              {isOwner ? (
+                <Crown className="mr-2 h-4 w-4 text-yellow-600" />
               ) : (
-                <Building2 className="mr-2 h-4 w-4" />
+                <Users className="mr-2 h-4 w-4 text-blue-600" />
               )}
               <span className="truncate">
                 {currentWorkspace?.name || 'Selecionar workspace'}
@@ -34,32 +43,37 @@ export const WorkspaceSelector = () => {
             <ChevronDown className="h-4 w-4" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent className="w-48" align="end">
+        <DropdownMenuContent className="w-64" align="end">
           <DropdownMenuLabel>Suas Workspaces</DropdownMenuLabel>
           <DropdownMenuSeparator />
           
-          {workspaces.map((workspace) => (
-            <DropdownMenuItem
-              key={workspace.id}
-              onClick={() => handleWorkspaceSwitch(workspace.id)}
-              className="flex items-center justify-between"
-            >
-              <div className="flex items-center">
-                {workspace.is_public ? (
-                  <Globe className="mr-2 h-4 w-4 text-green-600" />
-                ) : (
-                  <Building2 className="mr-2 h-4 w-4" />
+          {workspaces.map((workspace) => {
+            const isWorkspaceOwner = workspace.owner_id === workspace.id; // Será ajustado
+            return (
+              <DropdownMenuItem
+                key={workspace.id}
+                onClick={() => handleWorkspaceSwitch(workspace.id)}
+                className="flex items-center justify-between"
+              >
+                <div className="flex items-center">
+                  {isWorkspaceOwner ? (
+                    <Crown className="mr-2 h-4 w-4 text-yellow-600" />
+                  ) : (
+                    <Users className="mr-2 h-4 w-4 text-blue-600" />
+                  )}
+                  <div className="flex flex-col">
+                    <span className="truncate font-medium">{workspace.name}</span>
+                    <span className="text-xs text-gray-500">
+                      {isWorkspaceOwner ? 'Minha workspace' : 'Membro'}
+                    </span>
+                  </div>
+                </div>
+                {currentWorkspace?.id === workspace.id && (
+                  <Check className="h-4 w-4 text-blue-600" />
                 )}
-                <span className="truncate">{workspace.name}</span>
-                {workspace.is_public && (
-                  <span className="ml-1 text-xs text-green-600">(Público)</span>
-                )}
-              </div>
-              {currentWorkspace?.id === workspace.id && (
-                <Check className="h-4 w-4 text-blue-600" />
-              )}
-            </DropdownMenuItem>
-          ))}
+              </DropdownMenuItem>
+            );
+          })}
           
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={() => setShowCreateModal(true)}>
