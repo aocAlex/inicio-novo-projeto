@@ -120,7 +120,7 @@ export const ExecuteTemplateModal = ({
       let enhancedData = { ...formData.filled_data };
 
       // Se processo selecionado, adicionar dados do processo
-      if (formData.process_id) {
+      if (formData.process_id && formData.process_id !== 'none') {
         const selectedProcess = processes.find(p => p.id === formData.process_id);
         if (selectedProcess) {
           enhancedData = {
@@ -136,7 +136,7 @@ export const ExecuteTemplateModal = ({
       }
 
       // Se cliente selecionado, adicionar dados do cliente
-      if (formData.client_id) {
+      if (formData.client_id && formData.client_id !== 'none') {
         const selectedClient = clients.find(c => c.id === formData.client_id);
         if (selectedClient) {
           enhancedData = {
@@ -152,8 +152,8 @@ export const ExecuteTemplateModal = ({
 
       const executionData: CreateExecutionData = {
         template_id: templateId,
-        process_id: formData.process_id || undefined,
-        client_id: formData.client_id || undefined,
+        process_id: formData.process_id && formData.process_id !== 'none' ? formData.process_id : undefined,
+        client_id: formData.client_id && formData.client_id !== 'none' ? formData.client_id : undefined,
         filled_data: enhancedData,
         webhook_url: formData.webhook_url || undefined,
       };
@@ -211,14 +211,14 @@ export const ExecuteTemplateModal = ({
               <div className="space-y-2">
                 <Label htmlFor="process_id">Processo (opcional)</Label>
                 <Select 
-                  value={formData.process_id} 
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, process_id: value }))}
+                  value={formData.process_id || 'none'} 
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, process_id: value === 'none' ? '' : value }))}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione um processo" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Nenhum processo</SelectItem>
+                    <SelectItem value="none">Nenhum processo</SelectItem>
                     {processes.map((process) => (
                       <SelectItem key={process.id} value={process.id}>
                         {process.process_number} - {process.title}
@@ -231,14 +231,14 @@ export const ExecuteTemplateModal = ({
               <div className="space-y-2">
                 <Label htmlFor="client_id">Cliente (opcional)</Label>
                 <Select 
-                  value={formData.client_id} 
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, client_id: value }))}
+                  value={formData.client_id || 'none'} 
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, client_id: value === 'none' ? '' : value }))}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione um cliente" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Nenhum cliente</SelectItem>
+                    <SelectItem value="none">Nenhum cliente</SelectItem>
                     {clients.map((client) => (
                       <SelectItem key={client.id} value={client.id}>
                         {client.name}
