@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -8,16 +7,19 @@ import { format, isAfter, differenceInDays, addDays } from 'date-fns';
 import { useToast } from '@/components/ui/use-toast';
 
 // Função auxiliar para verificar se um relacionamento é válido
-const isValidRelation = (relation: any) => {
+const isValidRelation = (relation: any): boolean => {
   // Verificar se é um objeto válido sem propriedade error e com id
-  return relation && 
-         typeof relation === 'object' && 
-         !relation.error && 
-         relation.id && 
-         typeof relation.id === 'string' &&
-         !Array.isArray(relation) &&
-         typeof relation !== 'string' &&
-         !('error' in relation);
+  if (!relation || typeof relation !== 'object' || Array.isArray(relation)) {
+    return false;
+  }
+  
+  // Verificar se tem propriedade error ou se é uma string disfarçada
+  if ('error' in relation || typeof relation === 'string' || relation.constructor === String) {
+    return false;
+  }
+  
+  // Verificar se tem um id válido
+  return relation.id && typeof relation.id === 'string';
 };
 
 export const useDeadlines = () => {

@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -43,12 +42,12 @@ export const DeadlinesPage = () => {
       priority: result.priority as 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL',
       attachments: Array.isArray(result.attachments) ? result.attachments : [],
       custom_fields: typeof result.custom_fields === 'object' && result.custom_fields !== null ? result.custom_fields : {},
-      process: result.process && typeof result.process === 'object' && 'id' in result.process && result.process.id ? {
+      process: result.process && typeof result.process === 'object' && 'id' in result.process && result.process.id && typeof result.process.id === 'string' ? {
         id: result.process.id,
         title: result.process.title || '',
         process_number: result.process.process_number || ''
       } : undefined,
-      client: result.client && typeof result.client === 'object' && 'id' in result.client && result.client.id ? {
+      client: result.client && typeof result.client === 'object' && 'id' in result.client && result.client.id && typeof result.client.id === 'string' ? {
         id: result.client.id,
         name: result.client.name || ''
       } : undefined,
@@ -72,12 +71,12 @@ export const DeadlinesPage = () => {
         priority: result.priority as 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL',
         attachments: Array.isArray(result.attachments) ? result.attachments : [],
         custom_fields: typeof result.custom_fields === 'object' && result.custom_fields !== null ? result.custom_fields : {},
-        process: result.process && typeof result.process === 'object' && 'id' in result.process && result.process.id ? {
+        process: result.process && typeof result.process === 'object' && 'id' in result.process && result.process.id && typeof result.process.id === 'string' ? {
           id: result.process.id,
           title: result.process.title || '',
           process_number: result.process.process_number || ''
         } : undefined,
-        client: result.client && typeof result.client === 'object' && 'id' in result.client && result.client.id ? {
+        client: result.client && typeof result.client === 'object' && 'id' in result.client && result.client.id && typeof result.client.id === 'string' ? {
           id: result.client.id,
           name: result.client.name || ''
         } : undefined,
