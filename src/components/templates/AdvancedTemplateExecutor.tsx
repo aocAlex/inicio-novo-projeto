@@ -63,15 +63,15 @@ export const AdvancedTemplateExecutor = ({
     setValidationErrors(prev => prev.filter(error => error.field !== fieldKey))
   }
 
-  const handleMultiSelectChange = (fieldKey: string, option: string, checked: boolean) => {
+  const handleMultiSelectChange = (fieldKey: string, optionValue: string, checked: boolean) => {
     setFilledData(prev => {
       const currentValues = prev[fieldKey] || []
       let newValues
       
       if (checked) {
-        newValues = [...currentValues, option]
+        newValues = [...currentValues, optionValue]
       } else {
-        newValues = currentValues.filter((value: string) => value !== option)
+        newValues = currentValues.filter((value: string) => value !== optionValue)
       }
       
       return {
@@ -174,6 +174,20 @@ export const AdvancedTemplateExecutor = ({
     }
   }
 
+  const getOptionTitle = (field: TemplateField, optionValue: string): string => {
+    if (!field.field_options?.options) return optionValue
+    
+    const option = field.field_options.options.find((opt: any) => {
+      // Suporte para formato antigo (string) e novo (objeto com title/value)
+      return typeof opt === 'string' ? opt === optionValue : opt.value === optionValue
+    })
+    
+    if (!option) return optionValue
+    
+    // Se é string, retorna a própria string; se é objeto, retorna o title
+    return typeof option === 'string' ? option : option.title || option.value
+  }
+
   const renderField = (field: TemplateField) => {
     const error = validationErrors.find(e => e.field === field.field_key)
     const value = filledData[field.field_key] || (field.field_type === 'multiselect' ? [] : '')
@@ -207,11 +221,17 @@ export const AdvancedTemplateExecutor = ({
               <SelectValue placeholder={`Selecione ${field.field_label.toLowerCase()}`} />
             </SelectTrigger>
             <SelectContent>
-              {field.field_options?.options?.map((option: string) => (
-                <SelectItem key={option} value={option}>
-                  {option}
-                </SelectItem>
-              ))}
+              {field.field_options?.options?.map((option: any, index: number) => {
+                // Suporte para formato antigo (string) e novo (objeto com title/value)
+                const optionValue = typeof option === 'string' ? option : option.value
+                const optionTitle = typeof option === 'string' ? option : option.title || option.value
+                
+                return (
+                  <SelectItem key={index} value={optionValue}>
+                    {optionTitle}
+                  </SelectItem>
+                )
+              })}
             </SelectContent>
           </Select>
         )
@@ -228,7 +248,7 @@ export const AdvancedTemplateExecutor = ({
                     variant="secondary" 
                     className="flex items-center gap-1"
                   >
-                    {selectedValue}
+                    {getOptionTitle(field, selectedValue)}
                     <X 
                       className="h-3 w-3 cursor-pointer hover:text-red-500" 
                       onClick={() => removeMultiSelectValue(field.field_key, selectedValue)}
@@ -240,22 +260,26 @@ export const AdvancedTemplateExecutor = ({
             
             {/* Opções disponíveis */}
             <div className="border rounded-md p-2 max-h-32 overflow-y-auto space-y-1">
-              {field.field_options?.options?.map((option: string) => {
-                const isSelected = value.includes(option)
+              {field.field_options?.options?.map((option: any, index: number) => {
+                // Suporte para formato antigo (string) e novo (objeto com title/value)
+                const optionValue = typeof option === 'string' ? option : option.value
+                const optionTitle = typeof option === 'string' ? option : option.title || option.value
+                const isSelected = value.includes(optionValue)
+                
                 return (
-                  <div key={option} className="flex items-center space-x-2">
+                  <div key={index} className="flex items-center space-x-2">
                     <Checkbox
-                      id={`${field.field_key}-${option}`}
+                      id={`${field.field_key}-${index}`}
                       checked={isSelected}
                       onCheckedChange={(checked) => 
-                        handleMultiSelectChange(field.field_key, option, !!checked)
+                        handleMultiSelectChange(field.field_key, optionValue, !!checked)
                       }
                     />
                     <Label 
-                      htmlFor={`${field.field_key}-${option}`}
+                      htmlFor={`${field.field_key}-${index}`}
                       className="text-sm cursor-pointer flex-1"
                     >
-                      {option}
+                      {optionTitle}
                     </Label>
                   </div>
                 )

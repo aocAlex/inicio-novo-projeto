@@ -169,21 +169,23 @@ export const AdvancedTemplateEditor = ({
   const addSelectOption = (fieldIndex: number) => {
     const field = formData.fields[fieldIndex]
     const currentOptions = field.field_options.options || []
-    const newOptions = [...currentOptions, '']
+    const newOptions = [...currentOptions, { title: '', value: '' }]
     updateFieldOptions(fieldIndex, { ...field.field_options, options: newOptions })
   }
 
-  const updateSelectOption = (fieldIndex: number, optionIndex: number, value: string) => {
+  const updateSelectOption = (fieldIndex: number, optionIndex: number, key: 'title' | 'value', newValue: string) => {
     const field = formData.fields[fieldIndex]
     const currentOptions = field.field_options.options || []
-    const newOptions = currentOptions.map((opt: string, i: number) => i === optionIndex ? value : opt)
+    const newOptions = currentOptions.map((opt: any, i: number) => 
+      i === optionIndex ? { ...opt, [key]: newValue } : opt
+    )
     updateFieldOptions(fieldIndex, { ...field.field_options, options: newOptions })
   }
 
   const removeSelectOption = (fieldIndex: number, optionIndex: number) => {
     const field = formData.fields[fieldIndex]
     const currentOptions = field.field_options.options || []
-    const newOptions = currentOptions.filter((_: string, i: number) => i !== optionIndex)
+    const newOptions = currentOptions.filter((_: any, i: number) => i !== optionIndex)
     updateFieldOptions(fieldIndex, { ...field.field_options, options: newOptions })
   }
 
@@ -195,23 +197,37 @@ export const AdvancedTemplateEditor = ({
         return (
           <div className="space-y-2">
             <Label className="text-xs">Opções da Lista</Label>
-            {options.map((option: string, optionIndex: number) => (
-              <div key={optionIndex} className="flex gap-2">
-                <Input
-                  value={option}
-                  onChange={(e) => updateSelectOption(index, optionIndex, e.target.value)}
-                  placeholder={`Opção ${optionIndex + 1}`}
-                  className="text-sm h-8"
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => removeSelectOption(index, optionIndex)}
-                  className="h-8 w-8 p-0 text-red-600"
-                >
-                  <X className="h-3 w-3" />
-                </Button>
+            {options.map((option: any, optionIndex: number) => (
+              <div key={optionIndex} className="border rounded p-2 space-y-2">
+                <div className="flex gap-2">
+                  <div className="flex-1">
+                    <Label className="text-xs">Título (visível)</Label>
+                    <Input
+                      value={option.title || ''}
+                      onChange={(e) => updateSelectOption(index, optionIndex, 'title', e.target.value)}
+                      placeholder="Ex: Pessoa Física"
+                      className="text-sm h-8"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <Label className="text-xs">Valor (interno)</Label>
+                    <Input
+                      value={option.value || ''}
+                      onChange={(e) => updateSelectOption(index, optionIndex, 'value', e.target.value)}
+                      placeholder="Ex: pessoa_fisica"
+                      className="text-sm h-8"
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removeSelectOption(index, optionIndex)}
+                    className="h-8 w-8 p-0 text-red-600 self-end"
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
               </div>
             ))}
             <Button
