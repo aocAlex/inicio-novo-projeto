@@ -1383,7 +1383,7 @@ export type Database = {
           last_login_at: string | null
           notification_preferences: Json | null
           updated_at: string | null
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           can_access_workspaces?: boolean | null
@@ -1400,7 +1400,7 @@ export type Database = {
           last_login_at?: string | null
           notification_preferences?: Json | null
           updated_at?: string | null
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           can_access_workspaces?: boolean | null
@@ -1417,7 +1417,7 @@ export type Database = {
           last_login_at?: string | null
           notification_preferences?: Json | null
           updated_at?: string | null
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: []
       }
