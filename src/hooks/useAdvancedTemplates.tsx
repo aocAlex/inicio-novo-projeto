@@ -403,6 +403,7 @@ export const useAdvancedTemplates = () => {
 
       // Enviar webhook se configurado
       if (template.webhook_url && template.webhook_enabled) {
+        console.log('Enviando webhook para:', template.webhook_url)
         await sendWebhook(template, execution as TemplateExecution, filledData, generatedContent)
       }
 
@@ -468,7 +469,34 @@ export const useAdvancedTemplates = () => {
     generatedContent: string
   ) => {
     try {
-      if (!template.webhook_url) return
+      if (!template.webhook_url) {
+        console.log('Nenhuma URL de webhook configurada')
+        return
+      }
+
+      console.log('Preparando payload do webhook...')
+      
+      // Buscar dados adicionais se necessário
+      let clientData = null
+      let processData = null
+      
+      if (execution.client_id) {
+        const { data: client } = await supabase
+          .from('clients')
+          .select('*')
+          .eq('id', execution.client_id)
+          .single()
+        clientData = client
+      }
+      
+      if (execution.process_id) {
+        const { data: process } = await supabase
+          .from('processes')
+          .select('*')
+          .eq('id', execution.process_id)
+          .single()
+        processData = process
+      }
 
       const payload = {
         event: 'petition_executed',
@@ -485,12 +513,10 @@ export const useAdvancedTemplates = () => {
         execution: {
           id: execution.id,
           execution_date: execution.created_at,
-          executed_by: {
-            id: execution.created_by,
-            name: 'Usuário', // TODO: buscar dados do usuário
-            email: 'usuario@exemplo.com'
-          }
+          executed_by: execution.created_by
         },
+        client: clientData,
+        process: processData,
         filled_data: filledData,
         generated_content: {
           raw_text: generatedContent,
@@ -502,10 +528,10 @@ export const useAdvancedTemplates = () => {
         }
       }
 
-      // Enviar webhook (seria implementado como Edge Function)
-      console.log('Webhook payload:', payload)
-      
-      // TODO: Implementar envio real do webhook
+      console.log('Enviando webhook para:', template.webhook_url)
+      console.log('Payload:', payload)
+
+      // Atualizar status para 'sent'
       await supabase
         .from('petition_executions')
         .update({
@@ -514,16 +540,67 @@ export const useAdvancedTemplates = () => {
         })
         .eq('id', execution.id)
 
-    } catch (error) {
-      console.error('Error sending webhook:', error)
+      // Enviar webhook
+      const response = await fetch(template.webhook_url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'User-Agent': 'LegalTemplate-Webhook/1.0'
+        },
+        body: JSON.stringify(payload)
+      })
+
+      console.log('Resposta do webhook:', response.status, response.statusText)
+
+      if (response.ok) {
+        const responseData = await response.text()
+        console.log('Webhook enviado com sucesso:', responseData)
+
+        await supabase
+          .from('petition_executions')
+          .update({
+            webhook_status: 'completed',
+            webhook_completed_at: new Date().toISOString(),
+            webhook_response: { 
+              status: response.status, 
+              statusText: response.statusText,
+              response: responseData 
+            }
+          })
+          .eq('id', execution.id)
+
+        toast({
+          title: "Webhook enviado",
+          description: "Dados enviados para o webhook com sucesso.",
+        })
+      } else {
+        throw new Error(`Webhook failed: ${response.status} ${response.statusText}`)
+      }
+
+    } catch (error: any) {
+      console.error('Erro ao enviar webhook:', error)
       
       await supabase
         .from('petition_executions')
         .update({
           webhook_status: 'failed',
-          retry_count: execution.retry_count + 1
+          webhook_response: { 
+            error: error.message,
+            timestamp: new Date().toISOString()
+          }
         })
         .eq('id', execution.id)
+
+      // Incrementar retry count
+      await supabase.rpc('increment_execution_retry_count', {
+        execution_id: execution.id
+      })
+
+      toast({
+        title: "Erro no webhook",
+        description: `Falha ao enviar webhook: ${error.message}`,
+        variant: "destructive",
+      })
     }
   }
 

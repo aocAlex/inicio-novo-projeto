@@ -152,9 +152,22 @@ export const usePetitions = () => {
 
       setExecutions(prev => [transformedExecution, ...prev]);
 
-      // Se houver webhook_url, enviar para N8n
+      // Se houver webhook_url, enviar para webhook
       if (executionData.webhook_url) {
+        console.log('Enviando para webhook personalizado:', executionData.webhook_url)
         await sendToWebhook(transformedExecution.id, executionData.webhook_url, transformedExecution);
+      } else {
+        // Verificar se o template tem webhook configurado
+        const { data: templateData } = await supabase
+          .from('petition_templates')
+          .select('webhook_url, webhook_enabled')
+          .eq('id', executionData.template_id)
+          .single()
+        
+        if (templateData?.webhook_url && templateData?.webhook_enabled) {
+          console.log('Enviando para webhook do template:', templateData.webhook_url)
+          await sendToWebhook(transformedExecution.id, templateData.webhook_url, transformedExecution);
+        }
       }
 
       toast({
@@ -178,6 +191,8 @@ export const usePetitions = () => {
 
   const sendToWebhook = async (executionId: string, webhookUrl: string, executionData: PetitionExecution) => {
     try {
+      console.log('Iniciando envio para webhook:', webhookUrl)
+      
       // Atualizar status para 'sent'
       await supabase
         .from('petition_executions')
@@ -187,48 +202,84 @@ export const usePetitions = () => {
         })
         .eq('id', executionId);
 
+      // Buscar dados completos da execução
+      const { data: fullExecution } = await supabase
+        .from('petition_executions')
+        .select(`
+          *,
+          template:petition_templates(id, name, category),
+          process:processes(id, title, process_number),
+          client:clients(id, name, email, phone, document_number)
+        `)
+        .eq('id', executionId)
+        .single()
+
+      const payload = {
+        event: 'petition_executed',
+        timestamp: new Date().toISOString(),
+        execution_id: executionId,
+        template: fullExecution?.template,
+        process: fullExecution?.process,
+        client: fullExecution?.client,
+        filled_data: executionData.filled_data,
+        generated_content: executionData.generated_content,
+        workspace_id: executionData.workspace_id
+      }
+
+      console.log('Payload do webhook:', payload)
+
       // Fazer chamada para o webhook
       const response = await fetch(webhookUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'User-Agent': 'LegalTemplate-Webhook/1.0'
         },
-        body: JSON.stringify({
-          execution_id: executionId,
-          template_name: executionData.template?.name,
-          filled_data: executionData.filled_data,
-          process: executionData.process,
-          client: executionData.client,
-        }),
+        body: JSON.stringify(payload),
       });
 
-      const responseData = await response.json();
+      console.log('Resposta do webhook:', response.status, response.statusText)
 
       if (response.ok) {
+        let responseData;
+        try {
+          responseData = await response.json();
+        } catch {
+          responseData = await response.text();
+        }
+
         await supabase
           .from('petition_executions')
           .update({
             webhook_status: 'completed',
             webhook_completed_at: new Date().toISOString(),
-            webhook_response: responseData,
+            webhook_response: {
+              status: response.status,
+              statusText: response.statusText,
+              data: responseData
+            },
           })
           .eq('id', executionId);
 
+        console.log('Webhook enviado com sucesso')
         toast({
           title: "Webhook enviado",
-          description: "Dados enviados para N8n com sucesso.",
+          description: "Dados enviados para o webhook com sucesso.",
         });
       } else {
-        throw new Error(responseData.message || 'Erro no webhook');
+        throw new Error(`Webhook failed: ${response.status} ${response.statusText}`);
       }
     } catch (err: any) {
-      console.error('Error sending webhook:', err);
+      console.error('Erro ao enviar webhook:', err);
       
       await supabase
         .from('petition_executions')
         .update({
           webhook_status: 'failed',
-          webhook_response: { error: err.message },
+          webhook_response: { 
+            error: err.message,
+            timestamp: new Date().toISOString()
+          },
         })
         .eq('id', executionId);
 
