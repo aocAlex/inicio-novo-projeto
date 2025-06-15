@@ -14,12 +14,14 @@ export const cleanupOrphanedMembers = async (workspaceId: string) => {
   try {
     console.log('Starting cleanup of orphaned members for workspace:', workspaceId);
 
-    // Get all active members for this workspace with simplified query
-    const { data: allMembers, error: allMembersError } = await supabase
+    // Get all active members for this workspace
+    const membersQuery = supabase
       .from('workspace_members')
       .select('id, user_id')
       .eq('workspace_id', workspaceId)
       .eq('status', 'active');
+
+    const { data: allMembers, error: allMembersError } = await membersQuery;
 
     if (allMembersError) {
       console.error('Error fetching all members:', allMembersError);
@@ -32,14 +34,16 @@ export const cleanupOrphanedMembers = async (workspaceId: string) => {
     }
 
     // Check which members have valid profiles
-    const orphanedMembers = [];
+    const orphanedMembers: WorkspaceMember[] = [];
     
     for (const member of allMembers) {
-      const { data: profile, error: profileError } = await supabase
+      const profileQuery = supabase
         .from('profiles')
         .select('id')
         .eq('id', member.user_id)
         .single();
+
+      const { data: profile, error: profileError } = await profileQuery;
 
       if (profileError || !profile) {
         orphanedMembers.push(member);
@@ -54,13 +58,16 @@ export const cleanupOrphanedMembers = async (workspaceId: string) => {
 
     // Suspend orphaned members
     const orphanedIds = orphanedMembers.map(m => m.id);
-    const { error: updateError } = await supabase
+    
+    const updateQuery = supabase
       .from('workspace_members')
       .update({ 
         status: 'suspended',
         updated_at: new Date().toISOString()
       })
       .in('id', orphanedIds);
+
+    const { error: updateError } = await updateQuery;
 
     if (updateError) {
       console.error('Error suspending orphaned members:', updateError);
@@ -78,11 +85,13 @@ export const cleanupOrphanedMembers = async (workspaceId: string) => {
 
 export const validateMemberExists = async (userId: string): Promise<boolean> => {
   try {
-    const { data, error } = await supabase
+    const profileQuery = supabase
       .from('profiles')
       .select('id')
       .eq('id', userId)
       .single();
+
+    const { data, error } = await profileQuery;
 
     if (error || !data) {
       console.error('Error validating user:', error);

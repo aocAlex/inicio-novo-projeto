@@ -8,14 +8,37 @@ import { Loader2, AlertTriangle, RefreshCw } from 'lucide-react';
 import { AppRoutes } from './Routes';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
+import { SidebarProvider, SidebarInset, SidebarTrigger, useSidebar } from '@/components/ui/sidebar';
+
+const MainAppContent = () => {
+  const { toggleSidebar } = useSidebar();
+  
+  // Enable keyboard shortcuts with sidebar toggle
+  useKeyboardShortcuts(toggleSidebar);
+
+  return (
+    <>
+      <ModernSidebar />
+      <SidebarInset className="flex flex-1 flex-col min-w-0">
+        <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
+          <SidebarTrigger className="-ml-1" />
+          <div className="flex-1">
+            <Header />
+          </div>
+        </header>
+        <main className="flex-1 overflow-auto">
+          <div className="max-w-7xl mx-auto p-6">
+            <AppRoutes />
+          </div>
+        </main>
+      </SidebarInset>
+    </>
+  );
+};
 
 export const MainApp = () => {
   const { user, loading: authLoading } = useAuth();
   const { currentWorkspace, isLoading: workspaceLoading, error: workspaceError, refreshWorkspaces } = useWorkspace();
-  
-  // Enable keyboard shortcuts
-  useKeyboardShortcuts();
 
   console.log('📱 MainApp - Render state:', { 
     user: !!user, 
@@ -123,20 +146,7 @@ export const MainApp = () => {
   return (
     <SidebarProvider defaultOpen={false}>
       <div className="min-h-screen bg-background flex w-full">
-        <ModernSidebar />
-        <SidebarInset className="flex flex-1 flex-col min-w-0">
-          <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
-            <SidebarTrigger className="-ml-1" />
-            <div className="flex-1">
-              <Header />
-            </div>
-          </header>
-          <main className="flex-1 overflow-auto">
-            <div className="max-w-7xl mx-auto p-6">
-              <AppRoutes />
-            </div>
-          </main>
-        </SidebarInset>
+        <MainAppContent />
       </div>
     </SidebarProvider>
   );

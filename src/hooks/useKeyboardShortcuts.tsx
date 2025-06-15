@@ -1,7 +1,6 @@
 
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useSidebar } from '@/components/ui/sidebar';
 
 const navigation = [
   { shortcut: '1', href: '/dashboard' },
@@ -13,16 +12,17 @@ const navigation = [
   { shortcut: '7', href: '/settings' },
 ];
 
-export const useKeyboardShortcuts = () => {
+export const useKeyboardShortcuts = (toggleSidebar?: () => void) => {
   const navigate = useNavigate();
-  const { toggleSidebar } = useSidebar();
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      // Ctrl/Cmd + B to toggle sidebar
+      // Ctrl/Cmd + B to toggle sidebar (only if toggle function is provided)
       if ((event.ctrlKey || event.metaKey) && event.key === 'b') {
         event.preventDefault();
-        toggleSidebar();
+        if (toggleSidebar) {
+          toggleSidebar();
+        }
         return;
       }
 
