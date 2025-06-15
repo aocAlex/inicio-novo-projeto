@@ -46,67 +46,64 @@ export const MembersManagement = () => {
       
       console.log('Loading members for workspace:', currentWorkspace.id);
       
-      // Buscar membros válidos usando JOIN manual
-      const { data: membersData, error: membersError } = await supabase
-        .from('workspace_members')
-        .select(`
-          *,
-          profiles!inner(
-            id,
-            email,
-            full_name,
-            avatar_url
-          )
-        `)
-        .eq('workspace_id', currentWorkspace.id)
-        .eq('status', 'active');
-
-      if (membersError) {
-        console.error('Error loading members:', membersError);
-        throw membersError;
-      }
-
-      // Buscar total de membros para comparação (incluindo órfãos)
+      // First get all active members
       const { data: allMembersData, error: allMembersError } = await supabase
         .from('workspace_members')
-        .select('id')
+        .select('*')
         .eq('workspace_id', currentWorkspace.id)
         .eq('status', 'active');
 
       if (allMembersError) {
         console.error('Error loading all members:', allMembersError);
+        throw allMembersError;
       }
 
-      const totalMembers = allMembersData?.length || 0;
-      const validMembers = membersData?.length || 0;
-      const orphanedMembers = totalMembers - validMembers;
+      // Get valid members with profiles - using separate queries to avoid JOIN issues
+      const validMembers: WorkspaceMember[] = [];
+      let orphanedMembers = 0;
+
+      if (allMembersData) {
+        for (const member of allMembersData) {
+          // Check if profile exists for this user
+          const { data: profileData, error: profileError } = await supabase
+            .from('profiles')
+            .select('id, email, full_name, avatar_url')
+            .eq('id', member.user_id)
+            .single();
+
+          if (profileError || !profileData) {
+            // This is an orphaned member
+            orphanedMembers++;
+            console.log('Orphaned member found:', member.user_id);
+          } else {
+            // Valid member with profile
+            validMembers.push({
+              id: member.id,
+              workspace_id: member.workspace_id,
+              user_id: member.user_id,
+              role: member.role as 'owner' | 'admin' | 'editor' | 'viewer',
+              status: member.status as 'active' | 'pending' | 'suspended',
+              permissions: typeof member.permissions === 'object' && member.permissions !== null ? member.permissions as Record<string, any> : {},
+              last_activity: member.last_activity,
+              created_at: member.created_at,
+              profile: {
+                id: profileData.id,
+                email: profileData.email,
+                full_name: profileData.full_name,
+                avatar_url: profileData.avatar_url,
+              },
+            });
+          }
+        }
+      }
 
       setOrphanedCount(orphanedMembers);
+      setMembers(validMembers);
 
-      // Mapear membros válidos
-      const mappedMembers: WorkspaceMember[] = membersData?.map(member => ({
-        id: member.id,
-        workspace_id: member.workspace_id,
-        user_id: member.user_id,
-        role: member.role as 'owner' | 'admin' | 'editor' | 'viewer',
-        status: member.status as 'active' | 'pending' | 'suspended',
-        permissions: typeof member.permissions === 'object' && member.permissions !== null ? member.permissions as Record<string, any> : {},
-        last_activity: member.last_activity,
-        created_at: member.created_at,
-        profile: {
-          id: member.profiles.id,
-          email: member.profiles.email,
-          full_name: member.profiles.full_name,
-          avatar_url: member.profiles.avatar_url,
-        },
-      })) || [];
-
-      console.log('Valid members loaded:', mappedMembers.length);
+      console.log('Valid members loaded:', validMembers.length);
       console.log('Orphaned members detected:', orphanedMembers);
 
-      setMembers(mappedMembers);
-
-      // Mostrar aviso se há membros órfãos
+      // Show warning if orphaned members found
       if (orphanedMembers > 0) {
         toast({
           title: "Membros órfãos detectados",
@@ -141,7 +138,7 @@ export const MembersManagement = () => {
           description: `${result.removedCount} membro(s) órfão(s) foram removidos`,
         });
         
-        // Recarregar membros
+        // Reload members
         await loadMembers();
       } else {
         throw new Error('Falha na limpeza de membros órfãos');

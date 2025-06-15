@@ -1,4 +1,3 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
@@ -60,7 +59,7 @@ export const useWorkspaceOptions = () => {
     enabled: !!currentWorkspace?.id,
   });
 
-  // Buscar usuários válidos da workspace usando JOIN manual
+  // Buscar usuários válidos da workspace usando consultas separadas
   const { data: workspaceUsers = [] } = useQuery({
     queryKey: ['workspace-users', currentWorkspace?.id],
     queryFn: async () => {
@@ -68,32 +67,42 @@ export const useWorkspaceOptions = () => {
 
       console.log('Loading workspace users for workspace:', currentWorkspace.id);
 
-      // Usar JOIN manual para garantir apenas usuários válidos
-      const { data, error } = await supabase
+      // Get active members first
+      const { data: membersData, error: membersError } = await supabase
         .from('workspace_members')
-        .select(`
-          user_id,
-          profiles!inner(
-            id,
-            email,
-            full_name
-          )
-        `)
+        .select('user_id')
         .eq('workspace_id', currentWorkspace.id)
         .eq('status', 'active');
 
-      if (error) {
-        console.error('Error loading workspace users:', error);
-        throw error;
+      if (membersError) {
+        console.error('Error loading workspace members:', membersError);
+        throw membersError;
       }
+
+      if (!membersData || membersData.length === 0) {
+        console.log('No active members found');
+        return [];
+      }
+
+      // Get profiles for these users
+      const userIds = membersData.map(m => m.user_id);
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, email, full_name')
+        .in('id', userIds);
+
+      if (profilesError) {
+        console.error('Error loading profiles:', profilesError);
+        throw profilesError;
+      }
+
+      console.log('Valid users found:', profilesData?.length || 0);
       
-      console.log('Valid users from join:', data?.length || 0);
-      
-      // Mapear resultados
-      const validUsers = data?.map((member: any) => ({
-        id: member.user_id,
-        full_name: member.profiles.full_name || member.profiles.email || 'Usuário sem nome',
-        email: member.profiles.email || ''
+      // Map to expected format
+      const validUsers = profilesData?.map(profile => ({
+        id: profile.id,
+        full_name: profile.full_name || profile.email || 'Usuário sem nome',
+        email: profile.email || ''
       })) || [];
 
       console.log('Mapped valid users:', validUsers.length);

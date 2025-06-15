@@ -5,26 +5,10 @@ export const cleanupOrphanedMembers = async (workspaceId: string) => {
   try {
     console.log('Starting cleanup of orphaned members for workspace:', workspaceId);
 
-    // Buscar membros válidos usando JOIN manual
-    const { data: validMembers, error: validMembersError } = await supabase
-      .from('workspace_members')
-      .select(`
-        id,
-        user_id,
-        profiles!inner(id)
-      `)
-      .eq('workspace_id', workspaceId)
-      .eq('status', 'active');
-
-    if (validMembersError) {
-      console.error('Error fetching valid members:', validMembersError);
-      return { success: false, error: validMembersError };
-    }
-
-    // Buscar todos os membros para comparação
+    // Get all active members for this workspace
     const { data: allMembers, error: allMembersError } = await supabase
       .from('workspace_members')
-      .select('id, user_id, status')
+      .select('id, user_id')
       .eq('workspace_id', workspaceId)
       .eq('status', 'active');
 
@@ -33,16 +17,33 @@ export const cleanupOrphanedMembers = async (workspaceId: string) => {
       return { success: false, error: allMembersError };
     }
 
-    const validUserIds = new Set(validMembers?.map(m => m.user_id) || []);
-    const orphanedMembers = allMembers?.filter(member => !validUserIds.has(member.user_id)) || [];
+    if (!allMembers || allMembers.length === 0) {
+      console.log('No active members found');
+      return { success: true, removedCount: 0 };
+    }
 
-    console.log(`Found ${orphanedMembers.length} orphaned members out of ${allMembers?.length || 0} total`);
+    // Check which members have valid profiles
+    const orphanedMembers = [];
+    
+    for (const member of allMembers) {
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('id', member.user_id)
+        .single();
+
+      if (profileError || !profile) {
+        orphanedMembers.push(member);
+      }
+    }
+
+    console.log(`Found ${orphanedMembers.length} orphaned members out of ${allMembers.length} total`);
 
     if (orphanedMembers.length === 0) {
       return { success: true, removedCount: 0 };
     }
 
-    // Suspender membros órfãos
+    // Suspend orphaned members
     const orphanedIds = orphanedMembers.map(m => m.id);
     const { error: updateError } = await supabase
       .from('workspace_members')
@@ -69,14 +70,17 @@ export const cleanupOrphanedMembers = async (workspaceId: string) => {
 export const validateMemberExists = async (userId: string): Promise<boolean> => {
   try {
     const { data, error } = await supabase
-      .rpc('validate_user_exists', { user_id: userId });
+      .from('profiles')
+      .select('id')
+      .eq('id', userId)
+      .single();
 
-    if (error) {
+    if (error || !data) {
       console.error('Error validating user:', error);
       return false;
     }
 
-    return data === true;
+    return true;
   } catch {
     return false;
   }
