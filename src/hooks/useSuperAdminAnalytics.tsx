@@ -70,7 +70,27 @@ export const useSuperAdminAnalytics = () => {
 
       if (fetchError) throw fetchError;
 
-      setWorkspaceAnalytics(data || []);
+      // Convert database response to our WorkspaceAnalytics type
+      const convertedData: WorkspaceAnalytics[] = (data || []).map(item => ({
+        workspace_id: item.workspace_id,
+        workspace_name: item.workspace_name,
+        workspace_created_at: item.workspace_created_at,
+        workspace_updated_at: item.workspace_updated_at,
+        total_members: item.total_members,
+        owners_count: item.owners_count,
+        admins_count: item.admins_count,
+        total_clients: item.total_clients,
+        total_processes: item.total_processes,
+        total_templates: item.total_templates,
+        total_executions: item.total_executions,
+        recent_activities: item.recent_activities,
+        last_activity: item.last_activity,
+        activity_status: (item.activity_status === 'active' || item.activity_status === 'idle' || item.activity_status === 'inactive') 
+          ? item.activity_status 
+          : 'inactive'
+      }));
+
+      setWorkspaceAnalytics(convertedData);
     } catch (err: any) {
       console.error('Error fetching workspace analytics:', err);
       setError(err.message);

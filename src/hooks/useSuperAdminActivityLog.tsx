@@ -1,7 +1,6 @@
 
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { SuperAdminActivityLog } from '@/types/superadmin';
 import { useSuperAdmin } from './useSuperAdmin';
 
 export const useSuperAdminActivityLog = () => {
@@ -26,17 +25,17 @@ export const useSuperAdminActivityLog = () => {
     setIsLogging(true);
 
     try {
-      const logEntry: Partial<SuperAdminActivityLog> = {
+      const logEntry = {
         super_admin_id: superAdminData.id,
         action_type: actionType,
         action_description: actionDescription,
-        target_workspace_id: options?.targetWorkspaceId,
-        target_user_id: options?.targetUserId,
-        old_values: options?.oldValues,
-        new_values: options?.newValues,
+        target_workspace_id: options?.targetWorkspaceId || null,
+        target_user_id: options?.targetUserId || null,
+        old_values: options?.oldValues || null,
+        new_values: options?.newValues || null,
         severity: options?.severity || 'info',
         success: options?.success !== false,
-        error_message: options?.errorMessage,
+        error_message: options?.errorMessage || null,
         ip_address: await getClientIP(),
         user_agent: navigator.userAgent,
         session_id: generateSessionId(),
