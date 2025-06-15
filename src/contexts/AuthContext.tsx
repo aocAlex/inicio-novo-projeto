@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -33,6 +32,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   console.log('AuthProvider - user:', user?.id, 'profile:', profile?.id, 'loading:', loading);
 
+  const parsePreferences = (preferences: any) => {
+    // Garantir que preferences seja um objeto válido
+    const prefs = preferences && typeof preferences === 'object' 
+      ? preferences 
+      : { notifications: true, email_alerts: true, theme: 'light' };
+
+    return {
+      notifications: prefs.notifications ?? true,
+      email_alerts: prefs.email_alerts ?? true,
+      theme: (prefs.theme === 'dark' ? 'dark' : 'light') as 'light' | 'dark'
+    };
+  };
+
   const ensureProfileExists = async (userId: string, userEmail: string, metadata?: any): Promise<Profile | null> => {
     try {
       console.log('Garantindo que perfil existe para userId:', userId);
@@ -51,7 +63,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (existingProfile) {
         console.log('Perfil já existe:', existingProfile.id);
-        return existingProfile;
+        // Converter o perfil existente para o tipo correto
+        const convertedProfile: Profile = {
+          ...existingProfile,
+          preferences: parsePreferences(existingProfile.preferences)
+        };
+        return convertedProfile;
       }
 
       // Se não existe, criar um novo perfil
@@ -82,13 +99,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             .select('*')
             .eq('id', userId)
             .single();
-          return duplicateProfile;
+          
+          if (duplicateProfile) {
+            const convertedProfile: Profile = {
+              ...duplicateProfile,
+              preferences: parsePreferences(duplicateProfile.preferences)
+            };
+            return convertedProfile;
+          }
         }
         throw createError;
       }
 
       console.log('Novo perfil criado com sucesso:', newProfile.id);
-      return newProfile;
+      // Converter o novo perfil para o tipo correto
+      const convertedProfile: Profile = {
+        ...newProfile,
+        preferences: parsePreferences(newProfile.preferences)
+      };
+      return convertedProfile;
     } catch (error) {
       console.error('Erro em ensureProfileExists:', error);
       return null;
@@ -102,19 +131,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const profileData = await ensureProfileExists(userId, userEmail, metadata);
       
       if (profileData) {
-        // Garantir que preferences seja um objeto válido
-        const preferences = profileData.preferences && typeof profileData.preferences === 'object' 
-          ? profileData.preferences as any
-          : { notifications: true, email_alerts: true, theme: 'light' };
-
-        setProfile({
-          ...profileData,
-          preferences: {
-            notifications: preferences.notifications ?? true,
-            email_alerts: preferences.email_alerts ?? true,
-            theme: preferences.theme ?? 'light'
-          }
-        });
+        setProfile(profileData);
         console.log('Perfil carregado com sucesso:', profileData.id);
       } else {
         console.error('Falha ao carregar/criar perfil');
