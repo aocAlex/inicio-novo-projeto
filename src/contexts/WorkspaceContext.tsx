@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './AuthContext';
@@ -35,6 +34,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [currentMember, setCurrentMember] = useState<WorkspaceMember | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
 
   const switchWorkspace = async (workspaceId: string) => {
     if (!user) return;
@@ -117,6 +117,13 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     if (!user) {
       console.log('LoadWorkspaces: Não há usuário logado');
       setIsLoading(false);
+      setHasLoadedOnce(true);
+      return;
+    }
+
+    // Evitar carregamentos múltiplos simultâneos
+    if (isLoading && hasLoadedOnce) {
+      console.log('LoadWorkspaces: Já está carregando, ignorando');
       return;
     }
 
@@ -146,19 +153,21 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       setWorkspaces(userWorkspaces);
       console.log('LoadWorkspaces: Workspaces definidas:', userWorkspaces);
 
-      // Set current workspace
-      let currentWorkspaceId = profile?.current_workspace_id;
-      
-      if (!currentWorkspaceId && userWorkspaces.length > 0) {
-        currentWorkspaceId = userWorkspaces[0].id;
-        console.log('LoadWorkspaces: Usando primeira workspace como padrão:', currentWorkspaceId);
-      }
+      // Set current workspace only if we don't have one yet
+      if (!currentWorkspace) {
+        let currentWorkspaceId = profile?.current_workspace_id;
+        
+        if (!currentWorkspaceId && userWorkspaces.length > 0) {
+          currentWorkspaceId = userWorkspaces[0].id;
+          console.log('LoadWorkspaces: Usando primeira workspace como padrão:', currentWorkspaceId);
+        }
 
-      if (currentWorkspaceId) {
-        console.log('LoadWorkspaces: Trocando para workspace:', currentWorkspaceId);
-        await switchWorkspace(currentWorkspaceId);
-      } else {
-        console.log('LoadWorkspaces: Nenhuma workspace disponível');
+        if (currentWorkspaceId) {
+          console.log('LoadWorkspaces: Trocando para workspace:', currentWorkspaceId);
+          await switchWorkspace(currentWorkspaceId);
+        } else {
+          console.log('LoadWorkspaces: Nenhuma workspace disponível');
+        }
       }
 
     } catch (error: any) {
@@ -172,8 +181,9 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     } finally {
       console.log('LoadWorkspaces: Finalizando carregamento');
       setIsLoading(false);
+      setHasLoadedOnce(true);
     }
-  }, [user?.id]); // Só depender do user.id, não do objeto user inteiro
+  }, [user?.id, profile?.current_workspace_id, currentWorkspace?.id]); // Dependências mais específicas
 
   const createWorkspace = async (data: CreateWorkspaceData): Promise<Workspace> => {
     if (!user) throw new Error('User not authenticated');
@@ -254,14 +264,15 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const refreshWorkspaces = async () => {
+    setHasLoadedOnce(false);
     await loadWorkspaces();
   };
 
   useEffect(() => {
     console.log('WorkspaceProvider useEffect - user:', user?.id, 'profile loaded:', !!profile);
     
-    if (user && profile !== undefined) {
-      // Só carregar workspaces quando tanto user quanto profile estiverem definidos
+    // Só carregar se o usuário estiver logado e o profile estiver carregado (null ou objeto)
+    if (user && profile !== undefined && !hasLoadedOnce) {
       loadWorkspaces();
     } else if (!user) {
       // Se não há user, limpar tudo
@@ -269,8 +280,9 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       setWorkspaces([]);
       setCurrentMember(null);
       setIsLoading(false);
+      setHasLoadedOnce(true);
     }
-  }, [user?.id, profile?.id, loadWorkspaces]); // Dependências mais específicas
+  }, [user?.id, profile, loadWorkspaces, hasLoadedOnce]);
 
   const value = {
     currentWorkspace,
