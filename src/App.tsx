@@ -23,6 +23,8 @@ const queryClient = new QueryClient({
 });
 
 function App() {
+  console.log('App - Root component rendering');
+  
   return (
     <QueryClientProvider client={queryClient}>
       <Router>
@@ -34,7 +36,7 @@ function App() {
             {/* Public Routes */}
             <Route path="/auth" element={<AuthPage />} />
             
-            {/* Protected Routes */}
+            {/* Protected Routes - All app routes go through MainApp */}
             <Route
               path="/dashboard/*"
               element={
