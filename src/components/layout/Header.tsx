@@ -7,13 +7,29 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { WorkspaceSelector } from '../workspace/WorkspaceSelector';
 import { Scale, LogOut, Settings, User } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 export const Header = () => {
   const { user, profile, signOut } = useAuth();
   const { currentWorkspace } = useWorkspace();
+  const navigate = useNavigate();
 
   const handleSignOut = async () => {
-    await signOut();
+    try {
+      console.log('Iniciando logout...');
+      await signOut();
+      console.log('Logout realizado, redirecionando...');
+      // Forçar navegação para a página de auth
+      navigate('/auth', { replace: true });
+      // Como fallback, também usar window.location
+      setTimeout(() => {
+        window.location.href = '/auth';
+      }, 100);
+    } catch (error) {
+      console.error('Erro no logout:', error);
+      // Mesmo com erro, tentar redirecionar
+      navigate('/auth', { replace: true });
+    }
   };
 
   const getUserInitials = () => {

@@ -1,6 +1,7 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 
 interface ProtectedRouteProps {
@@ -9,6 +10,16 @@ interface ProtectedRouteProps {
 
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const { user, loading } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    console.log('ProtectedRoute - user:', user, 'loading:', loading);
+    
+    if (!loading && !user) {
+      console.log('Usuário não autenticado, redirecionando para /auth');
+      navigate('/auth', { replace: true });
+    }
+  }, [user, loading, navigate]);
 
   if (loading) {
     return (
@@ -22,7 +33,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   }
 
   if (!user) {
-    return null; // This will be handled by the main App component
+    return null; // O redirecionamento será feito pelo useEffect
   }
 
   return <>{children}</>;

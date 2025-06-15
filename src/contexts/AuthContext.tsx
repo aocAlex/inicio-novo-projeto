@@ -167,7 +167,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signOut = async () => {
     console.log('Fazendo signOut');
-    await supabase.auth.signOut();
+    
+    // Limpar o estado imediatamente
+    setUser(null);
+    setSession(null);
+    setProfile(null);
+    
+    // Limpar localStorage
+    Object.keys(localStorage).forEach(key => {
+      if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+        localStorage.removeItem(key);
+      }
+    });
+    
+    try {
+      // Tentar logout do Supabase
+      await supabase.auth.signOut({ scope: 'global' });
+    } catch (error) {
+      console.error('Erro no signOut do Supabase:', error);
+      // Continuar mesmo com erro
+    }
+    
+    console.log('SignOut concluído');
   };
 
   const updateProfile = async (data: Partial<Profile>) => {
