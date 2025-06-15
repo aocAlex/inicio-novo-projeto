@@ -63,7 +63,7 @@ export const useContractTemplates = () => {
         throw error;
       }
 
-      setTemplates(data || []);
+      setTemplates((data as ContractTemplate[]) || []);
     } catch (err: any) {
       setError(err.message);
       console.error('Error loading contract templates:', err);
@@ -104,7 +104,7 @@ export const useContractTemplates = () => {
         throw error;
       }
 
-      const newTemplate: ContractTemplate = data;
+      const newTemplate = data as ContractTemplate;
       setTemplates(prev => [newTemplate, ...prev]);
 
       toast({
@@ -146,7 +146,7 @@ export const useContractTemplates = () => {
         throw error;
       }
 
-      const updatedTemplate: ContractTemplate = data;
+      const updatedTemplate = data as ContractTemplate;
 
       setTemplates(prev => 
         prev.map(template => 
@@ -220,7 +220,7 @@ export const useContractTemplates = () => {
         throw error;
       }
 
-      return data;
+      return data as ContractTemplate;
     } catch (err: any) {
       console.error('Error getting contract template:', err);
       return null;

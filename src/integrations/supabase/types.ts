@@ -391,6 +391,59 @@ export type Database = {
           },
         ]
       }
+      contract_templates: {
+        Row: {
+          contract_name: string
+          contract_type: string | null
+          contract_value: number | null
+          created_at: string
+          created_by: string
+          default_status: string
+          id: string
+          is_active: boolean
+          notes: string | null
+          template_name: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          contract_name: string
+          contract_type?: string | null
+          contract_value?: number | null
+          created_at?: string
+          created_by: string
+          default_status?: string
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          template_name: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          contract_name?: string
+          contract_type?: string | null
+          contract_value?: number | null
+          created_at?: string
+          created_by?: string
+          default_status?: string
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          template_name?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_templates_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contract_webhook_logs: {
         Row: {
           contract_id: string | null

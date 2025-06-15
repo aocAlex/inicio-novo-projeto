@@ -25,12 +25,19 @@ export const ContractTemplateModal: React.FC<ContractTemplateModalProps> = ({
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    template_name: string;
+    contract_name: string;
+    contract_type: string;
+    contract_value: string;
+    default_status: 'pending' | 'signed' | 'rejected' | 'expired';
+    notes: string;
+  }>({
     template_name: '',
     contract_name: '',
     contract_type: '',
     contract_value: '',
-    default_status: 'pending' as const,
+    default_status: 'pending',
     notes: ''
   });
 
@@ -50,7 +57,7 @@ export const ContractTemplateModal: React.FC<ContractTemplateModalProps> = ({
         contract_name: '',
         contract_type: '',
         contract_value: '',
-        default_status: 'pending' as const,
+        default_status: 'pending',
         notes: ''
       });
     }
@@ -154,7 +161,9 @@ export const ContractTemplateModal: React.FC<ContractTemplateModalProps> = ({
               <Label htmlFor="default_status">Status Padrão</Label>
               <Select
                 value={formData.default_status}
-                onValueChange={(value) => setFormData(prev => ({ ...prev, default_status: value as any }))}
+                onValueChange={(value: 'pending' | 'signed' | 'rejected' | 'expired') => 
+                  setFormData(prev => ({ ...prev, default_status: value }))
+                }
               >
                 <SelectTrigger>
                   <SelectValue />
