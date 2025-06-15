@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -91,11 +90,18 @@ export const useContractTemplates = () => {
       setIsLoading(true);
       setError(null);
 
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        throw new Error('Usuário não autenticado');
+      }
+
       const { data, error } = await supabase
         .from('contract_templates')
         .insert({
           ...templateData,
           workspace_id: currentWorkspace.id,
+          created_by: user.id,
         })
         .select()
         .single();
