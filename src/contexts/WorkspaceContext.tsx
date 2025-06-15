@@ -17,6 +17,7 @@ interface WorkspaceContextType {
   error: string | null;
   switchWorkspace: (workspaceId: string) => Promise<void>;
   createWorkspace: (data: CreateWorkspaceData) => Promise<void>;
+  updateWorkspace: (workspaceId: string, data: Partial<Workspace>) => Promise<void>;
   refreshWorkspaces: () => Promise<void>;
 }
 
@@ -34,7 +35,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const { user } = useAuth();
   const { toast } = useToast();
   const { loadWorkspaces, error: loaderError } = useWorkspaceLoader();
-  const { createWorkspace: createWorkspaceManager } = useWorkspaceManager();
+  const { createWorkspace: createWorkspaceManager, updateWorkspace: updateWorkspaceManager } = useWorkspaceManager();
   
   const [currentWorkspace, setCurrentWorkspace] = useState<Workspace | null>(null);
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
@@ -153,6 +154,30 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
   }, [user?.id, createWorkspaceManager, refreshWorkspaces, switchWorkspace]);
 
+  const updateWorkspace = useCallback(async (workspaceId: string, data: Partial<Workspace>) => {
+    try {
+      console.log('🔄 WorkspaceContext - Updating workspace:', workspaceId);
+      
+      await updateWorkspaceManager(workspaceId, data);
+      
+      // Update local state
+      setWorkspaces(prev => prev.map(w => 
+        w.id === workspaceId ? { ...w, ...data } : w
+      ));
+      
+      // Update current workspace if it's the one being updated
+      if (currentWorkspace?.id === workspaceId) {
+        setCurrentWorkspace(prev => prev ? { ...prev, ...data } : null);
+      }
+      
+      console.log('✅ WorkspaceContext - Workspace updated successfully');
+      
+    } catch (error: any) {
+      console.error('❌ WorkspaceContext - Error updating workspace:', error);
+      throw error;
+    }
+  }, [updateWorkspaceManager, currentWorkspace?.id]);
+
   // Load workspaces on user change
   useEffect(() => {
     if (user?.id && user?.email) {
@@ -181,6 +206,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     error,
     switchWorkspace,
     createWorkspace,
+    updateWorkspace,
     refreshWorkspaces,
   };
 
