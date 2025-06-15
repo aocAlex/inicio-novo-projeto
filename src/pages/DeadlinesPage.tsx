@@ -34,6 +34,7 @@ export const DeadlinesPage = () => {
   const handleCreateDeadline = async (data: DeadlineFormData): Promise<Deadline> => {
     const result = await createDeadline(data);
     setShowCreateModal(false);
+    
     // Converter o resultado para o tipo Deadline com verificações de null
     const convertedResult: Deadline = {
       ...result,
@@ -62,6 +63,7 @@ export const DeadlinesPage = () => {
     if (editingDeadline) {
       const result = await updateDeadline(editingDeadline.id, data);
       setEditingDeadline(undefined);
+      
       // Converter o resultado para o tipo Deadline com verificações de null
       const convertedResult: Deadline = {
         ...result,

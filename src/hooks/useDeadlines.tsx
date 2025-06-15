@@ -14,7 +14,8 @@ const isValidRelation = (relation: any) => {
          typeof relation === 'object' && 
          !relation.error && 
          relation.id && 
-         typeof relation.id === 'string';
+         typeof relation.id === 'string' &&
+         !Array.isArray(relation);
 };
 
 export const useDeadlines = () => {
