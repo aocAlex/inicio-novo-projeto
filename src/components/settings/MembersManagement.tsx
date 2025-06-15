@@ -41,23 +41,38 @@ export const MembersManagement = () => {
 
     try {
       setIsLoading(true);
-      const { data, error } = await supabase
+      
+      // First get workspace members
+      const { data: membersData, error: membersError } = await supabase
         .from('workspace_members')
-        .select(`
-          *,
-          profile:profiles(id, email, full_name, avatar_url)
-        `)
+        .select('*')
         .eq('workspace_id', currentWorkspace.id)
         .eq('status', 'active');
 
-      if (error) throw error;
+      if (membersError) throw membersError;
 
-      const membersWithProfile = data.map(member => ({
-        ...member,
+      // Then get profiles for each member
+      const memberIds = membersData.map(member => member.user_id);
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, email, full_name, avatar_url')
+        .in('id', memberIds);
+
+      if (profilesError) {
+        console.warn('Could not load profiles:', profilesError);
+      }
+
+      // Combine members with their profiles
+      const membersWithProfile: WorkspaceMember[] = membersData.map(member => ({
+        id: member.id,
+        workspace_id: member.workspace_id,
+        user_id: member.user_id,
         role: member.role as 'owner' | 'admin' | 'editor' | 'viewer',
         status: member.status as 'active' | 'pending' | 'suspended',
-        permissions: typeof member.permissions === 'object' ? member.permissions : {},
-        profile: member.profile || undefined,
+        permissions: typeof member.permissions === 'object' && member.permissions !== null ? member.permissions as Record<string, any> : {},
+        last_activity: member.last_activity,
+        created_at: member.created_at,
+        profile: profilesData?.find(profile => profile.id === member.user_id) || undefined,
       }));
 
       setMembers(membersWithProfile);
@@ -260,7 +275,7 @@ export const MembersManagement = () => {
                       <p className="font-medium">
                         {member.profile?.full_name || 'Nome não informado'}
                       </p>
-                      <p className="text-sm text-gray-500">{member.profile?.email}</p>
+                      <p className="text-sm text-gray-500">{member.profile?.email || 'Email não disponível'}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
