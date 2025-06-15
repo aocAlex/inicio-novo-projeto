@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -28,6 +27,36 @@ const convertClientRelation = (client: any) => {
   return {
     id: client.id,
     name: client.name || ''
+  };
+};
+
+const convertAssignedUserRelation = (user: any) => {
+  if (!user || typeof user !== 'object' || !user.id || typeof user.id !== 'string') {
+    return undefined;
+  }
+  return {
+    id: user.id,
+    full_name: user.full_name || ''
+  };
+};
+
+const convertPetitionRelation = (petition: any) => {
+  if (!petition || typeof petition !== 'object' || !petition.id || typeof petition.id !== 'string') {
+    return undefined;
+  }
+  return {
+    id: petition.id,
+    name: petition.name || '',
+    category: petition.category || ''
+  };
+};
+
+const convertPetitionExecutionRelation = (execution: any) => {
+  if (!execution || typeof execution !== 'object' || !execution.id || typeof execution.id !== 'string') {
+    return undefined;
+  }
+  return {
+    id: execution.id
   };
 };
 
@@ -67,9 +96,9 @@ export const DeadlinesPage = () => {
       custom_fields: typeof result.custom_fields === 'object' && result.custom_fields !== null ? result.custom_fields : {},
       process: convertProcessRelation(result.process),
       client: convertClientRelation(result.client),
-      assigned_user: result.assigned_user && typeof result.assigned_user === 'object' && 'id' in result.assigned_user ? result.assigned_user : undefined,
-      petition: result.petition && typeof result.petition === 'object' && 'id' in result.petition ? result.petition : undefined,
-      petition_execution: result.petition_execution && typeof result.petition_execution === 'object' && 'id' in result.petition_execution ? result.petition_execution : undefined,
+      assigned_user: convertAssignedUserRelation(result.assigned_user),
+      petition: convertPetitionRelation(result.petition),
+      petition_execution: convertPetitionExecutionRelation(result.petition_execution),
     };
     return convertedResult;
   };
@@ -89,9 +118,9 @@ export const DeadlinesPage = () => {
         custom_fields: typeof result.custom_fields === 'object' && result.custom_fields !== null ? result.custom_fields : {},
         process: convertProcessRelation(result.process),
         client: convertClientRelation(result.client),
-        assigned_user: result.assigned_user && typeof result.assigned_user === 'object' && 'id' in result.assigned_user ? result.assigned_user : undefined,
-        petition: result.petition && typeof result.petition === 'object' && 'id' in result.petition ? result.petition : undefined,
-        petition_execution: result.petition_execution && typeof result.petition_execution === 'object' && 'id' in result.petition_execution ? result.petition_execution : undefined,
+        assigned_user: convertAssignedUserRelation(result.assigned_user),
+        petition: convertPetitionRelation(result.petition),
+        petition_execution: convertPetitionExecutionRelation(result.petition_execution),
       };
       return convertedResult;
     }

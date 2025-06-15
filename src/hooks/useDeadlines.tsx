@@ -34,7 +34,7 @@ export const useDeadlines = () => {
           process:processes!fk_deadlines_process_id(id, title, process_number),
           client:clients!fk_deadlines_client_id(id, name),
           assigned_user:profiles!fk_deadlines_assigned_to(id, full_name),
-          petition:petition_templates(id, name),
+          petition:petition_templates(id, name, category),
           petition_execution:petition_executions(id)
         `)
         .eq('workspace_id', currentWorkspace.id)
@@ -98,7 +98,7 @@ export const useDeadlines = () => {
         title: data.title,
         description: data.description,
         deadline_type: data.deadline_type,
-        due_date: data.due_date,
+        due_date: data.due_date.toISOString().split('T')[0],
         priority: data.priority,
         status: data.status || 'PENDENTE',
         is_critical: data.is_critical || false,
@@ -123,7 +123,7 @@ export const useDeadlines = () => {
           process:processes!fk_deadlines_process_id(id, title, process_number),
           client:clients!fk_deadlines_client_id(id, name),
           assigned_user:profiles!fk_deadlines_assigned_to(id, full_name),
-          petition:petition_templates(id, name),
+          petition:petition_templates(id, name, category),
           petition_execution:petition_executions(id)
         `)
         .single();
@@ -157,19 +157,31 @@ export const useDeadlines = () => {
     mutationFn: async ({ id, data }: { id: string; data: Partial<DeadlineFormData> }) => {
       console.log('Atualizando prazo:', id, data);
 
+      const updateData: any = {
+        ...data,
+        updated_at: new Date().toISOString(),
+      };
+
+      // Converter due_date para string se for Date
+      if (data.due_date instanceof Date) {
+        updateData.due_date = data.due_date.toISOString().split('T')[0];
+      }
+
+      // Converter attachments para array simples se for File[]
+      if (data.attachments) {
+        updateData.attachments = data.attachments;
+      }
+
       const { data: result, error } = await supabase
         .from('deadlines')
-        .update({
-          ...data,
-          updated_at: new Date().toISOString(),
-        })
+        .update(updateData)
         .eq('id', id)
         .select(`
           *,
           process:processes!fk_deadlines_process_id(id, title, process_number),
           client:clients!fk_deadlines_client_id(id, name),
           assigned_user:profiles!fk_deadlines_assigned_to(id, full_name),
-          petition:petition_templates(id, name),
+          petition:petition_templates(id, name, category),
           petition_execution:petition_executions(id)
         `)
         .single();
@@ -217,7 +229,7 @@ export const useDeadlines = () => {
           process:processes!fk_deadlines_process_id(id, title, process_number),
           client:clients!fk_deadlines_client_id(id, name),
           assigned_user:profiles!fk_deadlines_assigned_to(id, full_name),
-          petition:petition_templates(id, name),
+          petition:petition_templates(id, name, category),
           petition_execution:petition_executions(id)
         `)
         .single();

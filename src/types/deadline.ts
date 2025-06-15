@@ -38,7 +38,6 @@ export interface Deadline {
   assigned_user?: {
     id: string;
     full_name: string;
-    email: string;
   };
   petition?: {
     id: string;
@@ -47,8 +46,6 @@ export interface Deadline {
   };
   petition_execution?: {
     id: string;
-    created_at: string;
-    filled_data: any;
   };
 }
 
@@ -63,10 +60,11 @@ export interface DeadlineFormData {
   petition_execution_id?: string;
   assigned_to?: string;
   priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  status?: 'PENDENTE' | 'EM_ANDAMENTO' | 'CUMPRIDO' | 'PERDIDO' | 'SUSPENSO';
   business_days_only: boolean;
   anticipation_days: number;
   is_critical: boolean;
-  attachments?: File[];
+  attachments?: any[];
   custom_fields?: Record<string, any>;
 }
 
@@ -80,6 +78,10 @@ export interface DeadlineFilters {
   client_id?: string;
   start_date?: string;
   end_date?: string;
+  date_range?: {
+    from?: string;
+    to?: string;
+  };
 }
 
 export interface CalendarSettings {
