@@ -1,5 +1,4 @@
 
-
 import { supabase } from '@/integrations/supabase/client';
 
 interface MemberRecord {
@@ -15,12 +14,11 @@ export const cleanupOrphanedMembers = async (workspaceId: string) => {
   try {
     console.log('Starting cleanup of orphaned members for workspace:', workspaceId);
 
-    // Get all active members for this workspace
+    // Get all members for this workspace (no status column exists)
     const { data: allMembers, error: membersError } = await supabase
       .from('workspace_members')
       .select('id, user_id')
-      .eq('workspace_id', workspaceId)
-      .eq('status', 'active');
+      .eq('workspace_id', workspaceId);
 
     if (membersError) {
       console.error('Error fetching all members:', membersError);
@@ -28,7 +26,7 @@ export const cleanupOrphanedMembers = async (workspaceId: string) => {
     }
 
     if (!allMembers || allMembers.length === 0) {
-      console.log('No active members found');
+      console.log('No members found');
       return { success: true, removedCount: 0 };
     }
 
@@ -54,23 +52,20 @@ export const cleanupOrphanedMembers = async (workspaceId: string) => {
       return { success: true, removedCount: 0 };
     }
 
-    // Suspend orphaned members
+    // Delete orphaned members instead of suspending (since no status column)
     const orphanedIds = orphanedMembers.map(m => m.id);
     
-    const { error: updateError } = await supabase
+    const { error: deleteError } = await supabase
       .from('workspace_members')
-      .update({ 
-        status: 'suspended',
-        updated_at: new Date().toISOString()
-      })
+      .delete()
       .in('id', orphanedIds);
 
-    if (updateError) {
-      console.error('Error suspending orphaned members:', updateError);
-      return { success: false, error: updateError };
+    if (deleteError) {
+      console.error('Error deleting orphaned members:', deleteError);
+      return { success: false, error: deleteError };
     }
 
-    console.log(`Successfully suspended ${orphanedMembers.length} orphaned members`);
+    console.log(`Successfully deleted ${orphanedMembers.length} orphaned members`);
     return { success: true, removedCount: orphanedMembers.length };
 
   } catch (error) {
@@ -98,4 +93,3 @@ export const validateMemberExists = async (userId: string): Promise<boolean> => 
     return false;
   }
 };
-
