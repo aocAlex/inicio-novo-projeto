@@ -34,7 +34,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [currentMember, setCurrentMember] = useState<WorkspaceMember | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
+  const [initialized, setInitialized] = useState(false);
 
   const switchWorkspace = async (workspaceId: string) => {
     if (!user) return;
@@ -49,7 +49,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
       if (workspaceError) throw workspaceError;
 
-      // Load member details without trying to join profiles
+      // Load member details
       const { data: memberData, error: memberError } = await supabase
         .from('workspace_members')
         .select('*')
@@ -61,29 +61,20 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
       setCurrentWorkspace(workspaceData);
       
-      // Garantir que o role seja válido
-      const validRole = ['owner', 'admin', 'editor', 'viewer'].includes(memberData.role) 
-        ? memberData.role as 'owner' | 'admin' | 'editor' | 'viewer'
-        : 'viewer';
-      
-      // Garantir que permissions seja um objeto válido
-      const permissions = memberData.permissions && typeof memberData.permissions === 'object' && !Array.isArray(memberData.permissions)
-        ? memberData.permissions as Record<string, any>
-        : {};
-      
-      // Garantir que status seja válido
-      const validStatus = ['active', 'pending', 'suspended'].includes(memberData.status) 
-        ? memberData.status as 'active' | 'pending' | 'suspended'
-        : 'active';
-      
-      // Create a properly typed member object using profile data from AuthContext
+      // Create typed member object
       const memberWithProfile: WorkspaceMember = {
         id: memberData.id,
         workspace_id: memberData.workspace_id,
         user_id: memberData.user_id,
-        role: validRole,
-        permissions,
-        status: validStatus,
+        role: ['owner', 'admin', 'editor', 'viewer'].includes(memberData.role) 
+          ? memberData.role as 'owner' | 'admin' | 'editor' | 'viewer'
+          : 'viewer',
+        permissions: memberData.permissions && typeof memberData.permissions === 'object' && !Array.isArray(memberData.permissions)
+          ? memberData.permissions as Record<string, any>
+          : {},
+        status: ['active', 'pending', 'suspended'].includes(memberData.status) 
+          ? memberData.status as 'active' | 'pending' | 'suspended'
+          : 'active',
         last_activity: memberData.last_activity,
         created_at: memberData.created_at,
         profile: profile ? {
@@ -114,25 +105,15 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const loadWorkspaces = useCallback(async () => {
-    if (!user) {
-      console.log('LoadWorkspaces: Não há usuário logado');
-      setIsLoading(false);
-      setHasLoadedOnce(true);
-      return;
-    }
-
-    // Evitar carregamentos múltiplos simultâneos
-    if (isLoading && hasLoadedOnce) {
-      console.log('LoadWorkspaces: Já está carregando, ignorando');
+    if (!user || initialized) {
       return;
     }
 
     try {
-      console.log('LoadWorkspaces: Iniciando carregamento para usuário:', user.id);
+      console.log('Carregando workspaces para usuário:', user.id);
       setIsLoading(true);
       setError(null);
       
-      // Load user's workspaces
       const { data: memberData, error: memberError } = await supabase
         .from('workspace_members')
         .select(`
@@ -147,28 +128,16 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         throw memberError;
       }
 
-      console.log('LoadWorkspaces: Dados de membros carregados:', memberData);
-
       const userWorkspaces = memberData?.map(member => member.workspace).filter(Boolean) || [];
       setWorkspaces(userWorkspaces);
-      console.log('LoadWorkspaces: Workspaces definidas:', userWorkspaces);
 
-      // Set current workspace only if we don't have one yet
-      if (!currentWorkspace) {
-        let currentWorkspaceId = profile?.current_workspace_id;
-        
-        if (!currentWorkspaceId && userWorkspaces.length > 0) {
-          currentWorkspaceId = userWorkspaces[0].id;
-          console.log('LoadWorkspaces: Usando primeira workspace como padrão:', currentWorkspaceId);
-        }
-
-        if (currentWorkspaceId) {
-          console.log('LoadWorkspaces: Trocando para workspace:', currentWorkspaceId);
-          await switchWorkspace(currentWorkspaceId);
-        } else {
-          console.log('LoadWorkspaces: Nenhuma workspace disponível');
-        }
+      // Set current workspace if none is set
+      if (!currentWorkspace && userWorkspaces.length > 0) {
+        const workspaceId = profile?.current_workspace_id || userWorkspaces[0].id;
+        await switchWorkspace(workspaceId);
       }
+
+      setInitialized(true);
 
     } catch (error: any) {
       console.error('Error loading workspaces:', error);
@@ -179,11 +148,9 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         variant: "destructive",
       });
     } finally {
-      console.log('LoadWorkspaces: Finalizando carregamento');
       setIsLoading(false);
-      setHasLoadedOnce(true);
     }
-  }, [user?.id, profile?.current_workspace_id, currentWorkspace?.id]); // Dependências mais específicas
+  }, [user?.id, initialized, currentWorkspace?.id, profile?.current_workspace_id]);
 
   const createWorkspace = async (data: CreateWorkspaceData): Promise<Workspace> => {
     if (!user) throw new Error('User not authenticated');
@@ -264,25 +231,21 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const refreshWorkspaces = async () => {
-    setHasLoadedOnce(false);
+    setInitialized(false);
     await loadWorkspaces();
   };
 
   useEffect(() => {
-    console.log('WorkspaceProvider useEffect - user:', user?.id, 'profile loaded:', !!profile);
-    
-    // Só carregar se o usuário estiver logado e o profile estiver carregado (null ou objeto)
-    if (user && profile !== undefined && !hasLoadedOnce) {
+    if (user && profile !== undefined) {
       loadWorkspaces();
     } else if (!user) {
-      // Se não há user, limpar tudo
       setCurrentWorkspace(null);
       setWorkspaces([]);
       setCurrentMember(null);
       setIsLoading(false);
-      setHasLoadedOnce(true);
+      setInitialized(false);
     }
-  }, [user?.id, profile, loadWorkspaces, hasLoadedOnce]);
+  }, [user?.id, profile, loadWorkspaces]);
 
   const value = {
     currentWorkspace,
