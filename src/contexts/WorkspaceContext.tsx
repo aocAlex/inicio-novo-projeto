@@ -43,12 +43,17 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   console.log('WorkspaceProvider render - user:', !!user, 'profile:', !!profile, 'initialized:', initialized, 'isLoading:', isLoading);
 
   const initializeWorkspaces = useCallback(async () => {
-    if (!user?.id || !profile?.id || initialized) {
-      console.log('Skipping initialization - conditions not met:', { 
+    // Verificar condições necessárias de forma mais rigorosa
+    if (!user?.id || !profile?.id) {
+      console.log('Skipping initialization - missing user or profile:', { 
         hasUser: !!user?.id, 
-        hasProfile: !!profile?.id, 
-        initialized 
+        hasProfile: !!profile?.id 
       });
+      return;
+    }
+
+    if (initialized) {
+      console.log('Skipping initialization - already initialized');
       return;
     }
 
@@ -126,6 +131,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       isLoading
     });
 
+    // Só inicializar se tiver user, profile e não estiver inicializado nem carregando
     if (user?.id && profile?.id && !initialized && !isLoading) {
       console.log('Conditions met, initializing workspaces...');
       initializeWorkspaces();

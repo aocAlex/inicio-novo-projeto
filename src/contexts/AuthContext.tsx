@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -33,7 +34,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   console.log('AuthProvider - user:', user?.id, 'profile:', profile?.id, 'loading:', loading);
 
   const parsePreferences = (preferences: any) => {
-    // Garantir que preferences seja um objeto válido
     const prefs = preferences && typeof preferences === 'object' 
       ? preferences 
       : { notifications: true, email_alerts: true, theme: 'light' };
@@ -56,14 +56,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .eq('id', userId)
         .maybeSingle();
 
-      if (fetchError && fetchError.code !== 'PGRST116') {
+      if (fetchError) {
         console.error('Erro ao buscar perfil existente:', fetchError);
         throw fetchError;
       }
 
       if (existingProfile) {
         console.log('Perfil já existe:', existingProfile.id);
-        // Converter o perfil existente para o tipo correto
         const convertedProfile: Profile = {
           ...existingProfile,
           preferences: parsePreferences(existingProfile.preferences)
@@ -98,7 +97,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             .from('profiles')
             .select('*')
             .eq('id', userId)
-            .single();
+            .maybeSingle();
           
           if (duplicateProfile) {
             const convertedProfile: Profile = {
@@ -112,7 +111,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       console.log('Novo perfil criado com sucesso:', newProfile.id);
-      // Converter o novo perfil para o tipo correto
       const convertedProfile: Profile = {
         ...newProfile,
         preferences: parsePreferences(newProfile.preferences)
