@@ -9,6 +9,60 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      client_interactions: {
+        Row: {
+          client_id: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          interaction_date: string
+          interaction_type: string
+          metadata: Json | null
+          subject: string
+          workspace_id: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          interaction_date?: string
+          interaction_type: string
+          metadata?: Json | null
+          subject: string
+          workspace_id: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          interaction_date?: string
+          interaction_type?: string
+          metadata?: Json | null
+          subject?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_interactions_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_interactions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clients: {
         Row: {
           address: Json | null
@@ -64,6 +118,53 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "clients_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      custom_field_definitions: {
+        Row: {
+          created_at: string
+          display_order: number | null
+          field_key: string
+          field_label: string
+          field_options: Json | null
+          field_type: string
+          id: string
+          is_active: boolean | null
+          is_required: boolean | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number | null
+          field_key: string
+          field_label: string
+          field_options?: Json | null
+          field_type: string
+          id?: string
+          is_active?: boolean | null
+          is_required?: boolean | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number | null
+          field_key?: string
+          field_label?: string
+          field_options?: Json | null
+          field_type?: string
+          id?: string
+          is_active?: boolean | null
+          is_required?: boolean | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "custom_field_definitions_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
