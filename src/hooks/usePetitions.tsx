@@ -56,6 +56,14 @@ const safeJsonToRecord = (json: any): Record<string, any> => {
   return {};
 };
 
+// Helper function to safely cast webhook_status to the expected type
+const safeWebhookStatus = (status: any): 'pending' | 'sent' | 'completed' | 'failed' => {
+  if (status === 'pending' || status === 'sent' || status === 'completed' || status === 'failed') {
+    return status;
+  }
+  return 'pending'; // Default fallback
+};
+
 export const usePetitions = () => {
   const { currentWorkspace } = useWorkspace();
   const { toast } = useToast();
@@ -94,6 +102,7 @@ export const usePetitions = () => {
         ...item,
         filled_data: safeJsonToRecord(item.filled_data),
         webhook_response: safeJsonToRecord(item.webhook_response),
+        webhook_status: safeWebhookStatus(item.webhook_status),
       }));
       
       setExecutions(transformedData);
@@ -138,6 +147,7 @@ export const usePetitions = () => {
         ...data,
         filled_data: safeJsonToRecord(data.filled_data),
         webhook_response: safeJsonToRecord(data.webhook_response),
+        webhook_status: safeWebhookStatus(data.webhook_status),
       };
 
       setExecutions(prev => [transformedExecution, ...prev]);
@@ -251,6 +261,7 @@ export const usePetitions = () => {
         ...execution,
         filled_data: safeJsonToRecord(execution.filled_data),
         webhook_response: safeJsonToRecord(execution.webhook_response),
+        webhook_status: safeWebhookStatus(execution.webhook_status),
       };
 
       await sendToWebhook(executionId, execution.webhook_url, transformedExecution);
