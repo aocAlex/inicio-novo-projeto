@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Client, ClientFilters } from '@/types/client';
 import { Button } from '@/components/ui/button';
@@ -46,35 +45,35 @@ export const ClientList = ({
   onCreateNew,
 }: ClientListProps) => {
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<Client['status'] | ''>('');
-  const [typeFilter, setTypeFilter] = useState<Client['client_type'] | ''>('');
+  const [statusFilter, setStatusFilter] = useState<Client['status'] | 'all'>('all');
+  const [typeFilter, setTypeFilter] = useState<Client['client_type'] | 'all'>('all');
 
   const handleSearch = (value: string) => {
     setSearch(value);
     onFilter({
       search: value || undefined,
-      status: statusFilter || undefined,
-      client_type: typeFilter || undefined,
+      status: statusFilter === 'all' ? undefined : statusFilter,
+      client_type: typeFilter === 'all' ? undefined : typeFilter,
     });
   };
 
   const handleStatusFilter = (value: string) => {
-    const statusValue = value as Client['status'] | '';
+    const statusValue = value as Client['status'] | 'all';
     setStatusFilter(statusValue);
     onFilter({
       search: search || undefined,
-      status: statusValue || undefined,
-      client_type: typeFilter || undefined,
+      status: statusValue === 'all' ? undefined : statusValue,
+      client_type: typeFilter === 'all' ? undefined : typeFilter,
     });
   };
 
   const handleTypeFilter = (value: string) => {
-    const typeValue = value as Client['client_type'] | '';
+    const typeValue = value as Client['client_type'] | 'all';
     setTypeFilter(typeValue);
     onFilter({
       search: search || undefined,
-      status: statusFilter || undefined,
-      client_type: typeValue || undefined,
+      status: statusFilter === 'all' ? undefined : statusFilter,
+      client_type: typeValue === 'all' ? undefined : typeValue,
     });
   };
 
@@ -169,7 +168,7 @@ export const ClientList = ({
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos os status</SelectItem>
+                <SelectItem value="all">Todos os status</SelectItem>
                 <SelectItem value="lead">Lead</SelectItem>
                 <SelectItem value="prospect">Prospect</SelectItem>
                 <SelectItem value="active">Ativo</SelectItem>
@@ -182,7 +181,7 @@ export const ClientList = ({
                 <SelectValue placeholder="Tipo" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos os tipos</SelectItem>
+                <SelectItem value="all">Todos os tipos</SelectItem>
                 <SelectItem value="individual">Pessoa Física</SelectItem>
                 <SelectItem value="company">Pessoa Jurídica</SelectItem>
               </SelectContent>
