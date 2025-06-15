@@ -1,105 +1,126 @@
 
 import React from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuSeparator, 
+  DropdownMenuTrigger 
+} from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
-import { WorkspaceSelector } from '../workspace/WorkspaceSelector';
-import { Scale, LogOut, Settings, User } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useSuperAdmin } from '@/hooks/useSuperAdmin';
+import { WorkspaceSelector } from '@/components/workspace/WorkspaceSelector';
+import { LogOut, Settings, User, Shield } from 'lucide-react';
 
-export const Header = () => {
-  const { user, profile, signOut } = useAuth();
+export const Header: React.FC = () => {
+  const { user, signOut } = useAuth();
   const { currentWorkspace } = useWorkspace();
+  const { isSuperAdmin } = useSuperAdmin();
   const navigate = useNavigate();
 
   const handleSignOut = async () => {
     try {
-      console.log('Iniciando logout...');
       await signOut();
-      console.log('Logout realizado, redirecionando...');
-      // Forçar navegação para a página de auth
-      navigate('/auth', { replace: true });
-      // Como fallback, também usar window.location
-      setTimeout(() => {
-        window.location.href = '/auth';
-      }, 100);
+      navigate('/auth');
     } catch (error) {
-      console.error('Erro no logout:', error);
-      // Mesmo com erro, tentar redirecionar
-      navigate('/auth', { replace: true });
+      console.error('Error signing out:', error);
     }
   };
 
-  const getUserInitials = () => {
-    if (profile?.full_name) {
-      return profile.full_name
-        .split(' ')
-        .map(name => name[0])
-        .join('')
-        .toUpperCase()
-        .slice(0, 2);
-    }
-    return user?.email?.slice(0, 2).toUpperCase() || 'U';
+  const getInitials = (name?: string) => {
+    if (!name) return 'U';
+    return name
+      .split(' ')
+      .map(word => word[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
   };
 
   return (
-    <header className="bg-white border-b border-gray-200 px-6 py-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-              <Scale className="w-5 h-5 text-white" />
-            </div>
-            <h1 className="text-xl font-bold text-gray-900">SaaS Jurídico</h1>
+    <header className="bg-white border-b border-gray-200">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="flex h-16 justify-between items-center">
+          <div className="flex items-center">
+            <Link to="/dashboard" className="flex items-center">
+              <div className="flex-shrink-0">
+                <h1 className="text-xl font-bold text-gray-900">LegalTech</h1>
+              </div>
+            </Link>
+            {currentWorkspace && (
+              <div className="ml-6">
+                <WorkspaceSelector />
+              </div>
+            )}
           </div>
-          
-          {currentWorkspace && (
-            <div className="hidden md:block">
-              <span className="text-gray-500">•</span>
-              <span className="ml-2 text-gray-700 font-medium">{currentWorkspace.name}</span>
-            </div>
-          )}
-        </div>
 
-        <div className="flex items-center space-x-4">
-          <WorkspaceSelector />
-          
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                <Avatar className="h-8 w-8">
-                  <AvatarImage src={profile?.avatar_url} />
-                  <AvatarFallback>{getUserInitials()}</AvatarFallback>
-                </Avatar>
+          <div className="flex items-center gap-4">
+            {/* SuperAdmin Access Button */}
+            {isSuperAdmin && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate('/superadmin')}
+                className="text-blue-600 border-blue-200 hover:bg-blue-50"
+              >
+                <Shield className="h-4 w-4 mr-2" />
+                SuperAdmin
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-56" align="end" forceMount>
-              <DropdownMenuLabel className="font-normal">
-                <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium leading-none">{profile?.full_name || 'Usuário'}</p>
-                  <p className="text-xs leading-none text-muted-foreground">
-                    {user?.email}
-                  </p>
+            )}
+
+            {/* User Menu */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src={user?.user_metadata?.avatar_url} />
+                    <AvatarFallback>
+                      {getInitials(user?.user_metadata?.full_name || user?.email)}
+                    </AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56" align="end" forceMount>
+                <div className="flex items-center justify-start gap-2 p-2">
+                  <div className="flex flex-col space-y-1 leading-none">
+                    <p className="font-medium">
+                      {user?.user_metadata?.full_name || 'Usuário'}
+                    </p>
+                    <p className="w-[200px] truncate text-sm text-muted-foreground">
+                      {user?.email}
+                    </p>
+                  </div>
                 </div>
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem>
-                <User className="mr-2 h-4 w-4" />
-                <span>Perfil</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Settings className="mr-2 h-4 w-4" />
-                <span>Configurações</span>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleSignOut}>
-                <LogOut className="mr-2 h-4 w-4" />
-                <span>Sair</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => navigate('/settings')}>
+                  <User className="mr-2 h-4 w-4" />
+                  <span>Perfil</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate('/settings')}>
+                  <Settings className="mr-2 h-4 w-4" />
+                  <span>Configurações</span>
+                </DropdownMenuItem>
+                {isSuperAdmin && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => navigate('/superadmin')}>
+                      <Shield className="mr-2 h-4 w-4" />
+                      <span>SuperAdmin</span>
+                    </DropdownMenuItem>
+                  </>
+                )}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleSignOut}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Sair</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
       </div>
     </header>
