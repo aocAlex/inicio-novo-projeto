@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Outlet, Link, useLocation } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   Building2, 
@@ -22,7 +22,11 @@ const navigation = [
   { name: 'Logs', href: '/superadmin/logs', icon: FileText },
 ];
 
-export const SuperAdminLayout: React.FC = () => {
+interface SuperAdminLayoutProps {
+  children: React.ReactNode;
+}
+
+export const SuperAdminLayout: React.FC<SuperAdminLayoutProps> = ({ children }) => {
   const location = useLocation();
 
   return (
@@ -73,7 +77,7 @@ export const SuperAdminLayout: React.FC = () => {
       <div className="pl-64">
         <main className="py-6">
           <div className="mx-auto max-w-7xl px-6 lg:px-8">
-            <Outlet />
+            {children}
           </div>
         </main>
       </div>
