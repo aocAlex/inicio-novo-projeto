@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
@@ -37,8 +36,16 @@ export const useDashboardMetrics = () => {
       // Carregar métricas de membros
       const memberMetrics = await loadMemberMetrics();
 
+      // Carregar métricas de clientes
+      const clientMetrics = await loadClientMetrics();
+
+      // Carregar métricas de processos
+      const processMetrics = await loadProcessMetrics();
+
       // Combinar todas as métricas
       setMetrics({
+        clients: clientMetrics,
+        processes: processMetrics,
         petitions: petitionMetrics,
         templates: templateMetrics,
         webhooks: webhookMetrics,
@@ -57,6 +64,94 @@ export const useDashboardMetrics = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const loadClientMetrics = async () => {
+    const today = new Date().toISOString().split('T')[0];
+    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    const monthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+
+    // Total de clientes
+    const { count: total } = await supabase
+      .from('clients')
+      .select('*', { count: 'exact', head: true })
+      .eq('workspace_id', currentWorkspace!.id);
+
+    // Clientes ativos hoje
+    const { count: activeToday } = await supabase
+      .from('clients')
+      .select('*', { count: 'exact', head: true })
+      .eq('workspace_id', currentWorkspace!.id)
+      .eq('status', 'active');
+
+    // Novos clientes esta semana
+    const { count: newThisWeek } = await supabase
+      .from('clients')
+      .select('*', { count: 'exact', head: true })
+      .eq('workspace_id', currentWorkspace!.id)
+      .gte('created_at', weekAgo);
+
+    // Novos clientes este mês
+    const { count: newThisMonth } = await supabase
+      .from('clients')
+      .select('*', { count: 'exact', head: true })
+      .eq('workspace_id', currentWorkspace!.id)
+      .gte('created_at', monthAgo);
+
+    return {
+      total: total || 0,
+      activeToday: activeToday || 0,
+      newThisWeek: newThisWeek || 0,
+      newThisMonth: newThisMonth || 0,
+    };
+  };
+
+  const loadProcessMetrics = async () => {
+    const today = new Date();
+    const nextWeek = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+    // Total de processos
+    const { count: total } = await supabase
+      .from('processes')
+      .select('*', { count: 'exact', head: true })
+      .eq('workspace_id', currentWorkspace!.id);
+
+    // Processos ativos
+    const { count: active } = await supabase
+      .from('processes')
+      .select('*', { count: 'exact', head: true })
+      .eq('workspace_id', currentWorkspace!.id)
+      .eq('status', 'active');
+
+    // Processos pendentes
+    const { count: pending } = await supabase
+      .from('processes')
+      .select('*', { count: 'exact', head: true })
+      .eq('workspace_id', currentWorkspace!.id)
+      .eq('status', 'pending');
+
+    // Processos arquivados
+    const { count: archived } = await supabase
+      .from('processes')
+      .select('*', { count: 'exact', head: true })
+      .eq('workspace_id', currentWorkspace!.id)
+      .eq('status', 'archived');
+
+    // Processos com deadline esta semana
+    const { count: withDeadlineThisWeek } = await supabase
+      .from('processes')
+      .select('*', { count: 'exact', head: true })
+      .eq('workspace_id', currentWorkspace!.id)
+      .gte('deadline_date', today.toISOString())
+      .lte('deadline_date', nextWeek.toISOString());
+
+    return {
+      total: total || 0,
+      active: active || 0,
+      pending: pending || 0,
+      archived: archived || 0,
+      withDeadlineThisWeek: withDeadlineThisWeek || 0,
+    };
   };
 
   const loadPetitionMetrics = async () => {
