@@ -42,7 +42,7 @@ export const useClientInteractions = (clientId?: string) => {
         ...item,
         interaction_type: item.interaction_type as ClientInteraction['interaction_type'],
         metadata: item.metadata || {},
-        creator: item.creator && typeof item.creator === 'object' && !('error' in item.creator) 
+        creator: item.creator && item.creator !== null && typeof item.creator === 'object' && !('error' in item.creator) 
           ? item.creator as { id: string; full_name: string; email: string }
           : undefined
       })) as ClientInteraction[];
@@ -90,7 +90,7 @@ export const useClientInteractions = (clientId?: string) => {
         ...data,
         interaction_type: data.interaction_type as ClientInteraction['interaction_type'],
         metadata: data.metadata || {},
-        creator: data.creator && typeof data.creator === 'object' && !('error' in data.creator)
+        creator: data.creator && data.creator !== null && typeof data.creator === 'object' && !('error' in data.creator)
           ? data.creator as { id: string; full_name: string; email: string }
           : undefined
       } as ClientInteraction;
@@ -148,7 +148,7 @@ export const useClientInteractions = (clientId?: string) => {
         ...data,
         interaction_type: data.interaction_type as ClientInteraction['interaction_type'],
         metadata: data.metadata || {},
-        creator: data.creator && typeof data.creator === 'object' && !('error' in data.creator)
+        creator: data.creator && data.creator !== null && typeof data.creator === 'object' && !('error' in data.creator)
           ? data.creator as { id: string; full_name: string; email: string }
           : undefined
       } as ClientInteraction;
