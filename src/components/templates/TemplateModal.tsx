@@ -40,9 +40,11 @@ export const TemplateModal = ({
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    category: 'civil',
+    category: 'civil' as const,
     template_content: '',
     is_shared: false,
+    webhook_url: '',
+    webhook_enabled: false,
   });
   const [isLoading, setIsLoading] = useState(false);
   const [loadingTemplate, setLoadingTemplate] = useState(false);
@@ -62,6 +64,8 @@ export const TemplateModal = ({
         category: 'civil',
         template_content: '',
         is_shared: false,
+        webhook_url: '',
+        webhook_enabled: false,
       });
     }
   }, [isOpen, templateId]);
@@ -79,6 +83,8 @@ export const TemplateModal = ({
           category: template.category,
           template_content: template.template_content,
           is_shared: template.is_shared,
+          webhook_url: template.webhook_url || '',
+          webhook_enabled: template.webhook_enabled || false,
         });
       }
     } catch (error) {
@@ -100,6 +106,8 @@ export const TemplateModal = ({
           category: formData.category,
           template_content: formData.template_content,
           is_shared: formData.is_shared,
+          webhook_url: formData.webhook_url || undefined,
+          webhook_enabled: formData.webhook_enabled,
         };
         await updateTemplate(templateId, updateData);
       } else {
@@ -109,6 +117,8 @@ export const TemplateModal = ({
           category: formData.category,
           template_content: formData.template_content,
           is_shared: formData.is_shared,
+          webhook_url: formData.webhook_url || undefined,
+          webhook_enabled: formData.webhook_enabled,
         };
         await createTemplate(createData);
       }

@@ -4,10 +4,12 @@ export interface PetitionTemplate {
   workspace_id: string;
   name: string;
   description: string | null;
-  category: string;
+  category: 'civil' | 'criminal' | 'trabalhista' | 'tributario' | 'empresarial' | 'familia';
   template_content: string;
   is_shared: boolean;
   execution_count: number;
+  webhook_url: string | null;
+  webhook_enabled: boolean;
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -17,7 +19,7 @@ export interface TemplateField {
   id: string;
   template_id: string;
   field_key: string;
-  field_label: string;
+  field_title: string;
   field_type: 'text' | 'textarea' | 'select' | 'date' | 'number' | 'email' | 'phone';
   field_options: Record<string, any>;
   is_required: boolean;
@@ -62,18 +64,22 @@ export interface PetitionExecution {
 export interface CreateTemplateData {
   name: string;
   description?: string;
-  category?: string;
+  category: 'civil' | 'criminal' | 'trabalhista' | 'tributario' | 'empresarial' | 'familia';
   template_content: string;
   is_shared?: boolean;
+  webhook_url?: string;
+  webhook_enabled?: boolean;
   fields?: Omit<TemplateField, 'id' | 'template_id' | 'created_at'>[];
 }
 
 export interface UpdateTemplateData {
   name?: string;
   description?: string;
-  category?: string;
+  category?: 'civil' | 'criminal' | 'trabalhista' | 'tributario' | 'empresarial' | 'familia';
   template_content?: string;
   is_shared?: boolean;
+  webhook_url?: string;
+  webhook_enabled?: boolean;
 }
 
 export interface CreateExecutionData {

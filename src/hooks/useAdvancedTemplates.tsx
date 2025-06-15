@@ -7,10 +7,9 @@ import {
   PetitionTemplate, 
   CreateTemplateData, 
   UpdateTemplateData,
-  TemplateField, 
-  TemplateFilters,
-  TemplateExecution 
-} from '@/types/templates'
+  PetitionFilters,
+  PetitionExecution 
+} from '@/types/petition'
 
 export const useAdvancedTemplates = () => {
   const { currentWorkspace } = useWorkspace()
@@ -19,7 +18,7 @@ export const useAdvancedTemplates = () => {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const loadTemplates = useCallback(async (filters?: TemplateFilters) => {
+  const loadTemplates = useCallback(async (filters?: PetitionFilters) => {
     if (!currentWorkspace) return
 
     try {
@@ -28,10 +27,7 @@ export const useAdvancedTemplates = () => {
 
       let query = supabase
         .from('petition_templates')
-        .select(`
-          *,
-          fields:template_fields(*)
-        `)
+        .select('*')
         .eq('workspace_id', currentWorkspace.id)
         .order('created_at', { ascending: false })
 
@@ -55,15 +51,7 @@ export const useAdvancedTemplates = () => {
         throw new Error(queryError.message)
       }
 
-      // Ordenar campos por display_order e fazer type casting
-      const templatesWithSortedFields = (data || []).map(template => ({
-        ...template,
-        fields: template.fields?.sort((a: any, b: any) => 
-          (a.display_order || 0) - (b.display_order || 0)
-        ) || []
-      })) as PetitionTemplate[]
-
-      setTemplates(templatesWithSortedFields)
+      setTemplates(data || [])
 
     } catch (err: any) {
       console.error('Error loading templates:', err)
@@ -92,7 +80,6 @@ export const useAdvancedTemplates = () => {
       setError(null)
       setIsLoading(true)
 
-      // 1. Criar template
       const { data: templateData, error: templateError } = await supabase
         .from('petition_templates')
         .insert({
@@ -113,32 +100,11 @@ export const useAdvancedTemplates = () => {
         throw new Error(templateError.message)
       }
 
-      // 2. Criar campos se existirem
-      if (data.fields && data.fields.length > 0) {
-        const fieldsToInsert = data.fields.map((field, index) => ({
-          template_id: templateData.id,
-          ...field,
-          display_order: field.display_order || index
-        }))
-
-        const { error: fieldsError } = await supabase
-          .from('template_fields')
-          .insert(fieldsToInsert)
-
-        if (fieldsError) {
-          console.error('Error creating fields:', fieldsError)
-          // Rollback - remover template criado
-          await supabase.from('petition_templates').delete().eq('id', templateData.id)
-          throw new Error('Erro ao criar campos: ' + fieldsError.message)
-        }
-      }
-
       toast({
         title: "Template criado",
         description: `${templateData.name} foi criado com sucesso.`,
       })
 
-      // 3. Recarregar templates
       await loadTemplates()
 
       return templateData as PetitionTemplate
@@ -166,7 +132,6 @@ export const useAdvancedTemplates = () => {
       setError(null)
       setIsLoading(true)
 
-      // 1. Atualizar template
       const updateData: any = {
         updated_at: new Date().toISOString()
       }
@@ -189,38 +154,11 @@ export const useAdvancedTemplates = () => {
         throw new Error(templateError.message)
       }
 
-      // 2. Atualizar campos se fornecidos
-      if (data.fields) {
-        // Remover campos existentes
-        await supabase
-          .from('template_fields')
-          .delete()
-          .eq('template_id', id)
-
-        // Inserir novos campos
-        if (data.fields.length > 0) {
-          const fieldsToInsert = data.fields.map((field, index) => ({
-            template_id: id,
-            ...field,
-            display_order: field.display_order || index
-          }))
-
-          const { error: fieldsError } = await supabase
-            .from('template_fields')
-            .insert(fieldsToInsert)
-
-          if (fieldsError) {
-            throw new Error('Erro ao atualizar campos: ' + fieldsError.message)
-          }
-        }
-      }
-
       toast({
         title: "Template atualizado",
         description: "Template foi atualizado com sucesso.",
       })
 
-      // 3. Recarregar templates
       await loadTemplates()
 
       return true
@@ -259,7 +197,6 @@ export const useAdvancedTemplates = () => {
         description: "Template foi removido com sucesso.",
       })
 
-      // Remover da lista local
       setTemplates(prev => prev.filter(template => template.id !== id))
 
       return true
@@ -275,59 +212,16 @@ export const useAdvancedTemplates = () => {
     }
   }, [currentWorkspace, toast])
 
-  const duplicateTemplate = useCallback(async (originalId: string): Promise<PetitionTemplate | null> => {
-    const originalTemplate = templates.find(t => t.id === originalId)
-    if (!originalTemplate) {
-      toast({
-        title: "Erro",
-        description: "Template não encontrado",
-        variant: "destructive",
-      })
-      return null
-    }
-
-    const duplicateData: CreateTemplateData = {
-      name: `${originalTemplate.name} (Cópia)`,
-      description: originalTemplate.description,
-      category: originalTemplate.category,
-      template_content: originalTemplate.template_content,
-      is_shared: false,
-      webhook_url: originalTemplate.webhook_url,
-      webhook_enabled: originalTemplate.webhook_enabled,
-      fields: originalTemplate.fields?.map(field => ({
-        field_key: field.field_key,
-        field_label: field.field_label,
-        field_type: field.field_type,
-        field_options: field.field_options,
-        is_required: field.is_required,
-        display_order: field.display_order,
-        validation_rules: field.validation_rules
-      })) || []
-    }
-
-    return await createTemplate(duplicateData)
-  }, [templates, createTemplate, toast])
-
   const getTemplate = useCallback(async (id: string): Promise<PetitionTemplate | null> => {
     try {
       const { data, error } = await supabase
         .from('petition_templates')
-        .select(`
-          *,
-          fields:template_fields(*)
-        `)
+        .select('*')
         .eq('id', id)
         .single()
 
       if (error) {
         throw new Error(error.message)
-      }
-
-      // Ordenar campos
-      if (data.fields) {
-        data.fields.sort((a: any, b: any) => 
-          (a.display_order || 0) - (b.display_order || 0)
-        )
       }
 
       return data as PetitionTemplate
@@ -337,272 +231,6 @@ export const useAdvancedTemplates = () => {
       return null
     }
   }, [])
-
-  const executeTemplate = useCallback(async (
-    templateId: string,
-    filledData: Record<string, any>,
-    clientId?: string,
-    processId?: string
-  ): Promise<TemplateExecution | null> => {
-    if (!currentWorkspace) return null
-
-    try {
-      setIsLoading(true)
-
-      const template = await getTemplate(templateId)
-      if (!template) {
-        throw new Error('Template não encontrado')
-      }
-
-      // Gerar conteúdo final
-      let generatedContent = template.template_content
-
-      // Substituir variáveis pelos valores
-      for (const [key, value] of Object.entries(filledData)) {
-        if (value !== undefined && value !== null && value !== '') {
-          const formattedValue = formatFieldValue(value, 
-            template.fields?.find(f => f.field_key === key)?.field_type || 'text'
-          )
-          generatedContent = generatedContent.replace(
-            new RegExp(`\\{\\{${key}\\}\\}`, 'g'),
-            formattedValue
-          )
-        }
-      }
-
-      // Adicionar variáveis do sistema
-      const now = new Date()
-      generatedContent = generatedContent.replace(/\{\{data_hoje\}\}/g, now.toLocaleDateString('pt-BR'))
-      generatedContent = generatedContent.replace(/\{\{workspace_nome\}\}/g, currentWorkspace.name)
-
-      // Salvar execução no banco
-      const { data: execution, error } = await supabase
-        .from('petition_executions')
-        .insert({
-          template_id: templateId,
-          workspace_id: currentWorkspace.id,
-          filled_data: filledData,
-          generated_content: generatedContent,
-          client_id: clientId,
-          process_id: processId,
-          created_by: (await supabase.auth.getUser()).data.user?.id,
-          webhook_status: template.webhook_url ? 'pending' : undefined,
-          webhook_url: template.webhook_url || undefined
-        })
-        .select()
-        .single()
-
-      if (error) {
-        throw new Error(error.message)
-      }
-
-      // Incrementar contador de execução
-      await supabase.rpc('increment_template_execution_count', {
-        template_id: templateId
-      })
-
-      // Enviar webhook se configurado
-      if (template.webhook_url && template.webhook_enabled) {
-        console.log('Enviando webhook para:', template.webhook_url)
-        await sendWebhook(template, execution as TemplateExecution, filledData, generatedContent)
-      }
-
-      toast({
-        title: "Petição gerada",
-        description: "Petição foi gerada com sucesso.",
-      })
-
-      return execution as TemplateExecution
-
-    } catch (err: any) {
-      console.error('Error executing template:', err)
-      toast({
-        title: "Erro ao executar template",
-        description: err.message,
-        variant: "destructive",
-      })
-      return null
-    } finally {
-      setIsLoading(false)
-    }
-  }, [currentWorkspace, toast, getTemplate])
-
-  const formatFieldValue = (value: any, fieldType: string): string => {
-    switch (fieldType) {
-      case 'date':
-        return new Date(value).toLocaleDateString('pt-BR')
-      case 'datetime':
-        return new Date(value).toLocaleString('pt-BR')
-      case 'time':
-        return new Date(value).toLocaleTimeString('pt-BR')
-      case 'cpf':
-        return value.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4')
-      case 'cnpj':
-        return value.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5')
-      case 'phone':
-        if (value.length === 11) {
-          return value.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3')
-        } else if (value.length === 10) {
-          return value.replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3')
-        }
-        return value
-      case 'currency':
-        return new Intl.NumberFormat('pt-BR', {
-          style: 'currency',
-          currency: 'BRL'
-        }).format(parseFloat(value) || 0)
-      case 'percentage':
-        return `${parseFloat(value) || 0}%`
-      case 'number':
-        return typeof value === 'number' ? value.toLocaleString('pt-BR') : value
-      case 'cep':
-        return value.replace(/(\d{5})(\d{3})/, '$1-$2')
-      default:
-        return String(value)
-    }
-  }
-
-  const sendWebhook = async (
-    template: PetitionTemplate,
-    execution: TemplateExecution,
-    filledData: Record<string, any>,
-    generatedContent: string
-  ) => {
-    try {
-      if (!template.webhook_url) {
-        console.log('Nenhuma URL de webhook configurada')
-        return
-      }
-
-      console.log('Preparando payload do webhook...')
-      
-      // Buscar dados adicionais se necessário
-      let clientData = null
-      let processData = null
-      
-      if (execution.client_id) {
-        const { data: client } = await supabase
-          .from('clients')
-          .select('*')
-          .eq('id', execution.client_id)
-          .single()
-        clientData = client
-      }
-      
-      if (execution.process_id) {
-        const { data: process } = await supabase
-          .from('processes')
-          .select('*')
-          .eq('id', execution.process_id)
-          .single()
-        processData = process
-      }
-
-      const payload = {
-        event: 'petition_executed',
-        timestamp: new Date().toISOString(),
-        workspace: {
-          id: currentWorkspace?.id,
-          name: currentWorkspace?.name
-        },
-        template: {
-          id: template.id,
-          name: template.name,
-          category: template.category
-        },
-        execution: {
-          id: execution.id,
-          execution_date: execution.created_at,
-          executed_by: execution.created_by
-        },
-        client: clientData,
-        process: processData,
-        filled_data: filledData,
-        generated_content: {
-          raw_text: generatedContent,
-          metadata: {
-            word_count: generatedContent.split(' ').length,
-            pages_estimated: Math.ceil(generatedContent.length / 2000),
-            processing_time_ms: Date.now() - new Date(execution.created_at).getTime()
-          }
-        }
-      }
-
-      console.log('Enviando webhook para:', template.webhook_url)
-      console.log('Payload:', payload)
-
-      // Atualizar status para 'sent'
-      await supabase
-        .from('petition_executions')
-        .update({
-          webhook_status: 'sent',
-          webhook_sent_at: new Date().toISOString()
-        })
-        .eq('id', execution.id)
-
-      // Enviar webhook
-      const response = await fetch(template.webhook_url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'User-Agent': 'LegalTemplate-Webhook/1.0'
-        },
-        body: JSON.stringify(payload)
-      })
-
-      console.log('Resposta do webhook:', response.status, response.statusText)
-
-      if (response.ok) {
-        const responseData = await response.text()
-        console.log('Webhook enviado com sucesso:', responseData)
-
-        await supabase
-          .from('petition_executions')
-          .update({
-            webhook_status: 'completed',
-            webhook_completed_at: new Date().toISOString(),
-            webhook_response: { 
-              status: response.status, 
-              statusText: response.statusText,
-              response: responseData 
-            }
-          })
-          .eq('id', execution.id)
-
-        toast({
-          title: "Webhook enviado",
-          description: "Dados enviados para o webhook com sucesso.",
-        })
-      } else {
-        throw new Error(`Webhook failed: ${response.status} ${response.statusText}`)
-      }
-
-    } catch (error: any) {
-      console.error('Erro ao enviar webhook:', error)
-      
-      await supabase
-        .from('petition_executions')
-        .update({
-          webhook_status: 'failed',
-          webhook_response: { 
-            error: error.message,
-            timestamp: new Date().toISOString()
-          }
-        })
-        .eq('id', execution.id)
-
-      // Incrementar retry count
-      await supabase.rpc('increment_execution_retry_count', {
-        execution_id: execution.id
-      })
-
-      toast({
-        title: "Erro no webhook",
-        description: `Falha ao enviar webhook: ${error.message}`,
-        variant: "destructive",
-      })
-    }
-  }
 
   useEffect(() => {
     if (currentWorkspace) {
@@ -618,8 +246,6 @@ export const useAdvancedTemplates = () => {
     createTemplate,
     updateTemplate,
     deleteTemplate,
-    duplicateTemplate,
-    getTemplate,
-    executeTemplate
+    getTemplate
   }
 }
