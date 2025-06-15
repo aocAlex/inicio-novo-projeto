@@ -1,3 +1,4 @@
+
 export interface PetitionTemplate {
   id: string;
   workspace_id: string;

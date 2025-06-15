@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useMemo } from 'react'
 import { TemplateField } from '@/types/petition'
 
@@ -60,12 +61,12 @@ export const useTemplatePreview = () => {
           } else {
             // Campo não preenchido
             if (field.is_required) {
-              missingFields.push(field.field_label)
+              missingFields.push(field.field_title)
             }
             // Manter placeholder visual
             previewContent = previewContent.replace(
               new RegExp(`\\{\\{\\s*${fieldKey}\\s*\\}\\}`, 'g'),
-              `<span class="text-red-500 bg-red-50 px-1 rounded">[${field.field_label}]</span>`
+              `<span class="text-red-500 bg-red-50 px-1 rounded">[${field.field_title}]</span>`
             )
           }
         } else {
@@ -207,7 +208,7 @@ export const useTemplatePreview = () => {
       .filter(variable => !existingKeys.includes(variable) && !isSystemVariable(variable))
       .map(variable => ({
         field_key: variable,
-        field_label: formatFieldKeyToLabel(variable),
+        field_title: formatFieldKeyToLabel(variable),
         field_type: guessFieldType(variable),
         is_required: false,
         display_order: existingFields.length,
@@ -253,7 +254,7 @@ export const useTemplatePreview = () => {
       if (field.is_required && (value === undefined || value === null || value === '')) {
         errors.push({
           field: field.field_key,
-          message: `${field.field_label} é obrigatório`
+          message: `${field.field_title} é obrigatório`
         })
         return
       }
@@ -270,7 +271,7 @@ export const useTemplatePreview = () => {
           if (!emailRegex.test(value)) {
             errors.push({
               field: field.field_key,
-              message: `${field.field_label} deve ser um email válido`
+              message: `${field.field_title} deve ser um email válido`
             })
           }
           break
@@ -280,7 +281,7 @@ export const useTemplatePreview = () => {
           if (cpfDigits.length !== 11) {
             errors.push({
               field: field.field_key,
-              message: `${field.field_label} deve ter 11 dígitos`
+              message: `${field.field_title} deve ter 11 dígitos`
             })
           }
           break
@@ -290,7 +291,7 @@ export const useTemplatePreview = () => {
           if (cnpjDigits.length !== 14) {
             errors.push({
               field: field.field_key,
-              message: `${field.field_label} deve ter 14 dígitos`
+              message: `${field.field_title} deve ter 14 dígitos`
             })
           }
           break
@@ -300,7 +301,7 @@ export const useTemplatePreview = () => {
           if (phoneDigits.length < 10 || phoneDigits.length > 11) {
             errors.push({
               field: field.field_key,
-              message: `${field.field_label} deve ter 10 ou 11 dígitos`
+              message: `${field.field_title} deve ter 10 ou 11 dígitos`
             })
           }
           break
@@ -311,14 +312,14 @@ export const useTemplatePreview = () => {
         if (field.validation_rules.minLength && value.length < field.validation_rules.minLength) {
           errors.push({
             field: field.field_key,
-            message: `${field.field_label} deve ter pelo menos ${field.validation_rules.minLength} caracteres`
+            message: `${field.field_title} deve ter pelo menos ${field.validation_rules.minLength} caracteres`
           })
         }
         
         if (field.validation_rules.maxLength && value.length > field.validation_rules.maxLength) {
           errors.push({
             field: field.field_key,
-            message: `${field.field_label} deve ter no máximo ${field.validation_rules.maxLength} caracteres`
+            message: `${field.field_title} deve ter no máximo ${field.validation_rules.maxLength} caracteres`
           })
         }
         
@@ -327,7 +328,7 @@ export const useTemplatePreview = () => {
           if (!regex.test(value)) {
             errors.push({
               field: field.field_key,
-              message: `${field.field_label} não atende ao formato exigido`
+              message: `${field.field_title} não atende ao formato exigido`
             })
           }
         }

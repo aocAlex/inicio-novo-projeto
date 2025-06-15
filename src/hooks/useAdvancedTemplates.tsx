@@ -184,7 +184,7 @@ export const useAdvancedTemplates = () => {
       }
 
       // Update fields if provided
-      if (data.fields) {
+      if (data.fields !== undefined) {
         // Delete existing fields
         await supabase
           .from('template_fields')
@@ -291,7 +291,10 @@ export const useAdvancedTemplates = () => {
       return {
         ...data,
         category: data.category as 'civil' | 'criminal' | 'trabalhista' | 'tributario' | 'empresarial' | 'familia',
-        fields: data.fields || []
+        fields: (data.fields || []).map((field: any) => ({
+          ...field,
+          field_type: field.field_type as 'text' | 'textarea' | 'select' | 'date' | 'number' | 'email' | 'phone' | 'cpf' | 'cnpj' | 'cep' | 'currency' | 'percentage' | 'checkbox' | 'multiselect' | 'radio' | 'datetime' | 'time' | 'oab' | 'processo_numero'
+        }))
       }
 
     } catch (err: any) {

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useAdvancedTemplates } from '@/hooks/useAdvancedTemplates'
@@ -75,7 +76,7 @@ export const TemplateEditorPage = () => {
               webhook_enabled: templateData.webhook_enabled,
               fields: templateData.fields?.map(field => ({
                 field_key: field.field_key,
-                field_label: field.field_label,
+                field_title: field.field_title,
                 field_type: field.field_type,
                 field_options: field.field_options,
                 is_required: field.is_required,
@@ -114,32 +115,32 @@ export const TemplateEditorPage = () => {
 
   const addField = () => {
     const newField = {
-      field_key: `campo_${formData.fields.length + 1}`,
-      field_label: `Campo ${formData.fields.length + 1}`,
+      field_key: `campo_${formData.fields!.length + 1}`,
+      field_title: `Campo ${formData.fields!.length + 1}`,
       field_type: 'text' as const,
       field_options: {},
       is_required: false,
-      display_order: formData.fields.length,
+      display_order: formData.fields!.length,
       validation_rules: {}
     }
     
     setFormData(prev => ({
       ...prev,
-      fields: [...prev.fields, newField]
+      fields: [...(prev.fields || []), newField]
     }))
   }
 
-  const updateField = (index: number, field: Partial<typeof formData.fields[0]>) => {
+  const updateField = (index: number, field: Partial<typeof formData.fields![0]>) => {
     setFormData(prev => ({
       ...prev,
-      fields: prev.fields.map((f, i) => i === index ? { ...f, ...field } : f)
+      fields: (prev.fields || []).map((f, i) => i === index ? { ...f, ...field } : f)
     }))
   }
 
   const removeField = (index: number) => {
     setFormData(prev => ({
       ...prev,
-      fields: prev.fields.filter((_, i) => i !== index)
+      fields: (prev.fields || []).filter((_, i) => i !== index)
     }))
   }
 
@@ -168,14 +169,14 @@ export const TemplateEditorPage = () => {
   }
 
   const addSelectOption = (fieldIndex: number) => {
-    const field = formData.fields[fieldIndex]
+    const field = formData.fields![fieldIndex]
     const currentOptions = field.field_options.options || []
     const newOptions = [...currentOptions, { title: '', value: '' }]
     updateFieldOptions(fieldIndex, { ...field.field_options, options: newOptions })
   }
 
   const updateSelectOption = (fieldIndex: number, optionIndex: number, key: 'title' | 'value', newValue: string) => {
-    const field = formData.fields[fieldIndex]
+    const field = formData.fields![fieldIndex]
     const currentOptions = field.field_options.options || []
     const newOptions = currentOptions.map((opt: any, i: number) => 
       i === optionIndex ? { ...opt, [key]: newValue } : opt
@@ -184,7 +185,7 @@ export const TemplateEditorPage = () => {
   }
 
   const removeSelectOption = (fieldIndex: number, optionIndex: number) => {
-    const field = formData.fields[fieldIndex]
+    const field = formData.fields![fieldIndex]
     const currentOptions = field.field_options.options || []
     const newOptions = currentOptions.filter((_: any, i: number) => i !== optionIndex)
     updateFieldOptions(fieldIndex, { ...field.field_options, options: newOptions })
@@ -431,7 +432,7 @@ export const TemplateEditorPage = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {formData.fields.map((field, index) => (
+                    {(formData.fields || []).map((field, index) => (
                       <Card key={index} className="p-4">
                         <div className="space-y-4">
                           <div className="flex justify-between items-start">
@@ -450,8 +451,8 @@ export const TemplateEditorPage = () => {
                                 <div>
                                   <Label className="text-xs">Label do Campo</Label>
                                   <Input
-                                    value={field.field_label}
-                                    onChange={(e) => updateField(index, { field_label: e.target.value })}
+                                    value={field.field_title}
+                                    onChange={(e) => updateField(index, { field_title: e.target.value })}
                                     placeholder="Nome do Cliente"
                                     className="text-sm h-8"
                                   />
@@ -520,7 +521,7 @@ export const TemplateEditorPage = () => {
                       </Card>
                     ))}
                     
-                    {formData.fields.length === 0 && (
+                    {(!formData.fields || formData.fields.length === 0) && (
                       <div className="text-center py-8 text-gray-500">
                         Nenhum campo configurado. Clique em "Adicionar Campo" para começar.
                       </div>
