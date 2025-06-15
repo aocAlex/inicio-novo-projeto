@@ -8,7 +8,7 @@ export interface Template {
   workspace_id: string;
   name: string;
   description: string | null;
-  category: string;
+  category: 'civil' | 'criminal' | 'trabalhista' | 'tributario' | 'empresarial' | 'familia';
   template_content: string;
   is_shared: boolean;
   execution_count: number;
@@ -22,7 +22,7 @@ export interface Template {
 export interface CreateTemplateData {
   name: string;
   description?: string;
-  category: string;
+  category: 'civil' | 'criminal' | 'trabalhista' | 'tributario' | 'empresarial' | 'familia';
   template_content: string;
   is_shared?: boolean;
   webhook_url?: string;
@@ -32,7 +32,7 @@ export interface CreateTemplateData {
 export interface UpdateTemplateData {
   name?: string;
   description?: string;
-  category?: string;
+  category?: 'civil' | 'criminal' | 'trabalhista' | 'tributario' | 'empresarial' | 'familia';
   template_content?: string;
   is_shared?: boolean;
   webhook_url?: string;
@@ -55,7 +55,7 @@ export const useTemplates = () => {
 
       let query = supabase
         .from('petition_templates')
-        .select('*')
+        .select('*, webhook_url, webhook_enabled')
         .eq('workspace_id', currentWorkspace.id)
         .order('created_at', { ascending: false });
 
@@ -69,7 +69,16 @@ export const useTemplates = () => {
       const { data, error } = await query;
 
       if (error) throw error;
-      setTemplates(data || []);
+      
+      // Cast the data to ensure proper typing
+      const typedTemplates = (data || []).map(template => ({
+        ...template,
+        webhook_url: template.webhook_url || null,
+        webhook_enabled: template.webhook_enabled || false,
+        category: template.category as Template['category']
+      })) as Template[];
+      
+      setTemplates(typedTemplates);
     } catch (err: any) {
       setError(err.message);
       console.error('Error loading templates:', err);
@@ -90,19 +99,28 @@ export const useTemplates = () => {
         .insert({
           ...templateData,
           workspace_id: currentWorkspace.id,
+          webhook_url: templateData.webhook_url || null,
+          webhook_enabled: templateData.webhook_enabled || false,
         })
-        .select()
+        .select('*, webhook_url, webhook_enabled')
         .single();
 
       if (error) throw error;
 
-      setTemplates(prev => [data, ...prev]);
+      const typedTemplate = {
+        ...data,
+        webhook_url: data.webhook_url || null,
+        webhook_enabled: data.webhook_enabled || false,
+        category: data.category as Template['category']
+      } as Template;
+
+      setTemplates(prev => [typedTemplate, ...prev]);
       toast({
         title: "Template criado",
         description: `${data.name} foi criado com sucesso.`,
       });
 
-      return data;
+      return typedTemplate;
     } catch (err: any) {
       setError(err.message);
       toast({
@@ -128,14 +146,21 @@ export const useTemplates = () => {
           updated_at: new Date().toISOString(),
         })
         .eq('id', id)
-        .select()
+        .select('*, webhook_url, webhook_enabled')
         .single();
 
       if (error) throw error;
 
+      const typedTemplate = {
+        ...data,
+        webhook_url: data.webhook_url || null,
+        webhook_enabled: data.webhook_enabled || false,
+        category: data.category as Template['category']
+      } as Template;
+
       setTemplates(prev => 
         prev.map(template => 
-          template.id === id ? data : template
+          template.id === id ? typedTemplate : template
         )
       );
 
