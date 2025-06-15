@@ -16,6 +16,8 @@ import {
 export const DashboardPage = () => {
   const { currentWorkspace } = useWorkspace();
 
+  console.log('DashboardPage - Rendering with workspace:', currentWorkspace?.name);
+
   const stats = [
     {
       title: 'Clientes Ativos',
@@ -82,6 +84,23 @@ export const DashboardPage = () => {
     },
   ];
 
+  if (!currentWorkspace) {
+    console.log('DashboardPage - No workspace, showing message');
+    return (
+      <div className="p-6">
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center gap-2 text-orange-600">
+              <AlertCircle className="h-5 w-5" />
+              <p>Nenhuma workspace selecionada. Selecione ou crie uma workspace para ver o dashboard.</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  console.log('DashboardPage - Rendering dashboard content');
   return (
     <div className="space-y-6">
       <div>

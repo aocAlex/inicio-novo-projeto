@@ -8,11 +8,18 @@ import { AppRoutes } from './Routes';
 
 export const MainApp = () => {
   const { user } = useAuth();
-  const { isLoading, error } = useWorkspace();
+  const { currentWorkspace, isLoading, error } = useWorkspace();
 
-  console.log('MainApp - user:', user, 'isLoading:', isLoading, 'error:', error);
+  console.log('MainApp - Rendering with:', { 
+    user: !!user, 
+    currentWorkspace: !!currentWorkspace,
+    workspaceName: currentWorkspace?.name,
+    isLoading, 
+    error 
+  });
 
   if (isLoading) {
+    console.log('MainApp - Showing loading state');
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -24,6 +31,7 @@ export const MainApp = () => {
   }
 
   if (error) {
+    console.log('MainApp - Showing error state:', error);
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -41,6 +49,23 @@ export const MainApp = () => {
     );
   }
 
+  if (!currentWorkspace) {
+    console.log('MainApp - No current workspace available');
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-orange-600 mb-4">
+            Nenhuma workspace selecionada
+          </div>
+          <p className="text-gray-600 mb-4">
+            Selecione ou crie uma workspace para continuar
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  console.log('MainApp - Rendering main layout');
   return (
     <div className="min-h-screen bg-gray-50 flex">
       <Sidebar />

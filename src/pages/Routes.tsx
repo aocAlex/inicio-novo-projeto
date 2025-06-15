@@ -10,6 +10,8 @@ import { Petitions } from '@/pages/Petitions';
 import { DeadlinesPage } from '@/pages/DeadlinesPage';
 
 export const AppRoutes = () => {
+  console.log('AppRoutes - Rendering routes');
+  
   return (
     <Routes>
       <Route path="/" element={<Navigate to="/dashboard" replace />} />

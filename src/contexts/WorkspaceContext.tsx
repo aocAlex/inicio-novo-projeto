@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { useAuth } from './AuthContext';
 import { Workspace, WorkspaceMember, CreateWorkspaceData } from '@/types/workspace';
@@ -42,7 +41,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const { loadUserWorkspaces } = useSimplifiedWorkspaceLoader();
   const { createWorkspace: createWorkspaceHook, updateWorkspace: updateWorkspaceHook } = useWorkspaceManager();
 
-  console.log('WorkspaceProvider render - user:', !!user, 'authLoading:', authLoading, 'hasInitialized:', hasInitialized);
+  console.log('WorkspaceProvider render - user:', !!user, 'authLoading:', authLoading, 'hasInitialized:', hasInitialized, 'currentWorkspace:', !!currentWorkspace);
 
   const initializeWorkspaces = useCallback(async () => {
     if (!user?.id || authLoading || hasInitialized) {
@@ -61,7 +60,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     try {
       const { workspaces: userWorkspaces, membershipInfo } = await loadUserWorkspaces(user.id);
       
-      console.log('Loaded workspaces:', userWorkspaces.length);
+      console.log('Loaded workspaces:', userWorkspaces.length, userWorkspaces);
       setWorkspaces(userWorkspaces);
 
       if (userWorkspaces.length > 0) {
@@ -69,11 +68,10 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         const targetWorkspaceId = profile?.current_workspace_id || userWorkspaces[0].id;
         const targetWorkspace = userWorkspaces.find(w => w.id === targetWorkspaceId) || userWorkspaces[0];
         
-        console.log('Auto-selecting workspace:', targetWorkspace.id);
+        console.log('Auto-selecting workspace:', targetWorkspace.id, targetWorkspace.name);
         setCurrentWorkspace(targetWorkspace);
         
         // Verificar se é owner
-        const membershipData = membershipInfo?.find(m => m.workspace_id === targetWorkspace.id);
         const isWorkspaceOwner = targetWorkspace.owner_id === user.id;
         setIsOwner(isWorkspaceOwner);
         
@@ -81,11 +79,16 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
         // Atualizar workspace atual no perfil se necessário
         if (profile?.current_workspace_id !== targetWorkspace.id) {
+          console.log('Updating current workspace in profile');
           await supabase
             .from('profiles')
             .update({ current_workspace_id: targetWorkspace.id })
             .eq('id', user.id);
         }
+      } else {
+        console.log('No workspaces found for user');
+        setCurrentWorkspace(null);
+        setIsOwner(false);
       }
 
       setHasInitialized(true);
