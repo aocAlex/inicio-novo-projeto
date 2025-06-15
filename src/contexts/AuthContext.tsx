@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -30,11 +31,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  console.log('AuthProvider - user:', user, 'loading:', loading);
+  console.log('AuthProvider - user:', user?.id, 'profile:', profile?.id, 'loading:', loading);
 
-  const createProfileIfNotExists = async (userId: string, userEmail: string, fullName?: string) => {
+  const ensureProfileExists = async (userId: string, userEmail: string, metadata?: any): Promise<Profile | null> => {
     try {
-      console.log('Verificando se perfil existe para userId:', userId);
+      console.log('Garantindo que perfil existe para userId:', userId);
       
       // Primeiro, tentar buscar o perfil existente
       const { data: existingProfile, error: fetchError } = await supabase
@@ -43,70 +44,65 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .eq('id', userId)
         .maybeSingle();
 
-      if (fetchError) {
+      if (fetchError && fetchError.code !== 'PGRST116') {
         console.error('Erro ao buscar perfil existente:', fetchError);
+        throw fetchError;
       }
 
       if (existingProfile) {
-        console.log('Perfil já existe:', existingProfile);
+        console.log('Perfil já existe:', existingProfile.id);
         return existingProfile;
       }
 
       // Se não existe, criar um novo perfil
       console.log('Criando novo perfil para usuário:', userId);
+      const profileData = {
+        id: userId,
+        email: userEmail,
+        full_name: metadata?.full_name || null,
+        preferences: {
+          notifications: true,
+          email_alerts: true,
+          theme: 'light'
+        }
+      };
+
       const { data: newProfile, error: createError } = await supabase
         .from('profiles')
-        .insert({
-          id: userId,
-          email: userEmail,
-          full_name: fullName || null,
-          preferences: {
-            notifications: true,
-            email_alerts: true,
-            theme: 'light'
-          }
-        })
+        .insert(profileData)
         .select()
         .single();
 
       if (createError) {
         console.error('Erro ao criar perfil:', createError);
+        // Se for erro de duplicata, tentar buscar novamente
+        if (createError.code === '23505') {
+          const { data: duplicateProfile } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', userId)
+            .single();
+          return duplicateProfile;
+        }
         throw createError;
       }
 
-      console.log('Novo perfil criado:', newProfile);
+      console.log('Novo perfil criado com sucesso:', newProfile.id);
       return newProfile;
     } catch (error) {
-      console.error('Erro no createProfileIfNotExists:', error);
-      throw error;
+      console.error('Erro em ensureProfileExists:', error);
+      return null;
     }
   };
 
-  const loadProfile = async (userId: string, userEmail: string, metadata?: any) => {
+  const loadUserData = async (userId: string, userEmail: string, metadata?: any) => {
     try {
-      console.log('Carregando perfil para userId:', userId);
+      console.log('Carregando dados do usuário:', userId);
       
-      // Tentar buscar o perfil existente primeiro
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .maybeSingle();
-
-      if (error) {
-        console.error('Erro ao carregar perfil:', error);
-      }
+      const profileData = await ensureProfileExists(userId, userEmail, metadata);
       
-      let profileData = data;
-
-      // Se não encontrou o perfil, criar um novo
-      if (!profileData) {
-        console.log('Perfil não encontrado, criando novo...');
-        profileData = await createProfileIfNotExists(userId, userEmail, metadata?.full_name);
-      }
-
       if (profileData) {
-        // Garantir que preferences seja um objeto com as propriedades corretas
+        // Garantir que preferences seja um objeto válido
         const preferences = profileData.preferences && typeof profileData.preferences === 'object' 
           ? profileData.preferences as any
           : { notifications: true, email_alerts: true, theme: 'light' };
@@ -119,36 +115,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             theme: preferences.theme ?? 'light'
           }
         });
-        console.log('Perfil carregado/criado com sucesso:', profileData);
+        console.log('Perfil carregado com sucesso:', profileData.id);
       } else {
-        console.log('Nenhum perfil encontrado ou criado');
+        console.error('Falha ao carregar/criar perfil');
         setProfile(null);
       }
     } catch (error) {
-      console.error('Error loading/creating profile:', error);
+      console.error('Erro ao carregar dados do usuário:', error);
       setProfile(null);
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
     console.log('AuthProvider useEffect - configurando listeners');
     
-    // Set up auth state listener
+    // Configurar listener de mudanças de auth
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('Auth state changed:', event, session?.user?.id);
+        
         setSession(session);
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          // Usar setTimeout para evitar deadlock
-          setTimeout(() => {
-            loadProfile(
-              session.user.id, 
-              session.user.email!, 
-              session.user.user_metadata
-            );
-          }, 0);
+          // Não definir loading como false ainda - aguardar carregamento do perfil
+          await loadUserData(
+            session.user.id, 
+            session.user.email!, 
+            session.user.user_metadata
+          );
         } else {
           setProfile(null);
           setLoading(false);
@@ -156,7 +153,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     );
 
-    // Check for existing session
+    // Verificar sessão existente
     const initializeAuth = async () => {
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
@@ -172,14 +169,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          await loadProfile(
+          await loadUserData(
             session.user.id, 
             session.user.email!, 
             session.user.user_metadata
           );
+        } else {
+          setLoading(false);
         }
-        
-        setLoading(false);
       } catch (error) {
         console.error('Erro na inicialização da auth:', error);
         setLoading(false);
@@ -194,27 +191,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, []);
 
-  // Garantir que loading seja definido como false após carregar o perfil
-  useEffect(() => {
-    if (user && profile !== undefined) {
-      setLoading(false);
-    } else if (!user) {
-      setLoading(false);
-    }
-  }, [user, profile]);
-
   const signIn = async (email: string, password: string) => {
     console.log('Iniciando signIn para:', email);
+    setLoading(true);
+    
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
+    
+    if (error) {
+      setLoading(false);
+    }
+    
     console.log('Resultado signIn:', error ? 'erro' : 'sucesso');
     return { error };
   };
 
   const signUp = async (email: string, password: string, fullName?: string) => {
     console.log('Iniciando signUp para:', email);
+    setLoading(true);
+    
     const redirectUrl = `${window.location.origin}/`;
     
     const { error } = await supabase.auth.signUp({
@@ -225,6 +222,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         data: fullName ? { full_name: fullName } : undefined
       }
     });
+    
+    if (error) {
+      setLoading(false);
+    }
+    
     console.log('Resultado signUp:', error ? 'erro' : 'sucesso');
     return { error };
   };
