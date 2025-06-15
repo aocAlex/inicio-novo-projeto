@@ -1,5 +1,6 @@
 
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -12,7 +13,6 @@ import {
 } from '@/components/ui/select';
 import { useTemplates, Template } from '@/hooks/useTemplates';
 import { TemplateList } from '@/components/templates/TemplateList';
-import { AdvancedTemplateEditor } from '@/components/templates/AdvancedTemplateEditor';
 import { ExecuteModal } from '@/components/petitions/ExecuteModal';
 import { usePetitions } from '@/hooks/usePetitions';
 import { 
@@ -22,9 +22,8 @@ import {
 } from 'lucide-react';
 
 export const TemplatesPage = () => {
+  const navigate = useNavigate();
   const [filters, setFilters] = useState({ search: '', category: '' });
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [editingTemplate, setEditingTemplate] = useState<Template | null>(null);
   const [executingTemplate, setExecutingTemplate] = useState<Template | null>(null);
 
   const {
@@ -54,18 +53,8 @@ export const TemplatesPage = () => {
     loadTemplates(newFilters);
   };
 
-  const handleCreateSuccess = () => {
-    setShowCreateModal(false);
-    loadTemplates(filters);
-  };
-
   const handleEditTemplate = (template: Template) => {
-    setEditingTemplate(template);
-  };
-
-  const handleUpdateSuccess = () => {
-    setEditingTemplate(null);
-    loadTemplates(filters);
+    navigate(`/templates/edit/${template.id}`);
   };
 
   const handleExecuteTemplate = (template: Template) => {
@@ -82,7 +71,7 @@ export const TemplatesPage = () => {
             Gerencie seus modelos de documentos jurídicos
           </p>
         </div>
-        <Button onClick={() => setShowCreateModal(true)}>
+        <Button onClick={() => navigate('/templates/new')}>
           <Plus className="h-4 w-4 mr-2" />
           Novo Template
         </Button>
@@ -146,20 +135,7 @@ export const TemplatesPage = () => {
         onExecute={handleExecuteTemplate}
       />
 
-      {/* Modals */}
-      <AdvancedTemplateEditor
-        isOpen={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
-        onSuccess={handleCreateSuccess}
-      />
-
-      <AdvancedTemplateEditor
-        isOpen={!!editingTemplate}
-        template={editingTemplate || undefined}
-        onClose={() => setEditingTemplate(null)}
-        onSuccess={handleUpdateSuccess}
-      />
-
+      {/* Execute Modal */}
       <ExecuteModal
         isOpen={!!executingTemplate}
         onClose={() => setExecutingTemplate(null)}

@@ -8,6 +8,7 @@ import { Dashboard } from '@/pages/Dashboard';
 import { Clients } from '@/pages/Clients';
 import { Processes } from '@/pages/Processes';
 import { TemplatesPage } from '@/pages/TemplatesPage';
+import { TemplateEditorPage } from '@/pages/TemplateEditorPage';
 import { PetitionsPage } from '@/pages/PetitionsPage';
 import { SettingsPage } from '@/components/settings/SettingsPage';
 import { Loader2 } from 'lucide-react';
@@ -90,18 +91,27 @@ export const MainApp = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header />
-      
-      <div className="flex h-[calc(100vh-4rem)]">
-        <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
+      <Routes>
+        {/* Template Editor - Full screen without sidebar */}
+        <Route path="/templates/new" element={<TemplateEditorPage />} />
+        <Route path="/templates/edit/:id" element={<TemplateEditorPage />} />
         
-        <main className="flex-1 overflow-auto">
-          <Routes>
-            <Route path="/" element={renderContent()} />
-            <Route path="/*" element={renderContent()} />
-          </Routes>
-        </main>
-      </div>
+        {/* Main app with sidebar */}
+        <Route 
+          path="/*" 
+          element={
+            <>
+              <Header />
+              <div className="flex h-[calc(100vh-4rem)]">
+                <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
+                <main className="flex-1 overflow-auto">
+                  {renderContent()}
+                </main>
+              </div>
+            </>
+          } 
+        />
+      </Routes>
     </div>
   );
 };

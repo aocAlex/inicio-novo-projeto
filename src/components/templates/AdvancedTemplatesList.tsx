@@ -1,11 +1,12 @@
+
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAdvancedTemplates } from '@/hooks/useAdvancedTemplates'
 import { usePermissions } from '@/hooks/usePermissions'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { AdvancedTemplateEditor } from './AdvancedTemplateEditor'
 import { AdvancedTemplateExecutor } from './AdvancedTemplateExecutor'
 import {
   Search,
@@ -53,6 +54,7 @@ const CATEGORIES = [
 ]
 
 export const AdvancedTemplatesList = () => {
+  const navigate = useNavigate()
   const { 
     templates, 
     isLoading, 
@@ -65,8 +67,6 @@ export const AdvancedTemplatesList = () => {
   const { can } = usePermissions()
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('all')
-  const [showCreateModal, setShowCreateModal] = useState(false)
-  const [editingTemplate, setEditingTemplate] = useState<any>(null)
   const [executingTemplate, setExecutingTemplate] = useState<any>(null)
   const [previewingTemplate, setPreviewingTemplate] = useState<any>(null)
 
@@ -119,7 +119,7 @@ export const AdvancedTemplatesList = () => {
         </div>
         
         {can.createTemplate && (
-          <Button onClick={() => setShowCreateModal(true)} size="lg">
+          <Button onClick={() => navigate('/templates/new')} size="lg">
             <Plus className="mr-2 h-4 w-4" />
             Novo Template Avançado
           </Button>
@@ -220,7 +220,7 @@ export const AdvancedTemplatesList = () => {
               }
             </p>
             {can.createTemplate && (
-              <Button onClick={() => setShowCreateModal(true)} size="lg">
+              <Button onClick={() => navigate('/templates/new')} size="lg">
                 <Plus className="mr-2 h-4 w-4" />
                 Criar Primeiro Template
               </Button>
@@ -263,7 +263,7 @@ export const AdvancedTemplatesList = () => {
                         </DropdownMenuItem>
                         
                         {can.updateTemplate && (
-                          <DropdownMenuItem onClick={() => setEditingTemplate(template)}>
+                          <DropdownMenuItem onClick={() => navigate(`/templates/edit/${template.id}`)}>
                             <Edit className="mr-2 h-4 w-4" />
                             Editar
                           </DropdownMenuItem>
@@ -349,7 +349,7 @@ export const AdvancedTemplatesList = () => {
                       {can.updateTemplate && (
                         <Button 
                           variant="outline"
-                          onClick={() => setEditingTemplate(template)}
+                          onClick={() => navigate(`/templates/edit/${template.id}`)}
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
@@ -364,29 +364,6 @@ export const AdvancedTemplatesList = () => {
       )}
 
       {/* Modals */}
-      {showCreateModal && (
-        <AdvancedTemplateEditor 
-          isOpen={showCreateModal}
-          onClose={() => setShowCreateModal(false)}
-          onSuccess={() => {
-            setShowCreateModal(false)
-            loadTemplates()
-          }}
-        />
-      )}
-      
-      {editingTemplate && (
-        <AdvancedTemplateEditor 
-          isOpen={!!editingTemplate}
-          template={editingTemplate}
-          onClose={() => setEditingTemplate(null)}
-          onSuccess={() => {
-            setEditingTemplate(null)
-            loadTemplates()
-          }}
-        />
-      )}
-      
       {executingTemplate && (
         <AdvancedTemplateExecutor 
           isOpen={!!executingTemplate}
