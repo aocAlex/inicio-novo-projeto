@@ -10,7 +10,8 @@ import {
   Settings,
   Calendar,
   ClipboardList,
-  FileSignature
+  FileSignature,
+  DollarSign
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -67,32 +68,39 @@ const navigation = [
     shortcut: '4'
   },
   { 
+    name: 'Financeiro', 
+    href: '/financial', 
+    icon: DollarSign,
+    badge: null,
+    shortcut: '5'
+  },
+  { 
     name: 'Templates', 
     href: '/templates', 
     icon: FileText,
     badge: null,
-    shortcut: '5'
+    shortcut: '6'
   },
   { 
     name: 'Petições', 
     href: '/petitions', 
     icon: FolderOpen,
     badge: null,
-    shortcut: '6'
+    shortcut: '7'
   },
   { 
     name: 'Prazos', 
     href: '/deadlines', 
     icon: Calendar,
     badge: null,
-    shortcut: '7'
+    shortcut: '8'
   },
   { 
     name: 'Configurações', 
     href: '/settings', 
     icon: Settings,
     badge: null,
-    shortcut: '8'
+    shortcut: '9'
   },
 ];
 

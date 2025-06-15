@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Routes as RouterRoutes, Route, Navigate } from 'react-router-dom';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
@@ -9,6 +10,7 @@ import { TemplateEditorPage } from './TemplateEditorPage';
 import { PetitionsPage } from './PetitionsPage';
 import { DeadlinesPage } from './DeadlinesPage';
 import { ContractsPage } from './ContractsPage';
+import { FinancialPage } from './FinancialPage';
 import { SettingsPage } from '@/components/settings/SettingsPage';
 import { SuperAdminPage } from './SuperAdminPage';
 import NotFound from './NotFound';
@@ -24,6 +26,7 @@ export const Routes = () => {
       <Route path="/clients" element={<ProtectedRoute><Clients /></ProtectedRoute>} />
       <Route path="/processes" element={<ProtectedRoute><Processes /></ProtectedRoute>} />
       <Route path="/contracts" element={<ProtectedRoute><ContractsPage /></ProtectedRoute>} />
+      <Route path="/financial" element={<ProtectedRoute><FinancialPage /></ProtectedRoute>} />
       <Route path="/templates" element={<ProtectedRoute><TemplatesPage /></ProtectedRoute>} />
       <Route path="/templates/:id/editor" element={<ProtectedRoute><TemplateEditorPage /></ProtectedRoute>} />
       <Route path="/petitions" element={<ProtectedRoute><PetitionsPage /></ProtectedRoute>} />
