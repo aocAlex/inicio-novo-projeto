@@ -7,7 +7,6 @@ import {
   FileText, 
   BookOpen, 
   Gavel, 
-  Play, 
   Settings,
   Building2
 } from 'lucide-react';
@@ -43,11 +42,6 @@ export const Sidebar = ({ activeTab, onTabChange }: SidebarProps) => {
       id: 'petitions',
       label: 'Petições',
       icon: Gavel,
-    },
-    {
-      id: 'executions',
-      label: 'Execuções',
-      icon: Play,
     },
     {
       id: 'settings',
