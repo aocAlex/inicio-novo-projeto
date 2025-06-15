@@ -1,4 +1,5 @@
 
+
 import { supabase } from '@/integrations/supabase/client';
 
 interface MemberRecord {
@@ -14,13 +15,12 @@ export const cleanupOrphanedMembers = async (workspaceId: string) => {
   try {
     console.log('Starting cleanup of orphaned members for workspace:', workspaceId);
 
-    // Get all active members for this workspace with explicit typing
+    // Get all active members for this workspace
     const { data: allMembers, error: membersError } = await supabase
       .from('workspace_members')
       .select('id, user_id')
       .eq('workspace_id', workspaceId)
-      .eq('status', 'active')
-      .returns<MemberRecord[]>();
+      .eq('status', 'active');
 
     if (membersError) {
       console.error('Error fetching all members:', membersError);
@@ -36,16 +36,15 @@ export const cleanupOrphanedMembers = async (workspaceId: string) => {
     const orphanedMembers: MemberRecord[] = [];
     
     for (const member of allMembers) {
-      // Check if profile exists with explicit typing
+      // Check if profile exists
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('id')
         .eq('id', member.user_id)
-        .single()
-        .returns<ProfileRecord>();
+        .single();
 
       if (profileError || !profile) {
-        orphanedMembers.push(member);
+        orphanedMembers.push(member as MemberRecord);
       }
     }
 
@@ -82,13 +81,12 @@ export const cleanupOrphanedMembers = async (workspaceId: string) => {
 
 export const validateMemberExists = async (userId: string): Promise<boolean> => {
   try {
-    // Check if profile exists with explicit typing
+    // Check if profile exists
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('id')
       .eq('id', userId)
-      .single()
-      .returns<ProfileRecord>();
+      .single();
 
     if (profileError || !profile) {
       console.error('Error validating user:', profileError);
@@ -100,3 +98,4 @@ export const validateMemberExists = async (userId: string): Promise<boolean> => 
     return false;
   }
 };
+
