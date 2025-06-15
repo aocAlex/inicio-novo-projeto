@@ -1,7 +1,6 @@
 
 import { useState, useEffect } from 'react'
 import { useAdvancedTemplates } from '@/hooks/useAdvancedTemplates'
-import { useTemplatePreview } from '@/hooks/useTemplatePreview'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -12,8 +11,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Plus, X, Eye, Save, AlertCircle } from 'lucide-react'
+import { Plus, X, Save, AlertCircle } from 'lucide-react'
 import { PetitionTemplate, CreateTemplateData, TemplateField } from '@/types/templates'
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable'
 
 interface AdvancedTemplateEditorProps {
   isOpen: boolean
@@ -52,7 +52,6 @@ export const AdvancedTemplateEditor = ({
   onSuccess 
 }: AdvancedTemplateEditorProps) => {
   const { createTemplate, updateTemplate } = useAdvancedTemplates()
-  const { generatePreview } = useTemplatePreview()
   
   const [formData, setFormData] = useState<CreateTemplateData>({
     name: '',
@@ -65,7 +64,6 @@ export const AdvancedTemplateEditor = ({
     fields: []
   })
   
-  const [previewData, setPreviewData] = useState<Record<string, any>>({})
   const [isLoading, setIsLoading] = useState(false)
   const [activeTab, setActiveTab] = useState('editor')
 
@@ -164,11 +162,6 @@ export const AdvancedTemplateEditor = ({
     }
   }
 
-  const handlePreview = () => {
-    generatePreview(formData.template_content, formData.fields as TemplateField[], previewData)
-    setActiveTab('preview')
-  }
-
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden">
@@ -180,10 +173,8 @@ export const AdvancedTemplateEditor = ({
 
         <form onSubmit={handleSubmit} className="flex flex-col h-full">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="editor">Editor</TabsTrigger>
-              <TabsTrigger value="fields">Campos</TabsTrigger>
-              <TabsTrigger value="preview">Preview</TabsTrigger>
               <TabsTrigger value="settings">Configurações</TabsTrigger>
             </TabsList>
 
@@ -232,157 +223,126 @@ export const AdvancedTemplateEditor = ({
                   />
                 </div>
 
-                <div className="flex-1">
-                  <div className="flex justify-between items-center mb-2">
-                    <Label htmlFor="template-content">Conteúdo do Template</Label>
-                    <Button type="button" variant="outline" size="sm" onClick={handlePreview}>
-                      <Eye className="mr-2 h-4 w-4" />
-                      Preview
-                    </Button>
-                  </div>
-                  
-                  <Textarea
-                    id="template-content"
-                    value={formData.template_content}
-                    onChange={(e) => setFormData(prev => ({ ...prev, template_content: e.target.value }))}
-                    placeholder="Digite o conteúdo da petição usando variáveis como {{cliente_nome}}, {{data_hoje}}, etc..."
-                    className="min-h-[300px] font-mono text-sm"
-                    required
-                  />
-                  
-                  <div className="mt-2 text-xs text-gray-500">
-                    💡 Use variáveis como {`{{cliente_nome}}`} para campos dinâmicos
-                  </div>
-                </div>
-              </TabsContent>
-
-              {/* Fields Tab */}
-              <TabsContent value="fields" className="h-full space-y-4">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-lg font-medium">Campos Configuráveis</h3>
-                  <Button type="button" onClick={addField} size="sm">
-                    <Plus className="mr-2 h-4 w-4" />
-                    Adicionar Campo
-                  </Button>
-                </div>
-
-                <div className="space-y-3 max-h-[400px] overflow-y-auto">
-                  {formData.fields.map((field, index) => (
-                    <Card key={index}>
-                      <CardContent className="p-4">
-                        <div className="grid grid-cols-12 gap-3 items-end">
-                          <div className="col-span-3">
-                            <Label className="text-xs">Chave da Variável</Label>
-                            <Input
-                              value={field.field_key}
-                              onChange={(e) => updateField(index, { field_key: e.target.value })}
-                              placeholder="cliente_nome"
-                              className="text-sm"
-                            />
-                          </div>
-                          
-                          <div className="col-span-3">
-                            <Label className="text-xs">Label do Campo</Label>
-                            <Input
-                              value={field.field_label}
-                              onChange={(e) => updateField(index, { field_label: e.target.value })}
-                              placeholder="Nome do Cliente"
-                              className="text-sm"
-                            />
-                          </div>
-                          
-                          <div className="col-span-2">
-                            <Label className="text-xs">Tipo</Label>
-                            <Select 
-                              value={field.field_type} 
-                              onValueChange={(value: any) => updateField(index, { field_type: value })}
-                            >
-                              <SelectTrigger className="text-sm">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {FIELD_TYPES.map(type => (
-                                  <SelectItem key={type.value} value={type.value}>
-                                    {type.label}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          
-                          <div className="col-span-2 flex items-center space-x-2">
-                            <Switch
-                              checked={field.is_required}
-                              onCheckedChange={(checked) => updateField(index, { is_required: checked })}
-                            />
-                            <Label className="text-xs">Obrigatório</Label>
-                          </div>
-                          
-                          <div className="col-span-1 flex items-center gap-1">
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => insertVariable(field.field_key)}
-                              className="h-8 w-8 p-0"
-                            >
-                              +
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => removeField(index)}
-                              className="h-8 w-8 p-0 text-red-600"
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </TabsContent>
-
-              {/* Preview Tab */}
-              <TabsContent value="preview" className="h-full">
-                <div className="grid grid-cols-2 gap-4 h-full">
-                  <div>
-                    <h4 className="font-medium mb-2">Dados de Teste</h4>
-                    <div className="space-y-2 max-h-[300px] overflow-y-auto">
-                      {formData.fields.map((field, index) => (
-                        <div key={index}>
-                          <Label className="text-xs">{field.field_label}</Label>
-                          <Input
-                            value={previewData[field.field_key] || ''}
-                            onChange={(e) => setPreviewData(prev => ({
-                              ...prev,
-                              [field.field_key]: e.target.value
-                            }))}
-                            placeholder={`Ex: valor para ${field.field_key}`}
-                            className="text-sm"
-                          />
-                        </div>
-                      ))}
+                <ResizablePanelGroup direction="horizontal" className="flex-1 border rounded-lg">
+                  <ResizablePanel defaultSize={50} minSize={30}>
+                    <div className="h-full p-4">
+                      <Label htmlFor="template-content" className="text-sm font-medium">
+                        Conteúdo do Template
+                      </Label>
+                      
+                      <Textarea
+                        id="template-content"
+                        value={formData.template_content}
+                        onChange={(e) => setFormData(prev => ({ ...prev, template_content: e.target.value }))}
+                        placeholder="Digite o conteúdo da petição usando variáveis como {{cliente_nome}}, {{data_hoje}}, etc..."
+                        className="mt-2 h-[400px] font-mono text-sm resize-none"
+                        required
+                      />
+                      
+                      <div className="mt-2 text-xs text-gray-500">
+                        💡 Use variáveis como {`{{cliente_nome}}`} para campos dinâmicos
+                      </div>
                     </div>
-                    <Button 
-                      type="button" 
-                      onClick={handlePreview} 
-                      className="w-full mt-4"
-                      variant="outline"
-                    >
-                      Atualizar Preview
-                    </Button>
-                  </div>
-                  
-                  <div>
-                    <h4 className="font-medium mb-2">Preview da Petição</h4>
-                    <div className="border rounded p-4 min-h-[300px] bg-gray-50 text-sm whitespace-pre-wrap">
-                      {formData.template_content || 'Digite o conteúdo do template na aba Editor...'}
+                  </ResizablePanel>
+
+                  <ResizableHandle withHandle />
+
+                  <ResizablePanel defaultSize={50} minSize={30}>
+                    <div className="h-full p-4">
+                      <div className="flex justify-between items-center mb-3">
+                        <Label className="text-sm font-medium">Campos Configuráveis</Label>
+                        <Button type="button" onClick={addField} size="sm">
+                          <Plus className="mr-2 h-4 w-4" />
+                          Adicionar Campo
+                        </Button>
+                      </div>
+
+                      <div className="space-y-3 max-h-[400px] overflow-y-auto">
+                        {formData.fields.map((field, index) => (
+                          <Card key={index} className="p-3">
+                            <div className="space-y-3">
+                              <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                  <Label className="text-xs">Chave da Variável</Label>
+                                  <Input
+                                    value={field.field_key}
+                                    onChange={(e) => updateField(index, { field_key: e.target.value })}
+                                    placeholder="cliente_nome"
+                                    className="text-sm h-8"
+                                  />
+                                </div>
+                                
+                                <div>
+                                  <Label className="text-xs">Label do Campo</Label>
+                                  <Input
+                                    value={field.field_label}
+                                    onChange={(e) => updateField(index, { field_label: e.target.value })}
+                                    placeholder="Nome do Cliente"
+                                    className="text-sm h-8"
+                                  />
+                                </div>
+                              </div>
+
+                              <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                  <Label className="text-xs">Tipo</Label>
+                                  <Select 
+                                    value={field.field_type} 
+                                    onValueChange={(value: any) => updateField(index, { field_type: value })}
+                                  >
+                                    <SelectTrigger className="text-sm h-8">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {FIELD_TYPES.map(type => (
+                                        <SelectItem key={type.value} value={type.value}>
+                                          {type.label}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                                
+                                <div className="flex items-center justify-between pt-4">
+                                  <div className="flex items-center space-x-2">
+                                    <Switch
+                                      checked={field.is_required}
+                                      onCheckedChange={(checked) => updateField(index, { is_required: checked })}
+                                    />
+                                    <Label className="text-xs">Obrigatório</Label>
+                                  </div>
+                                  
+                                  <div className="flex items-center gap-1">
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => insertVariable(field.field_key)}
+                                      className="h-6 w-6 p-0"
+                                      title="Inserir no template"
+                                    >
+                                      +
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => removeField(index)}
+                                      className="h-6 w-6 p-0 text-red-600"
+                                      title="Remover campo"
+                                    >
+                                      <X className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </Card>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                </div>
+                  </ResizablePanel>
+                </ResizablePanelGroup>
               </TabsContent>
 
               {/* Settings Tab */}
