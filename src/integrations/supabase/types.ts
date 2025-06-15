@@ -273,6 +273,8 @@ export type Database = {
           name: string
           template_content: string
           updated_at: string | null
+          webhook_enabled: boolean | null
+          webhook_url: string | null
           workspace_id: string
         }
         Insert: {
@@ -286,6 +288,8 @@ export type Database = {
           name: string
           template_content: string
           updated_at?: string | null
+          webhook_enabled?: boolean | null
+          webhook_url?: string | null
           workspace_id: string
         }
         Update: {
@@ -299,6 +303,8 @@ export type Database = {
           name?: string
           template_content?: string
           updated_at?: string | null
+          webhook_enabled?: boolean | null
+          webhook_url?: string | null
           workspace_id?: string
         }
         Relationships: [

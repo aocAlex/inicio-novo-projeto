@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -55,7 +56,7 @@ export const useTemplates = () => {
 
       let query = supabase
         .from('petition_templates')
-        .select('*, webhook_url, webhook_enabled')
+        .select('*')
         .eq('workspace_id', currentWorkspace.id)
         .order('created_at', { ascending: false });
 
@@ -70,13 +71,22 @@ export const useTemplates = () => {
 
       if (error) throw error;
       
-      // Cast the data to ensure proper typing
-      const typedTemplates = (data || []).map(template => ({
-        ...template,
+      // Transform the data to match our Template interface
+      const typedTemplates: Template[] = (data || []).map(template => ({
+        id: template.id,
+        workspace_id: template.workspace_id,
+        name: template.name,
+        description: template.description,
+        category: template.category as Template['category'],
+        template_content: template.template_content,
+        is_shared: template.is_shared,
+        execution_count: template.execution_count,
         webhook_url: template.webhook_url || null,
         webhook_enabled: template.webhook_enabled || false,
-        category: template.category as Template['category']
-      })) as Template[];
+        created_by: template.created_by,
+        created_at: template.created_at,
+        updated_at: template.updated_at,
+      }));
       
       setTemplates(typedTemplates);
     } catch (err: any) {
@@ -102,17 +112,26 @@ export const useTemplates = () => {
           webhook_url: templateData.webhook_url || null,
           webhook_enabled: templateData.webhook_enabled || false,
         })
-        .select('*, webhook_url, webhook_enabled')
+        .select('*')
         .single();
 
       if (error) throw error;
 
-      const typedTemplate = {
-        ...data,
+      const typedTemplate: Template = {
+        id: data.id,
+        workspace_id: data.workspace_id,
+        name: data.name,
+        description: data.description,
+        category: data.category as Template['category'],
+        template_content: data.template_content,
+        is_shared: data.is_shared,
+        execution_count: data.execution_count,
         webhook_url: data.webhook_url || null,
         webhook_enabled: data.webhook_enabled || false,
-        category: data.category as Template['category']
-      } as Template;
+        created_by: data.created_by,
+        created_at: data.created_at,
+        updated_at: data.updated_at,
+      };
 
       setTemplates(prev => [typedTemplate, ...prev]);
       toast({
@@ -146,17 +165,26 @@ export const useTemplates = () => {
           updated_at: new Date().toISOString(),
         })
         .eq('id', id)
-        .select('*, webhook_url, webhook_enabled')
+        .select('*')
         .single();
 
       if (error) throw error;
 
-      const typedTemplate = {
-        ...data,
+      const typedTemplate: Template = {
+        id: data.id,
+        workspace_id: data.workspace_id,
+        name: data.name,
+        description: data.description,
+        category: data.category as Template['category'],
+        template_content: data.template_content,
+        is_shared: data.is_shared,
+        execution_count: data.execution_count,
         webhook_url: data.webhook_url || null,
         webhook_enabled: data.webhook_enabled || false,
-        category: data.category as Template['category']
-      } as Template;
+        created_by: data.created_by,
+        created_at: data.created_at,
+        updated_at: data.updated_at,
+      };
 
       setTemplates(prev => 
         prev.map(template => 
