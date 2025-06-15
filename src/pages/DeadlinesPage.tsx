@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -42,11 +41,11 @@ export const DeadlinesPage = () => {
       priority: result.priority as 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL',
       attachments: Array.isArray(result.attachments) ? result.attachments : [],
       custom_fields: typeof result.custom_fields === 'object' && result.custom_fields !== null ? result.custom_fields : {},
-      process: result.process && typeof result.process === 'object' && result.process.id ? result.process : undefined,
-      client: result.client && typeof result.client === 'object' && result.client.id ? result.client : undefined,
-      assigned_user: result.assigned_user && typeof result.assigned_user === 'object' && result.assigned_user.id ? result.assigned_user : undefined,
-      petition: result.petition && typeof result.petition === 'object' && result.petition.id ? result.petition : undefined,
-      petition_execution: result.petition_execution && typeof result.petition_execution === 'object' && result.petition_execution.id ? result.petition_execution : undefined,
+      process: result.process && typeof result.process === 'object' && 'id' in result.process ? result.process : undefined,
+      client: result.client && typeof result.client === 'object' && 'id' in result.client ? result.client : undefined,
+      assigned_user: result.assigned_user && typeof result.assigned_user === 'object' && 'id' in result.assigned_user ? result.assigned_user : undefined,
+      petition: result.petition && typeof result.petition === 'object' && 'id' in result.petition ? result.petition : undefined,
+      petition_execution: result.petition_execution && typeof result.petition_execution === 'object' && 'id' in result.petition_execution ? result.petition_execution : undefined,
     };
     return convertedResult;
   };
@@ -63,11 +62,11 @@ export const DeadlinesPage = () => {
         priority: result.priority as 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL',
         attachments: Array.isArray(result.attachments) ? result.attachments : [],
         custom_fields: typeof result.custom_fields === 'object' && result.custom_fields !== null ? result.custom_fields : {},
-        process: result.process && typeof result.process === 'object' && result.process.id ? result.process : undefined,
-        client: result.client && typeof result.client === 'object' && result.client.id ? result.client : undefined,
-        assigned_user: result.assigned_user && typeof result.assigned_user === 'object' && result.assigned_user.id ? result.assigned_user : undefined,
-        petition: result.petition && typeof result.petition === 'object' && result.petition.id ? result.petition : undefined,
-        petition_execution: result.petition_execution && typeof result.petition_execution === 'object' && result.petition_execution.id ? result.petition_execution : undefined,
+        process: result.process && typeof result.process === 'object' && 'id' in result.process ? result.process : undefined,
+        client: result.client && typeof result.client === 'object' && 'id' in result.client ? result.client : undefined,
+        assigned_user: result.assigned_user && typeof result.assigned_user === 'object' && 'id' in result.assigned_user ? result.assigned_user : undefined,
+        petition: result.petition && typeof result.petition === 'object' && 'id' in result.petition ? result.petition : undefined,
+        petition_execution: result.petition_execution && typeof result.petition_execution === 'object' && 'id' in result.petition_execution ? result.petition_execution : undefined,
       };
       return convertedResult;
     }

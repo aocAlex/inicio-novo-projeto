@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -6,6 +5,11 @@ import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { Deadline, DeadlineFormData, DeadlineFilters } from '@/types/deadline';
 import { format, isAfter, differenceInDays, addDays } from 'date-fns';
 import { useToast } from '@/components/ui/use-toast';
+
+// Função auxiliar para verificar se um relacionamento é válido
+const isValidRelation = (relation: any) => {
+  return relation && typeof relation === 'object' && !relation.error && relation.id;
+};
 
 export const useDeadlines = () => {
   const { currentWorkspace } = useWorkspace();
@@ -67,11 +71,6 @@ export const useDeadlines = () => {
   // Atualizar estado local quando dados mudam
   useEffect(() => {
     if (rawDeadlines) {
-      // Função auxiliar para verificar se um relacionamento é válido
-      const isValidRelation = (relation: any) => {
-        return relation && typeof relation === 'object' && !relation.error && relation.id;
-      };
-
       // Converter os dados do Supabase para o tipo Deadline
       const convertedDeadlines: Deadline[] = rawDeadlines.map((item: any) => {
         return {
@@ -163,11 +162,6 @@ export const useDeadlines = () => {
       return result;
     },
     onSuccess: (newDeadline) => {
-      // Função auxiliar para verificar se um relacionamento é válido
-      const isValidRelation = (relation: any) => {
-        return relation && typeof relation === 'object' && !relation.error && relation.id;
-      };
-
       // Converter para o tipo correto
       const convertedDeadline: Deadline = {
         ...newDeadline,
@@ -252,11 +246,6 @@ export const useDeadlines = () => {
       return result;
     },
     onSuccess: (updatedDeadline) => {
-      // Função auxiliar para verificar se um relacionamento é válido
-      const isValidRelation = (relation: any) => {
-        return relation && typeof relation === 'object' && !relation.error && relation.id;
-      };
-
       // Converter para o tipo correto
       const convertedDeadline: Deadline = {
         ...updatedDeadline,
