@@ -1590,6 +1590,10 @@ export type Database = {
         Args: { check_date: string }
         Returns: boolean
       }
+      is_workspace_member: {
+        Args: { p_workspace_id: string; p_user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never
