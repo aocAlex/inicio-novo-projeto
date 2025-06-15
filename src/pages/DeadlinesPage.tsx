@@ -7,7 +7,7 @@ import { useDeadlines } from '@/hooks/useDeadlines';
 import { DeadlinesList } from '@/components/deadlines/DeadlinesList';
 import { DeadlineModal } from '@/components/deadlines/DeadlineModal';
 import { DeadlinesFilters } from '@/components/deadlines/DeadlinesFilters';
-import { Deadline, DeadlineFilters } from '@/types/deadline';
+import { Deadline, DeadlineFilters, DeadlineFormData } from '@/types/deadline';
 
 export const DeadlinesPage = () => {
   const {
@@ -31,20 +31,17 @@ export const DeadlinesPage = () => {
   const completedDeadlines = deadlines.filter(d => d.status === 'CUMPRIDO');
   const totalDeadlines = deadlines.length;
 
-  const handleCreateDeadline = async (data: any) => {
-    const deadline = await createDeadline(data);
-    if (deadline) {
-      setShowCreateModal(false);
-    }
-    return deadline;
+  const handleCreateDeadline = async (data: DeadlineFormData): Promise<Deadline> => {
+    const result = await createDeadline(data);
+    setShowCreateModal(false);
+    return result as Deadline;
   };
 
-  const handleEditDeadline = async (data: any) => {
+  const handleEditDeadline = async (data: DeadlineFormData): Promise<Deadline | null> => {
     if (editingDeadline) {
-      const success = await updateDeadline(editingDeadline.id, data);
-      if (success) {
-        setEditingDeadline(undefined);
-      }
+      const result = await updateDeadline(editingDeadline.id, data);
+      setEditingDeadline(undefined);
+      return result as Deadline;
     }
     return null;
   };

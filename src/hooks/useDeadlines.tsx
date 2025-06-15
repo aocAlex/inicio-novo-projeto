@@ -8,18 +8,18 @@ import { format, isAfter, differenceInDays, addDays } from 'date-fns';
 import { useToast } from '@/components/ui/use-toast';
 
 export const useDeadlines = () => {
-  const { workspace } = useWorkspace();
+  const { currentWorkspace } = useWorkspace();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [deadlines, setDeadlines] = useState<Deadline[]>([]);
 
   // Buscar prazos
   const { data: rawDeadlines, isLoading, error } = useQuery({
-    queryKey: ['deadlines', workspace?.id],
+    queryKey: ['deadlines', currentWorkspace?.id],
     queryFn: async () => {
-      if (!workspace?.id) return [];
+      if (!currentWorkspace?.id) return [];
 
-      console.log('Fetching deadlines for workspace:', workspace.id);
+      console.log('Fetching deadlines for workspace:', currentWorkspace.id);
 
       const { data, error } = await supabase
         .from('deadlines')
@@ -40,7 +40,7 @@ export const useDeadlines = () => {
             email
           )
         `)
-        .eq('workspace_id', workspace.id)
+        .eq('workspace_id', currentWorkspace.id)
         .order('due_date', { ascending: true });
 
       if (error) {
@@ -51,7 +51,7 @@ export const useDeadlines = () => {
       console.log('Fetched deadlines:', data);
       return data || [];
     },
-    enabled: !!workspace?.id,
+    enabled: !!currentWorkspace?.id,
   });
 
   // Atualizar estado local quando dados mudam
@@ -63,8 +63,8 @@ export const useDeadlines = () => {
         deadline_type: item.deadline_type as 'processual' | 'administrativo' | 'contratual' | 'fiscal' | 'personalizado',
         status: item.status as 'PENDENTE' | 'EM_ANDAMENTO' | 'CUMPRIDO' | 'PERDIDO' | 'SUSPENSO',
         priority: item.priority as 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL',
-        attachments: item.attachments || [],
-        custom_fields: item.custom_fields || {}
+        attachments: Array.isArray(item.attachments) ? item.attachments : [],
+        custom_fields: typeof item.custom_fields === 'object' && item.custom_fields !== null ? item.custom_fields : {}
       }));
       setDeadlines(convertedDeadlines);
     }
@@ -73,12 +73,12 @@ export const useDeadlines = () => {
   // Criar prazo
   const createDeadlineMutation = useMutation({
     mutationFn: async (data: DeadlineFormData) => {
-      if (!workspace?.id) throw new Error('Workspace não encontrado');
+      if (!currentWorkspace?.id) throw new Error('Workspace não encontrado');
 
       console.log('Creating deadline:', data);
 
       const deadlineData = {
-        workspace_id: workspace.id,
+        workspace_id: currentWorkspace.id,
         title: data.title,
         description: data.description,
         deadline_type: data.deadline_type,
@@ -131,8 +131,8 @@ export const useDeadlines = () => {
         deadline_type: newDeadline.deadline_type as 'processual' | 'administrativo' | 'contratual' | 'fiscal' | 'personalizado',
         status: newDeadline.status as 'PENDENTE' | 'EM_ANDAMENTO' | 'CUMPRIDO' | 'PERDIDO' | 'SUSPENSO',
         priority: newDeadline.priority as 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL',
-        attachments: newDeadline.attachments || [],
-        custom_fields: newDeadline.custom_fields || {}
+        attachments: Array.isArray(newDeadline.attachments) ? newDeadline.attachments : [],
+        custom_fields: typeof newDeadline.custom_fields === 'object' && newDeadline.custom_fields !== null ? newDeadline.custom_fields : {}
       };
 
       setDeadlines(prev => [...prev, convertedDeadline]);
@@ -199,8 +199,8 @@ export const useDeadlines = () => {
         deadline_type: updatedDeadline.deadline_type as 'processual' | 'administrativo' | 'contratual' | 'fiscal' | 'personalizado',
         status: updatedDeadline.status as 'PENDENTE' | 'EM_ANDAMENTO' | 'CUMPRIDO' | 'PERDIDO' | 'SUSPENSO',
         priority: updatedDeadline.priority as 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL',
-        attachments: updatedDeadline.attachments || [],
-        custom_fields: updatedDeadline.custom_fields || {}
+        attachments: Array.isArray(updatedDeadline.attachments) ? updatedDeadline.attachments : [],
+        custom_fields: typeof updatedDeadline.custom_fields === 'object' && updatedDeadline.custom_fields !== null ? updatedDeadline.custom_fields : {}
       };
 
       setDeadlines(prev => 
