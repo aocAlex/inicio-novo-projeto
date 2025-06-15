@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useAdvancedTemplates } from '@/hooks/useAdvancedTemplates'
@@ -114,13 +113,13 @@ export const TemplateEditorPage = () => {
   }
 
   const addField = () => {
-    const newField = {
-      field_key: `campo_${formData.fields!.length + 1}`,
-      field_title: `Campo ${formData.fields!.length + 1}`,
-      field_type: 'text' as const,
+    const newField: Omit<TemplateField, 'id' | 'template_id' | 'created_at'> = {
+      field_key: `campo_${(formData.fields || []).length + 1}`,
+      field_title: `Campo ${(formData.fields || []).length + 1}`,
+      field_type: 'text',
       field_options: {},
       is_required: false,
-      display_order: formData.fields!.length,
+      display_order: (formData.fields || []).length,
       validation_rules: {}
     }
     
@@ -130,7 +129,7 @@ export const TemplateEditorPage = () => {
     }))
   }
 
-  const updateField = (index: number, field: Partial<typeof formData.fields![0]>) => {
+  const updateField = (index: number, field: Partial<Omit<TemplateField, 'id' | 'template_id' | 'created_at'>>) => {
     setFormData(prev => ({
       ...prev,
       fields: (prev.fields || []).map((f, i) => i === index ? { ...f, ...field } : f)
@@ -169,14 +168,14 @@ export const TemplateEditorPage = () => {
   }
 
   const addSelectOption = (fieldIndex: number) => {
-    const field = formData.fields![fieldIndex]
+    const field = (formData.fields || [])[fieldIndex]
     const currentOptions = field.field_options.options || []
     const newOptions = [...currentOptions, { title: '', value: '' }]
     updateFieldOptions(fieldIndex, { ...field.field_options, options: newOptions })
   }
 
   const updateSelectOption = (fieldIndex: number, optionIndex: number, key: 'title' | 'value', newValue: string) => {
-    const field = formData.fields![fieldIndex]
+    const field = (formData.fields || [])[fieldIndex]
     const currentOptions = field.field_options.options || []
     const newOptions = currentOptions.map((opt: any, i: number) => 
       i === optionIndex ? { ...opt, [key]: newValue } : opt
@@ -185,7 +184,7 @@ export const TemplateEditorPage = () => {
   }
 
   const removeSelectOption = (fieldIndex: number, optionIndex: number) => {
-    const field = formData.fields![fieldIndex]
+    const field = (formData.fields || [])[fieldIndex]
     const currentOptions = field.field_options.options || []
     const newOptions = currentOptions.filter((_: any, i: number) => i !== optionIndex)
     updateFieldOptions(fieldIndex, { ...field.field_options, options: newOptions })
