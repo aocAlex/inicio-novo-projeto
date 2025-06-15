@@ -60,7 +60,7 @@ export const useWorkspaceOptions = () => {
     enabled: !!currentWorkspace?.id,
   });
 
-  // Buscar usuários da workspace - usando INNER JOIN para garantir apenas usuários válidos
+  // Buscar usuários válidos da workspace usando a view criada
   const { data: workspaceUsers = [] } = useQuery({
     queryKey: ['workspace-users', currentWorkspace?.id],
     queryFn: async () => {
@@ -68,43 +68,27 @@ export const useWorkspaceOptions = () => {
 
       console.log('Loading workspace users for workspace:', currentWorkspace.id);
 
-      // Query mais robusta usando INNER JOIN para garantir que só retornamos usuários ativos com profiles válidos
+      // Usar a view valid_workspace_members para garantir apenas usuários válidos
       const { data, error } = await supabase
-        .from('workspace_members')
-        .select(`
-          user_id,
-          profiles!inner (
-            id,
-            full_name,
-            email
-          )
-        `)
-        .eq('workspace_id', currentWorkspace.id)
-        .eq('status', 'active')
-        .not('profiles.id', 'is', null);
+        .from('valid_workspace_members')
+        .select('user_id, full_name, email')
+        .eq('workspace_id', currentWorkspace.id);
 
       if (error) {
         console.error('Error loading workspace users:', error);
         throw error;
       }
       
-      console.log('Raw query result:', data);
+      console.log('Valid users from view:', data?.length || 0);
       
-      // Mapear e validar resultados
-      const validUsers = data
-        ?.filter((member: any) => {
-          // Garantir que o profile existe e tem dados válidos
-          return member.profiles && 
-                 member.profiles.id && 
-                 member.user_id === member.profiles.id;
-        })
-        .map((member: any) => ({
-          id: member.user_id,
-          full_name: member.profiles.full_name || member.profiles.email || 'Usuário sem nome',
-          email: member.profiles.email || ''
-        })) || [];
+      // Mapear resultados
+      const validUsers = data?.map((member: any) => ({
+        id: member.user_id,
+        full_name: member.full_name || member.email || 'Usuário sem nome',
+        email: member.email || ''
+      })) || [];
 
-      console.log('Valid users after filtering:', validUsers);
+      console.log('Mapped valid users:', validUsers.length);
       return validUsers;
     },
     enabled: !!currentWorkspace?.id,

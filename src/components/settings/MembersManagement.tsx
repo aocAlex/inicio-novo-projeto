@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -10,7 +11,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, UserPlus, Users, Trash2, Mail, AlertTriangle } from 'lucide-react';
+import { Loader2, UserPlus, Users, Trash2, Mail, AlertTriangle, RefreshCw } from 'lucide-react';
+import { cleanupOrphanedMembers } from '@/utils/membershipCleanup';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,8 +30,9 @@ export const MembersManagement = () => {
   const { can } = usePermissions();
   const { toast } = useToast();
   const [members, setMembers] = useState<WorkspaceMember[]>([]);
-  const [orphanedMembers, setOrphanedMembers] = useState<any[]>([]);
+  const [orphanedCount, setOrphanedCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
+  const [isCleaningUp, setIsCleaningUp] = useState(false);
   const [isInviting, setIsInviting] = useState(false);
   const [inviteForm, setInviteForm] = useState({
     email: '',
@@ -44,88 +47,62 @@ export const MembersManagement = () => {
       
       console.log('Loading members for workspace:', currentWorkspace.id);
       
-      // First get workspace members
-      const { data: membersData, error: membersError } = await supabase
-        .from('workspace_members')
+      // Usar a view valid_workspace_members para obter apenas membros válidos
+      const { data: validMembersData, error: validMembersError } = await supabase
+        .from('valid_workspace_members')
         .select('*')
+        .eq('workspace_id', currentWorkspace.id);
+
+      if (validMembersError) {
+        console.error('Error loading valid members:', validMembersError);
+        throw validMembersError;
+      }
+
+      // Buscar total de membros para comparação
+      const { data: allMembersData, error: allMembersError } = await supabase
+        .from('workspace_members')
+        .select('id')
         .eq('workspace_id', currentWorkspace.id)
         .eq('status', 'active');
 
-      if (membersError) {
-        console.error('Error loading workspace members:', membersError);
-        throw membersError;
+      if (allMembersError) {
+        console.error('Error loading all members:', allMembersError);
       }
 
-      console.log('Found workspace members:', membersData?.length || 0);
+      const totalMembers = allMembersData?.length || 0;
+      const validMembers = validMembersData?.length || 0;
+      const orphanedMembers = totalMembers - validMembers;
 
-      if (!membersData || membersData.length === 0) {
-        setMembers([]);
-        setOrphanedMembers([]);
-        return;
-      }
+      setOrphanedCount(orphanedMembers);
 
-      // Get profiles for each member
-      const memberIds = membersData.map(member => member.user_id);
-      console.log('Looking for profiles for user IDs:', memberIds);
+      // Mapear membros válidos
+      const mappedMembers: WorkspaceMember[] = validMembersData?.map(member => ({
+        id: member.member_id,
+        workspace_id: member.workspace_id,
+        user_id: member.user_id,
+        role: member.role as 'owner' | 'admin' | 'editor' | 'viewer',
+        status: member.status as 'active' | 'pending' | 'suspended',
+        permissions: typeof member.permissions === 'object' && member.permissions !== null ? member.permissions as Record<string, any> : {},
+        last_activity: member.last_activity,
+        created_at: member.created_at,
+        profile: {
+          id: member.user_id,
+          email: member.email,
+          full_name: member.full_name,
+          avatar_url: member.avatar_url,
+        },
+      })) || [];
 
-      const { data: profilesData, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id, email, full_name, avatar_url')
-        .in('id', memberIds);
+      console.log('Valid members loaded:', mappedMembers.length);
+      console.log('Orphaned members detected:', orphanedMembers);
 
-      if (profilesError) {
-        console.error('Error loading profiles:', profilesError);
-        // Continue even if profiles fail to load
-      }
+      setMembers(mappedMembers);
 
-      console.log('Found profiles:', profilesData?.length || 0);
-
-      // Separate members with and without profiles
-      const validMembers: WorkspaceMember[] = [];
-      const orphaned: any[] = [];
-
-      membersData.forEach(member => {
-        const profile = profilesData?.find(p => p.id === member.user_id);
-        
-        if (profile) {
-          // Member has a valid profile
-          validMembers.push({
-            id: member.id,
-            workspace_id: member.workspace_id,
-            user_id: member.user_id,
-            role: member.role as 'owner' | 'admin' | 'editor' | 'viewer',
-            status: member.status as 'active' | 'pending' | 'suspended',
-            permissions: typeof member.permissions === 'object' && member.permissions !== null ? member.permissions as Record<string, any> : {},
-            last_activity: member.last_activity,
-            created_at: member.created_at,
-            profile: {
-              id: profile.id,
-              email: profile.email,
-              full_name: profile.full_name,
-              avatar_url: profile.avatar_url,
-            },
-          });
-        } else {
-          // Member doesn't have a profile (orphaned)
-          console.warn('Orphaned member found:', member.user_id);
-          orphaned.push({
-            ...member,
-            reason: 'Profile not found'
-          });
-        }
-      });
-
-      console.log('Valid members:', validMembers.length);
-      console.log('Orphaned members:', orphaned.length);
-
-      setMembers(validMembers);
-      setOrphanedMembers(orphaned);
-
-      // Show warning if there are orphaned members
-      if (orphaned.length > 0) {
+      // Mostrar aviso se há membros órfãos
+      if (orphanedMembers > 0) {
         toast({
-          title: "Membros órfãos encontrados",
-          description: `${orphaned.length} membro(s) sem perfil válido foram encontrados`,
+          title: "Membros órfãos detectados",
+          description: `${orphanedMembers} membro(s) sem perfil válido foram encontrados`,
           variant: "destructive",
         });
       }
@@ -142,26 +119,25 @@ export const MembersManagement = () => {
     }
   };
 
-  const cleanupOrphanedMembers = async () => {
-    if (!currentWorkspace || orphanedMembers.length === 0) return;
+  const handleCleanupOrphaned = async () => {
+    if (!currentWorkspace || orphanedCount === 0) return;
 
     try {
-      const orphanedIds = orphanedMembers.map(member => member.id);
+      setIsCleaningUp(true);
       
-      const { error } = await supabase
-        .from('workspace_members')
-        .update({ status: 'suspended' })
-        .in('id', orphanedIds);
-
-      if (error) throw error;
-
-      toast({
-        title: "Membros órfãos removidos",
-        description: `${orphanedMembers.length} membro(s) órfão(s) foram removidos`,
-      });
-
-      // Reload members
-      loadMembers();
+      const result = await cleanupOrphanedMembers(currentWorkspace.id);
+      
+      if (result.success) {
+        toast({
+          title: "Limpeza concluída",
+          description: `${result.removedCount} membro(s) órfão(s) foram removidos`,
+        });
+        
+        // Recarregar membros
+        await loadMembers();
+      } else {
+        throw new Error('Falha na limpeza de membros órfãos');
+      }
     } catch (error: any) {
       console.error('Error cleaning up orphaned members:', error);
       toast({
@@ -169,6 +145,8 @@ export const MembersManagement = () => {
         description: "Erro ao remover membros órfãos",
         variant: "destructive",
       });
+    } finally {
+      setIsCleaningUp(false);
     }
   };
 
@@ -271,7 +249,7 @@ export const MembersManagement = () => {
   return (
     <div className="space-y-6">
       {/* Orphaned Members Warning */}
-      {orphanedMembers.length > 0 && (
+      {orphanedCount > 0 && (
         <Card className="border-orange-200 bg-orange-50">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-orange-800">
@@ -279,31 +257,38 @@ export const MembersManagement = () => {
               Membros Órfãos Detectados
             </CardTitle>
             <CardDescription className="text-orange-700">
-              {orphanedMembers.length} membro(s) sem perfil válido encontrado(s). 
+              {orphanedCount} membro(s) sem perfil válido encontrado(s). 
               Estes podem ser usuários que foram excluídos do sistema.
             </CardDescription>
           </CardHeader>
           <CardContent className="pt-0">
-            <div className="space-y-2 mb-4">
-              {orphanedMembers.map((member, index) => (
-                <div key={index} className="flex items-center justify-between p-2 bg-white rounded border">
-                  <div>
-                    <p className="font-medium text-sm">ID: {member.user_id}</p>
-                    <p className="text-xs text-gray-500">Função: {getRoleLabel(member.role)}</p>
-                  </div>
-                  <Badge variant="outline" className="text-orange-700">
-                    Órfão
-                  </Badge>
-                </div>
-              ))}
+            <div className="flex gap-2">
+              <Button 
+                onClick={handleCleanupOrphaned}
+                disabled={isCleaningUp}
+                variant="outline" 
+                className="border-orange-300 text-orange-700 hover:bg-orange-100"
+              >
+                {isCleaningUp ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Removendo...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                    Remover Membros Órfãos
+                  </>
+                )}
+              </Button>
+              <Button 
+                onClick={loadMembers}
+                variant="outline"
+                size="sm"
+              >
+                <RefreshCw className="h-4 w-4" />
+              </Button>
             </div>
-            <Button 
-              onClick={cleanupOrphanedMembers}
-              variant="outline" 
-              className="border-orange-300 text-orange-700 hover:bg-orange-100"
-            >
-              Remover Membros Órfãos
-            </Button>
           </CardContent>
         </Card>
       )}
