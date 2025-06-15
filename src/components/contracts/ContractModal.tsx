@@ -70,11 +70,10 @@ export const ContractModal: React.FC<ContractModalProps> = ({ open, onClose, con
           </DialogHeader>
 
           <Tabs defaultValue="details" className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="details">Detalhes</TabsTrigger>
               <TabsTrigger value="signers">Signatários</TabsTrigger>
               <TabsTrigger value="files">Arquivos</TabsTrigger>
-              <TabsTrigger value="history">Histórico</TabsTrigger>
             </TabsList>
 
             <TabsContent value="details" className="space-y-4">
@@ -284,39 +283,6 @@ export const ContractModal: React.FC<ContractModalProps> = ({ open, onClose, con
                   </p>
                 )}
               </div>
-            </TabsContent>
-
-            <TabsContent value="history" className="space-y-4">
-              {fullContract.history && fullContract.history.length > 0 ? (
-                <div className="space-y-3">
-                  {fullContract.history.map((event: any) => (
-                    <Card key={event.id}>
-                      <CardContent className="pt-6">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <p className="font-medium">{event.event_type}</p>
-                            {event.event_description && (
-                              <p className="text-sm text-muted-foreground">{event.event_description}</p>
-                            )}
-                            {event.signer_name && (
-                              <p className="text-sm text-muted-foreground">
-                                Signatário: {event.signer_name}
-                              </p>
-                            )}
-                          </div>
-                          <p className="text-sm text-muted-foreground">
-                            {format(new Date(event.event_timestamp), 'dd/MM/yyyy HH:mm')}
-                          </p>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-center text-muted-foreground py-8">
-                  Nenhum evento no histórico
-                </p>
-              )}
             </TabsContent>
           </Tabs>
         </DialogContent>

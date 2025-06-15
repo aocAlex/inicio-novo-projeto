@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { supabase } from '@/integrations/supabase/client';
-import { Contract, CreateContractData, UpdateContractData, ContractFilters } from '@/types/contract';
+import { Contract, ContractSigner, CreateContractData, UpdateContractData, ContractFilters } from '@/types/contract';
 import { useToast } from '@/hooks/use-toast';
 
 export const useContracts = () => {
@@ -24,15 +24,12 @@ export const useContracts = () => {
         .select(`
           *,
           client:clients(id, name, email),
-          signers:contract_signers(
-            id, name, email, status, signed_at, cpf, cnpj
-          )
+          signers:contract_signers(*)
         `)
         .eq('workspace_id', currentWorkspace.id)
-        .eq('is_deleted', false)
         .order('created_at', { ascending: false });
 
-      // Aplicar filtros
+      // Apply filters
       if (filters?.search) {
         query = query.ilike('contract_name', `%${filters.search}%`);
       }
@@ -51,12 +48,6 @@ export const useContracts = () => {
       if (filters?.signed_before) {
         query = query.lte('signed_at', filters.signed_before);
       }
-      if (filters?.created_after) {
-        query = query.gte('created_at', filters.created_after);
-      }
-      if (filters?.created_before) {
-        query = query.lte('created_at', filters.created_before);
-      }
 
       const { data, error } = await query;
 
@@ -64,7 +55,18 @@ export const useContracts = () => {
         throw error;
       }
 
-      setContracts(data || []);
+      // Transform data to match Contract interface
+      const transformedContracts: Contract[] = (data || []).map(contract => ({
+        ...contract,
+        matched_by: contract.matched_by as Contract['matched_by'],
+        status: contract.status as Contract['status'],
+        signers: (contract.signers || []).map((signer: any) => ({
+          ...signer,
+          status: signer.status as ContractSigner['status']
+        }))
+      }));
+
+      setContracts(transformedContracts);
     } catch (err: any) {
       setError(err.message);
       console.error('Error loading contracts:', err);
@@ -91,20 +93,19 @@ export const useContracts = () => {
           ...contractData,
           workspace_id: currentWorkspace.id,
         })
-        .select(`
-          *,
-          client:clients(id, name, email),
-          signers:contract_signers(
-            id, name, email, status, signed_at, cpf, cnpj
-          )
-        `)
+        .select()
         .single();
 
       if (error) {
         throw error;
       }
 
-      const newContract = data as Contract;
+      const newContract: Contract = {
+        ...data,
+        matched_by: data.matched_by as Contract['matched_by'],
+        status: data.status as Contract['status']
+      };
+
       setContracts(prev => [newContract, ...prev]);
 
       toast({
@@ -138,20 +139,19 @@ export const useContracts = () => {
           updated_at: new Date().toISOString(),
         })
         .eq('id', id)
-        .select(`
-          *,
-          client:clients(id, name, email),
-          signers:contract_signers(
-            id, name, email, status, signed_at, cpf, cnpj
-          )
-        `)
+        .select()
         .single();
 
       if (error) {
         throw error;
       }
 
-      const updatedContract = data as Contract;
+      const updatedContract: Contract = {
+        ...data,
+        matched_by: data.matched_by as Contract['matched_by'],
+        status: data.status as Contract['status']
+      };
+
       setContracts(prev => 
         prev.map(contract => 
           contract.id === id ? updatedContract : contract
@@ -177,35 +177,52 @@ export const useContracts = () => {
     }
   };
 
-  const deleteContract = async (id: string): Promise<boolean> => {
+  const linkClient = async (contractId: string, clientId: string, matchedBy: Contract['matched_by'], confidence: number): Promise<boolean> => {
     try {
       setIsLoading(true);
       setError(null);
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('contracts')
-        .update({ 
-          is_deleted: true, 
-          deleted_at: new Date().toISOString() 
+        .update({
+          client_id: clientId,
+          matched_by: matchedBy,
+          matching_confidence: confidence,
+          updated_at: new Date().toISOString(),
         })
-        .eq('id', id);
+        .eq('id', contractId)
+        .select(`
+          *,
+          client:clients(id, name, email)
+        `)
+        .single();
 
       if (error) {
         throw error;
       }
 
-      setContracts(prev => prev.filter(contract => contract.id !== id));
+      const updatedContract: Contract = {
+        ...data,
+        matched_by: data.matched_by as Contract['matched_by'],
+        status: data.status as Contract['status']
+      };
+
+      setContracts(prev => 
+        prev.map(contract => 
+          contract.id === contractId ? updatedContract : contract
+        )
+      );
 
       toast({
-        title: "Contrato removido",
-        description: "Contrato foi removido com sucesso.",
+        title: "Cliente vinculado",
+        description: "Cliente foi vinculado ao contrato com sucesso.",
       });
 
       return true;
     } catch (err: any) {
       setError(err.message);
       toast({
-        title: "Erro ao remover contrato",
+        title: "Erro ao vincular cliente",
         description: err.message,
         variant: "destructive",
       });
@@ -221,12 +238,8 @@ export const useContracts = () => {
         .from('contracts')
         .select(`
           *,
-          client:clients(id, name, email, phone, document_number),
-          signers:contract_signers(*),
-          history:contract_history(
-            *,
-            performed_by:profiles(id, full_name, email)
-          )
+          client:clients(id, name, email),
+          signers:contract_signers(*)
         `)
         .eq('id', id)
         .single();
@@ -235,45 +248,18 @@ export const useContracts = () => {
         throw error;
       }
 
-      return data as Contract;
+      return {
+        ...data,
+        matched_by: data.matched_by as Contract['matched_by'],
+        status: data.status as Contract['status'],
+        signers: (data.signers || []).map((signer: any) => ({
+          ...signer,
+          status: signer.status as ContractSigner['status']
+        }))
+      };
     } catch (err: any) {
       console.error('Error getting contract:', err);
       return null;
-    }
-  };
-
-  const linkClientToContract = async (contractId: string, clientId: string): Promise<boolean> => {
-    try {
-      const { error } = await supabase
-        .from('contracts')
-        .update({
-          client_id: clientId,
-          matched_by: 'manual',
-          matching_confidence: 1.00,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', contractId);
-
-      if (error) {
-        throw error;
-      }
-
-      // Recarregar contratos
-      await loadContracts();
-
-      toast({
-        title: "Cliente vinculado",
-        description: "Cliente foi vinculado ao contrato com sucesso.",
-      });
-
-      return true;
-    } catch (err: any) {
-      toast({
-        title: "Erro ao vincular cliente",
-        description: err.message,
-        variant: "destructive",
-      });
-      return false;
     }
   };
 
@@ -290,8 +276,7 @@ export const useContracts = () => {
     loadContracts,
     createContract,
     updateContract,
-    deleteContract,
+    linkClient,
     getContract,
-    linkClientToContract,
   };
 };
