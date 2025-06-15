@@ -13,7 +13,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    console.log('ProtectedRoute - user:', user, 'loading:', loading);
+    console.log('ProtectedRoute - user:', !!user, 'loading:', loading);
     
     if (!loading && !user) {
       console.log('Usuário não autenticado, redirecionando para /auth');
@@ -33,7 +33,14 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   }
 
   if (!user) {
-    return null; // O redirecionamento será feito pelo useEffect
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="mx-auto h-8 w-8 animate-spin text-blue-600" />
+          <p className="mt-2 text-gray-600">Redirecionando...</p>
+        </div>
+      </div>
+    );
   }
 
   return <>{children}</>;

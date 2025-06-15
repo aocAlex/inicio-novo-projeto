@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { useAuth } from './AuthContext';
 import { Workspace, WorkspaceMember, CreateWorkspaceData } from '@/types/workspace';
@@ -43,7 +42,6 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   console.log('WorkspaceProvider render - user:', !!user, 'profile:', !!profile, 'initialized:', initialized, 'isLoading:', isLoading);
 
   const initializeWorkspaces = useCallback(async () => {
-    // Verificar condições necessárias de forma mais rigorosa
     if (!user?.id || !profile?.id) {
       console.log('Skipping initialization - missing user or profile:', { 
         hasUser: !!user?.id, 
@@ -63,7 +61,6 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       const { workspaces: userWorkspaces, memberData } = await loadWorkspaces(user.id);
       setWorkspaces(userWorkspaces);
 
-      // Auto-select workspace
       if (userWorkspaces.length > 0 && !currentWorkspace) {
         const targetWorkspaceId = profile.current_workspace_id || userWorkspaces[0].id;
         const targetWorkspace = userWorkspaces.find(w => w.id === targetWorkspaceId) || userWorkspaces[0];
@@ -71,7 +68,6 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         console.log('Auto-selecting workspace:', targetWorkspace.id);
         setCurrentWorkspace(targetWorkspace);
         
-        // Set member data
         const memberInfo = memberData?.find(m => m.workspace_id === targetWorkspace.id);
         if (memberInfo) {
           const memberWithProfile = createMemberWithProfile(memberInfo, profile);
@@ -122,7 +118,6 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setInitialized(false);
   }, []);
 
-  // Initialize workspaces when conditions are met
   useEffect(() => {
     console.log('WorkspaceProvider useEffect - checking conditions:', {
       hasUser: !!user?.id,
@@ -131,14 +126,12 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       isLoading
     });
 
-    // Só inicializar se tiver user, profile e não estiver inicializado nem carregando
     if (user?.id && profile?.id && !initialized && !isLoading) {
       console.log('Conditions met, initializing workspaces...');
       initializeWorkspaces();
     }
   }, [user?.id, profile?.id, initialized, isLoading, initializeWorkspaces]);
 
-  // Reset state when user logs out
   useEffect(() => {
     if (!user) {
       console.log('User logged out, resetting workspace state');

@@ -49,7 +49,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       console.log('Garantindo que perfil existe para userId:', userId);
       
-      // Primeiro, tentar buscar o perfil existente
       const { data: existingProfile, error: fetchError } = await supabase
         .from('profiles')
         .select('*')
@@ -70,7 +69,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return convertedProfile;
       }
 
-      // Se não existe, criar um novo perfil
       console.log('Criando novo perfil para usuário:', userId);
       const profileData = {
         id: userId,
@@ -91,7 +89,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (createError) {
         console.error('Erro ao criar perfil:', createError);
-        // Se for erro de duplicata, tentar buscar novamente
         if (createError.code === '23505') {
           const { data: duplicateProfile } = await supabase
             .from('profiles')
@@ -146,7 +143,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     console.log('AuthProvider useEffect - configurando listeners');
     
-    // Configurar listener de mudanças de auth
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('Auth state changed:', event, session?.user?.id);
@@ -155,7 +151,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          // Não definir loading como false ainda - aguardar carregamento do perfil
           await loadUserData(
             session.user.id, 
             session.user.email!, 
@@ -168,7 +163,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     );
 
-    // Verificar sessão existente
     const initializeAuth = async () => {
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
@@ -249,12 +243,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signOut = async () => {
     console.log('Fazendo signOut');
     
-    // Limpar o estado imediatamente
     setUser(null);
     setSession(null);
     setProfile(null);
     
-    // Limpar localStorage
     Object.keys(localStorage).forEach(key => {
       if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
         localStorage.removeItem(key);
@@ -262,11 +254,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
     
     try {
-      // Tentar logout do Supabase
       await supabase.auth.signOut({ scope: 'global' });
     } catch (error) {
       console.error('Erro no signOut do Supabase:', error);
-      // Continuar mesmo com erro
     }
     
     console.log('SignOut concluído');
