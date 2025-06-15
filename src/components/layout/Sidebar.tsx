@@ -58,49 +58,28 @@ export const Sidebar = () => {
             console.log(`🧭 Sidebar - ${item.name}: current=${location.pathname}, target=${item.href}, active=${isActive}`);
             
             return (
-              <div key={item.name}>
-                <button
-                  onClick={() => handleNavigation(item.href, item.name)}
-                  className={cn(
-                    'group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors w-full text-left',
-                    isActive
+              <NavLink
+                key={item.name}
+                to={item.href}
+                className={({ isActive: navIsActive }) => {
+                  const active = navIsActive || isActive;
+                  console.log(`🔗 NavLink ${item.name}: navIsActive=${navIsActive}, computed=${active}`);
+                  return cn(
+                    'group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors',
+                    active
                       ? 'bg-gray-800 text-white'
                       : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+                  );
+                }}
+              >
+                <item.icon
+                  className={cn(
+                    'mr-3 h-5 w-5 flex-shrink-0',
+                    isActive ? 'text-white' : 'text-gray-400 group-hover:text-white'
                   )}
-                >
-                  <item.icon
-                    className={cn(
-                      'mr-3 h-5 w-5 flex-shrink-0',
-                      isActive ? 'text-white' : 'text-gray-400 group-hover:text-white'
-                    )}
-                  />
-                  {item.name}
-                </button>
-
-                {/* Alternative NavLink for comparison */}
-                <NavLink
-                  to={item.href}
-                  className={({ isActive: navIsActive }) => {
-                    const active = navIsActive || isActive;
-                    console.log(`🔗 NavLink ${item.name}: navIsActive=${navIsActive}, computed=${active}`);
-                    return cn(
-                      'group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors mt-1',
-                      active
-                        ? 'bg-gray-700 text-white border-l-2 border-blue-500'
-                        : 'text-gray-400 hover:bg-gray-800 hover:text-white'
-                    );
-                  }}
-                  onClick={() => console.log(`🔗 NavLink clicked: ${item.name} -> ${item.href}`)}
-                >
-                  <item.icon
-                    className={cn(
-                      'mr-3 h-4 w-4 flex-shrink-0',
-                      isActive ? 'text-white' : 'text-gray-400 group-hover:text-white'
-                    )}
-                  />
-                  <span className="text-xs">ALT: {item.name}</span>
-                </NavLink>
-              </div>
+                />
+                {item.name}
+              </NavLink>
             );
           })}
         </nav>

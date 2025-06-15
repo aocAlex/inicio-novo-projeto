@@ -37,66 +37,31 @@ export const AppRoutes = () => {
       {/* Main app routes */}
       <Route 
         path="/dashboard" 
-        element={
-          <div>
-            {console.log('📊 Rendering DashboardPage')}
-            <DashboardPage />
-          </div>
-        } 
+        element={<DashboardPage />} 
       />
       <Route 
         path="/clients" 
-        element={
-          <div>
-            {console.log('👥 Rendering Clients')}
-            <Clients />
-          </div>
-        } 
+        element={<Clients />} 
       />
       <Route 
         path="/processes" 
-        element={
-          <div>
-            {console.log('⚖️ Rendering Processes')}
-            <Processes />
-          </div>
-        } 
+        element={<Processes />} 
       />
       <Route 
         path="/templates" 
-        element={
-          <div>
-            {console.log('📄 Rendering Templates')}
-            <Templates />
-          </div>
-        } 
+        element={<Templates />} 
       />
       <Route 
         path="/petitions" 
-        element={
-          <div>
-            {console.log('📁 Rendering Petitions')}
-            <Petitions />
-          </div>
-        } 
+        element={<Petitions />} 
       />
       <Route 
         path="/deadlines" 
-        element={
-          <div>
-            {console.log('📅 Rendering Deadlines')}
-            <DeadlinesPage />
-          </div>
-        } 
+        element={<DeadlinesPage />} 
       />
       <Route 
         path="/settings" 
-        element={
-          <div>
-            {console.log('⚙️ Rendering Settings')}
-            <SettingsPage />
-          </div>
-        } 
+        element={<SettingsPage />} 
       />
       
       {/* Root redirect */}
@@ -106,11 +71,10 @@ export const AppRoutes = () => {
       <Route 
         path="*" 
         element={
-          <div>
-            {console.log('❓ Unknown route, showing fallback and redirecting')}
+          <>
             <NotFoundFallback />
             <Navigate to="/dashboard" replace />
-          </div>
+          </>
         } 
       />
     </Routes>
