@@ -1,47 +1,21 @@
-
-import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { useAdvancedTemplates } from '@/hooks/useAdvancedTemplates'
-import { usePermissions } from '@/hooks/usePermissions'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { AdvancedTemplateExecutor } from './AdvancedTemplateExecutor'
-import {
-  Search,
-  Plus,
-  FileText,
+import React, { useState, useEffect } from 'react';
+import { useAdvancedTemplates } from '@/hooks/useAdvancedTemplates';
+import { useToast } from '@/hooks/use-toast';
+import { useSimplifiedPermissions } from '@/hooks/useSimplifiedPermissions';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { 
+  Search, 
+  Plus, 
+  Eye, 
+  Edit, 
+  Trash2, 
   Play,
-  Edit,
-  Copy,
-  Trash2,
-  Share2,
-  MoreHorizontal,
-  Filter,
-  Eye,
-  Settings
-} from 'lucide-react'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator
-} from '@/components/ui/dropdown-menu'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+  FileText,
+  Filter
+} from 'lucide-react';
 
 const CATEGORIES = [
   { value: 'all', label: 'Todas as Categorias', color: 'bg-gray-100 text-gray-800' },
@@ -51,10 +25,10 @@ const CATEGORIES = [
   { value: 'tributario', label: 'Tributário', color: 'bg-yellow-100 text-yellow-800' },
   { value: 'empresarial', label: 'Empresarial', color: 'bg-purple-100 text-purple-800' },
   { value: 'familia', label: 'Família', color: 'bg-pink-100 text-pink-800' }
-]
+];
 
 export const AdvancedTemplatesList = () => {
-  const navigate = useNavigate()
+  const navigate = useNavigate();
   const { 
     templates, 
     isLoading, 
@@ -62,52 +36,52 @@ export const AdvancedTemplatesList = () => {
     loadTemplates, 
     deleteTemplate, 
     duplicateTemplate 
-  } = useAdvancedTemplates()
+  } = useAdvancedTemplates();
   
-  const { can } = usePermissions()
-  const [searchTerm, setSearchTerm] = useState('')
-  const [selectedCategory, setSelectedCategory] = useState('all')
-  const [executingTemplate, setExecutingTemplate] = useState<any>(null)
-  const [previewingTemplate, setPreviewingTemplate] = useState<any>(null)
+  const { can } = useSimplifiedPermissions();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [executingTemplate, setExecutingTemplate] = useState<any>(null);
+  const [previewingTemplate, setPreviewingTemplate] = useState<any>(null);
 
   useEffect(() => {
     loadTemplates({ 
       search: searchTerm || undefined,
       category: selectedCategory === 'all' ? undefined : selectedCategory
-    })
-  }, [loadTemplates, searchTerm, selectedCategory])
+    });
+  }, [loadTemplates, searchTerm, selectedCategory]);
 
   const handleDeleteTemplate = async (template: any) => {
     if (window.confirm(`Tem certeza que deseja excluir o template "${template.name}"?\n\nEsta ação não pode ser desfeita.`)) {
       try {
-        await deleteTemplate(template.id)
+        await deleteTemplate(template.id);
       } catch (error) {
-        console.error('Error deleting template:', error)
+        console.error('Error deleting template:', error);
       }
     }
-  }
+  };
 
   const handleDuplicateTemplate = async (template: any) => {
     try {
-      await duplicateTemplate(template.id)
+      await duplicateTemplate(template.id);
     } catch (error) {
-      console.error('Error duplicating template:', error)
+      console.error('Error duplicating template:', error);
     }
-  }
+  };
 
   const getCategoryData = (category: string) => {
-    return CATEGORIES.find(c => c.value === category) || CATEGORIES[0]
-  }
+    return CATEGORIES.find(c => c.value === category) || CATEGORIES[0];
+  };
 
   const filteredTemplates = templates.filter(template =>
     template.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     template.description?.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  );
 
   const getStatsForCategory = (category: string) => {
-    if (category === 'all') return templates.length
-    return templates.filter(t => t.category === category).length
-  }
+    if (category === 'all') return templates.length;
+    return templates.filter(t => t.category === category).length;
+  };
 
   return (
     <div className="space-y-6">
@@ -230,7 +204,7 @@ export const AdvancedTemplatesList = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredTemplates.map((template) => {
-            const categoryData = getCategoryData(template.category)
+            const categoryData = getCategoryData(template.category);
             
             return (
               <Card key={template.id} className="hover:shadow-lg transition-all duration-200">
@@ -370,8 +344,8 @@ export const AdvancedTemplatesList = () => {
           template={executingTemplate}
           onClose={() => setExecutingTemplate(null)}
           onSuccess={() => {
-            setExecutingTemplate(null)
-            loadTemplates() // Refresh to update execution count
+            setExecutingTemplate(null);
+            loadTemplates(); // Refresh to update execution count
           }}
         />
       )}
@@ -408,5 +382,5 @@ export const AdvancedTemplatesList = () => {
         </Dialog>
       )}
     </div>
-  )
-}
+  );
+};

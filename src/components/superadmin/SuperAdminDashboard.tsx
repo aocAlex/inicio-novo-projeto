@@ -16,7 +16,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 
 export const SuperAdminDashboard: React.FC = () => {
-  const { metrics, workspaceAnalytics, isLoading } = useSuperAdminAnalytics();
+  const { analytics, isLoading } = useSuperAdminAnalytics();
   const { superAdminData } = useSuperAdmin();
 
   if (isLoading) {
@@ -36,53 +36,40 @@ export const SuperAdminDashboard: React.FC = () => {
     );
   }
 
-  if (!metrics) return null;
+  // Calculate metrics from analytics data
+  const totalWorkspaces = analytics.length;
+  const totalMembers = analytics.reduce((sum, w) => sum + w.total_members, 0);
+  const totalClients = analytics.reduce((sum, w) => sum + w.total_clients, 0);
+  const totalExecutions = analytics.reduce((sum, w) => sum + w.total_executions, 0);
 
   const metricCards = [
     {
       title: 'Total de Workspaces',
-      value: metrics.totalWorkspaces,
-      subtitle: `${metrics.activeWorkspaces} ativas`,
+      value: totalWorkspaces,
+      subtitle: `${analytics.filter(w => w.total_members > 0).length} ativas`,
       icon: Building2,
       color: 'text-blue-600',
     },
     {
       title: 'Usuários Totais',
-      value: metrics.totalUsers,
-      subtitle: `${metrics.activeUsers} ativos`,
+      value: totalMembers,
+      subtitle: `${Math.round(totalMembers / totalWorkspaces)} por workspace`,
       icon: Users,
       color: 'text-green-600',
     },
     {
-      title: 'Execuções Totais',
-      value: metrics.totalExecutions,
-      subtitle: 'Templates executados',
-      icon: Zap,
+      title: 'Clientes Totais',
+      value: totalClients,
+      subtitle: 'Todos os workspaces',
+      icon: Activity,
       color: 'text-purple-600',
     },
     {
-      title: 'Uptime do Sistema',
-      value: `${metrics.systemUptime}%`,
-      subtitle: 'Últimos 30 dias',
-      icon: Server,
+      title: 'Execuções Totais',
+      value: totalExecutions,
+      subtitle: 'Templates executados',
+      icon: Zap,
       color: 'text-emerald-600',
-    },
-  ];
-
-  const performanceCards = [
-    {
-      title: 'Tempo de Resposta',
-      value: `${metrics.avgResponseTime}ms`,
-      subtitle: 'Média última semana',
-      icon: Clock,
-      color: 'text-yellow-600',
-    },
-    {
-      title: 'Taxa de Erro',
-      value: `${metrics.errorRate}%`,
-      subtitle: 'Últimas 24h',
-      icon: AlertTriangle,
-      color: 'text-red-600',
     },
   ];
 
@@ -122,30 +109,6 @@ export const SuperAdminDashboard: React.FC = () => {
         ))}
       </div>
 
-      {/* Performance Metrics */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        {performanceCards.map((card) => (
-          <Card key={card.title}>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">
-                    {card.title}
-                  </p>
-                  <p className="text-2xl font-bold text-gray-900">
-                    {card.value}
-                  </p>
-                  <p className="text-xs text-gray-500 mt-1">
-                    {card.subtitle}
-                  </p>
-                </div>
-                <card.icon className={`h-8 w-8 ${card.color}`} />
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
       {/* Recent Workspaces */}
       <Card>
         <CardHeader>
@@ -156,7 +119,7 @@ export const SuperAdminDashboard: React.FC = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {workspaceAnalytics.slice(0, 5).map((workspace) => (
+            {analytics.slice(0, 5).map((workspace) => (
               <div
                 key={workspace.workspace_id}
                 className="flex items-center justify-between p-3 border rounded-lg"
@@ -170,22 +133,11 @@ export const SuperAdminDashboard: React.FC = () => {
                   </p>
                 </div>
                 <div className="text-right">
-                  <span
-                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                      workspace.activity_status === 'active'
-                        ? 'bg-green-100 text-green-800'
-                        : workspace.activity_status === 'idle'
-                        ? 'bg-yellow-100 text-yellow-800'
-                        : 'bg-gray-100 text-gray-800'
-                    }`}
-                  >
-                    {workspace.activity_status}
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                    ativa
                   </span>
                   <p className="text-xs text-gray-500 mt-1">
-                    {workspace.last_activity
-                      ? new Date(workspace.last_activity).toLocaleDateString('pt-BR')
-                      : 'Sem atividade'
-                    }
+                    {new Date(workspace.created_at).toLocaleDateString('pt-BR')}
                   </p>
                 </div>
               </div>

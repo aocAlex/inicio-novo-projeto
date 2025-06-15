@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 import { useClients } from '@/hooks/useClients';
-import { usePermissions } from '@/hooks/usePermissions';
+import { useSimplifiedPermissions } from '@/hooks/useSimplifiedPermissions';
 import { ClientList } from '@/components/clients/ClientList';
 import { ClientModal } from '@/components/clients/ClientModal';
 import { Client, CreateClientData, UpdateClientData, ClientFilters } from '@/types/client';
@@ -9,7 +9,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
 
 export const Clients = () => {
-  const { can } = usePermissions();
+  const { can } = useSimplifiedPermissions();
   const {
     clients,
     isLoading,
@@ -60,7 +60,7 @@ export const Clients = () => {
     }
   };
 
-  if (!can.readClient) {
+  if (!can.readClient()) {
     return (
       <div className="p-6">
         <Alert variant="destructive">

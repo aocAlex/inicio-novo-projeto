@@ -16,17 +16,10 @@ export const createMemberWithProfile = (
     id: memberData.id,
     workspace_id: memberData.workspace_id,
     user_id: memberData.user_id,
-    role: ['owner', 'admin', 'editor', 'viewer'].includes(memberData.role) 
-      ? memberData.role as 'owner' | 'admin' | 'editor' | 'viewer'
-      : 'viewer',
-    permissions: memberData.permissions && typeof memberData.permissions === 'object' && !Array.isArray(memberData.permissions)
-      ? memberData.permissions as Record<string, any>
-      : {},
-    status: ['active', 'pending', 'suspended'].includes(memberData.status) 
-      ? memberData.status as 'active' | 'pending' | 'suspended'
-      : 'active',
-    last_activity: memberData.last_activity,
+    invited_by: memberData.invited_by,
+    joined_at: memberData.joined_at,
     created_at: memberData.created_at,
+    updated_at: memberData.updated_at,
     profile: {
       id: profile.id,
       email: profile.email,

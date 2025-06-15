@@ -29,23 +29,6 @@ export const useWorkspaceLoader = () => {
       }
 
       console.log('Workspace created successfully:', workspaceData);
-
-      // Create membership
-      const { error: memberError } = await supabase
-        .from('workspace_members')
-        .insert({
-          workspace_id: workspaceData.id,
-          user_id: userId,
-          role: 'owner',
-          status: 'active',
-        });
-
-      if (memberError) {
-        console.error('Error creating membership:', memberError);
-        throw memberError;
-      }
-
-      console.log('Membership created successfully for workspace:', workspaceData.id);
       return workspaceData;
     } catch (error) {
       console.error('Error in createDefaultWorkspace:', error);
@@ -74,11 +57,10 @@ export const useWorkspaceLoader = () => {
       const { data: memberData, error: memberError } = await supabase
         .from('workspace_members')
         .select(`
-          workspace_id, role, status, permissions, last_activity, created_at, id,
+          workspace_id, invited_by, joined_at, created_at, updated_at, id,
           workspace:workspaces(*)
         `)
-        .eq('user_id', userId)
-        .eq('status', 'active');
+        .eq('user_id', userId);
 
       if (memberError) {
         console.error('Error loading member data:', memberError);
@@ -90,14 +72,15 @@ export const useWorkspaceLoader = () => {
 
       // Combine owned workspaces with member workspaces
       const allWorkspaces: Workspace[] = [...(ownedWorkspaces || [])];
-      const memberWorkspaces = memberData?.map(m => m.workspace).filter(Boolean) || [];
       
       // Add member workspaces that aren't already owned
-      memberWorkspaces.forEach(workspace => {
-        if (!allWorkspaces.find(w => w.id === workspace.id)) {
-          allWorkspaces.push(workspace);
-        }
-      });
+      if (memberData) {
+        memberData.forEach((member: any) => {
+          if (member.workspace && !allWorkspaces.find(w => w.id === member.workspace.id)) {
+            allWorkspaces.push(member.workspace);
+          }
+        });
+      }
 
       // If no workspaces found, create a default one
       if (allWorkspaces.length === 0) {
@@ -110,11 +93,10 @@ export const useWorkspaceLoader = () => {
             id: 'temp-id',
             workspace_id: defaultWorkspace.id,
             user_id: userId,
-            role: 'owner' as const,
-            status: 'active' as const,
-            permissions: {},
-            last_activity: null,
-            created_at: new Date().toISOString()
+            invited_by: null,
+            joined_at: new Date().toISOString(),
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
           }]
         };
       }
@@ -127,21 +109,24 @@ export const useWorkspaceLoader = () => {
             id: `owner-${workspace.id}`,
             workspace_id: workspace.id,
             user_id: userId,
-            role: 'owner' as const,
-            status: 'active' as const,
-            permissions: {},
-            last_activity: null,
-            created_at: new Date().toISOString(),
-            workspace
+            invited_by: null,
+            joined_at: workspace.created_at,
+            created_at: workspace.created_at,
+            updated_at: workspace.updated_at
           };
         }
         
         // Find member data
-        const memberInfo = memberData?.find(m => m.workspace_id === workspace.id);
-        return {
-          ...memberInfo,
-          workspace
-        };
+        const memberInfo = memberData?.find((m: any) => m.workspace_id === workspace.id);
+        return memberInfo ? {
+          id: memberInfo.id,
+          workspace_id: memberInfo.workspace_id,
+          user_id: userId,
+          invited_by: memberInfo.invited_by,
+          joined_at: memberInfo.joined_at,
+          created_at: memberInfo.created_at,
+          updated_at: memberInfo.updated_at
+        } : null;
       }).filter(Boolean);
 
       console.log('Found workspaces:', allWorkspaces.length);

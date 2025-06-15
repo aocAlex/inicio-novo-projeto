@@ -30,30 +30,41 @@ export const useWorkspaceSwitcher = () => {
 
       if (workspaceError) throw workspaceError;
 
-      const { data: memberData, error: memberError } = await supabase
-        .from('workspace_members')
-        .select('*')
-        .eq('workspace_id', workspaceId)
-        .eq('user_id', userId)
-        .single();
+      // Check if user is owner or member
+      let memberData = null;
+      
+      if (workspaceData.owner_id === userId) {
+        // User is owner - create synthetic member data
+        memberData = {
+          id: `owner-${workspaceId}`,
+          workspace_id: workspaceId,
+          user_id: userId,
+          invited_by: null,
+          joined_at: workspaceData.created_at,
+          created_at: workspaceData.created_at,
+          updated_at: workspaceData.updated_at
+        };
+      } else {
+        // User is member - get actual member data
+        const { data: actualMemberData, error: memberError } = await supabase
+          .from('workspace_members')
+          .select('*')
+          .eq('workspace_id', workspaceId)
+          .eq('user_id', userId)
+          .single();
 
-      if (memberError) throw memberError;
+        if (memberError) throw memberError;
+        memberData = actualMemberData;
+      }
 
       const memberWithProfile: WorkspaceMember = {
         id: memberData.id,
         workspace_id: memberData.workspace_id,
         user_id: memberData.user_id,
-        role: ['owner', 'admin', 'editor', 'viewer'].includes(memberData.role) 
-          ? memberData.role as 'owner' | 'admin' | 'editor' | 'viewer'
-          : 'viewer',
-        permissions: memberData.permissions && typeof memberData.permissions === 'object' && !Array.isArray(memberData.permissions)
-          ? memberData.permissions as Record<string, any>
-          : {},
-        status: ['active', 'pending', 'suspended'].includes(memberData.status) 
-          ? memberData.status as 'active' | 'pending' | 'suspended'
-          : 'active',
-        last_activity: memberData.last_activity,
+        invited_by: memberData.invited_by,
+        joined_at: memberData.joined_at,
         created_at: memberData.created_at,
+        updated_at: memberData.updated_at,
         profile: {
           id: profile.id,
           email: profile.email,

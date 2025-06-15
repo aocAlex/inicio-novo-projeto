@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { useProcesses } from '@/hooks/useProcesses';
-import { usePermissions } from '@/hooks/usePermissions';
+import { useSimplifiedPermissions } from '@/hooks/useSimplifiedPermissions';
 import { ProcessList } from '@/components/processes/ProcessList';
 import { ProcessModal } from '@/components/processes/ProcessModal';
 import { ProcessFilters } from '@/components/processes/ProcessFilters';
@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { AlertTriangle, Plus, RefreshCw } from 'lucide-react';
 
 export const Processes = () => {
-  const { can } = usePermissions();
+  const { can } = useSimplifiedPermissions();
   const {
     processes,
     isLoading,
