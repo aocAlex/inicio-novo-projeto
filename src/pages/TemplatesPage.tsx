@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/select';
 import { useTemplates, Template } from '@/hooks/useTemplates';
 import { TemplateList } from '@/components/templates/TemplateList';
-import { CreateTemplateModal } from '@/components/templates/CreateTemplateModal';
+import { AdvancedTemplateEditor } from '@/components/templates/AdvancedTemplateEditor';
 import { ExecuteModal } from '@/components/petitions/ExecuteModal';
 import { usePetitions } from '@/hooks/usePetitions';
 import { 
@@ -54,26 +54,18 @@ export const TemplatesPage = () => {
     loadTemplates(newFilters);
   };
 
-  const handleCreateTemplate = async (data: any) => {
-    const result = await createTemplate(data);
-    if (result) {
-      setShowCreateModal(false);
-    }
-    return result;
+  const handleCreateSuccess = () => {
+    setShowCreateModal(false);
+    loadTemplates(filters);
   };
 
   const handleEditTemplate = (template: Template) => {
     setEditingTemplate(template);
   };
 
-  const handleUpdateTemplate = async (data: any) => {
-    if (!editingTemplate) return null;
-    
-    const success = await updateTemplate(editingTemplate.id, data);
-    if (success) {
-      setEditingTemplate(null);
-    }
-    return success ? editingTemplate : null;
+  const handleUpdateSuccess = () => {
+    setEditingTemplate(null);
+    loadTemplates(filters);
   };
 
   const handleExecuteTemplate = (template: Template) => {
@@ -155,17 +147,17 @@ export const TemplatesPage = () => {
       />
 
       {/* Modals */}
-      <CreateTemplateModal
+      <AdvancedTemplateEditor
         isOpen={showCreateModal}
         onClose={() => setShowCreateModal(false)}
-        onSubmit={handleCreateTemplate}
+        onSuccess={handleCreateSuccess}
       />
 
-      <CreateTemplateModal
+      <AdvancedTemplateEditor
         isOpen={!!editingTemplate}
+        template={editingTemplate || undefined}
         onClose={() => setEditingTemplate(null)}
-        onSubmit={handleUpdateTemplate}
-        editingTemplate={editingTemplate || undefined}
+        onSuccess={handleUpdateSuccess}
       />
 
       <ExecuteModal
