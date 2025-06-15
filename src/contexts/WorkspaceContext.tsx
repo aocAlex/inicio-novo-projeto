@@ -92,7 +92,6 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             email: user.email,
             full_name: user.email,
             avatar_url: null,
-            current_workspace_id: targetWorkspace.id,
             preferences: {
               notifications: true,
               email_alerts: true,
