@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -8,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useContracts } from '@/hooks/useContracts';
+import { useContractTemplates } from '@/hooks/useContractTemplates';
 import { useClients } from '@/hooks/useClients';
 import { Contract, CreateContractData } from '@/types/contract';
 import { useToast } from '@/hooks/use-toast';
@@ -16,10 +16,17 @@ interface ContractModalProps {
   open: boolean;
   onClose: () => void;
   contract: Contract | null;
+  templateId?: string | null;
 }
 
-export const ContractModal: React.FC<ContractModalProps> = ({ open, onClose, contract }) => {
+export const ContractModal: React.FC<ContractModalProps> = ({ 
+  open, 
+  onClose, 
+  contract, 
+  templateId 
+}) => {
   const { createContract, updateContract } = useContracts();
+  const { getTemplate } = useContractTemplates();
   const { clients } = useClients();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
@@ -37,32 +44,51 @@ export const ContractModal: React.FC<ContractModalProps> = ({ open, onClose, con
   });
 
   useEffect(() => {
-    if (contract) {
-      setFormData({
-        contract_name: contract.contract_name,
-        contract_code: contract.contract_code || '',
-        contract_type: contract.contract_type || '',
-        contract_value: contract.contract_value ? contract.contract_value.toString() : '',
-        zapsign_open_id: contract.zapsign_open_id,
-        zapsign_token: contract.zapsign_token,
-        status: contract.status,
-        client_id: contract.client_id || '',
-        notes: contract.notes || ''
-      });
-    } else {
-      setFormData({
-        contract_name: '',
-        contract_code: '',
-        contract_type: '',
-        contract_value: '',
-        zapsign_open_id: 0,
-        zapsign_token: '',
-        status: 'pending' as Contract['status'],
-        client_id: '',
-        notes: ''
-      });
-    }
-  }, [contract, open]);
+    const loadTemplateData = async () => {
+      if (templateId && open) {
+        const template = await getTemplate(templateId);
+        if (template) {
+          setFormData({
+            contract_name: template.contract_name,
+            contract_code: '',
+            contract_type: template.contract_type || '',
+            contract_value: template.contract_value ? template.contract_value.toString() : '',
+            zapsign_open_id: 0,
+            zapsign_token: '',
+            status: template.default_status,
+            client_id: '',
+            notes: template.notes || ''
+          });
+        }
+      } else if (contract) {
+        setFormData({
+          contract_name: contract.contract_name,
+          contract_code: contract.contract_code || '',
+          contract_type: contract.contract_type || '',
+          contract_value: contract.contract_value ? contract.contract_value.toString() : '',
+          zapsign_open_id: contract.zapsign_open_id,
+          zapsign_token: contract.zapsign_token,
+          status: contract.status,
+          client_id: contract.client_id || '',
+          notes: contract.notes || ''
+        });
+      } else if (!templateId) {
+        setFormData({
+          contract_name: '',
+          contract_code: '',
+          contract_type: '',
+          contract_value: '',
+          zapsign_open_id: 0,
+          zapsign_token: '',
+          status: 'pending' as Contract['status'],
+          client_id: '',
+          notes: ''
+        });
+      }
+    };
+
+    loadTemplateData();
+  }, [contract, templateId, open, getTemplate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -115,12 +141,18 @@ export const ContractModal: React.FC<ContractModalProps> = ({ open, onClose, con
     }
   };
 
+  const getModalTitle = () => {
+    if (contract) return 'Editar Contrato';
+    if (templateId) return 'Novo Contrato a partir do Template';
+    return 'Novo Contrato';
+  };
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>
-            {contract ? 'Editar Contrato' : 'Novo Contrato'}
+            {getModalTitle()}
           </DialogTitle>
         </DialogHeader>
 
@@ -189,16 +221,17 @@ export const ContractModal: React.FC<ContractModalProps> = ({ open, onClose, con
             </div>
 
             <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="client_id">Cliente</Label>
+              <Label htmlFor="client_id">Cliente *</Label>
               <Select
                 value={formData.client_id}
                 onValueChange={(value) => setFormData(prev => ({ ...prev, client_id: value === 'none' ? '' : value }))}
+                required
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecione um cliente (opcional)" />
+                  <SelectValue placeholder="Selecione um cliente" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">Nenhum cliente selecionado</SelectItem>
+                  <SelectItem value="none">Selecione um cliente</SelectItem>
                   {clients.map((client) => (
                     <SelectItem key={client.id} value={client.id}>
                       {client.name}
