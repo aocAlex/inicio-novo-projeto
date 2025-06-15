@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Process, CreateProcessData, UpdateProcessData } from '@/types/process';
 import { Client } from '@/types/client';
@@ -115,10 +114,14 @@ export const ProcessModal = ({
         // Update existing process
         await onSave(baseData as UpdateProcessData);
       } else {
-        // Create new process
+        // Create new process - validar clientes selecionados
+        const validClients = selectedClients.filter(client => 
+          client.client_id && client.client_id !== 'none'
+        );
+
         const createData: CreateProcessData = {
           ...baseData,
-          clients: selectedClients.length > 0 ? selectedClients : undefined,
+          clients: validClients.length > 0 ? validClients : undefined,
         };
         await onSave(createData);
       }
@@ -134,7 +137,7 @@ export const ProcessModal = ({
   const addClient = () => {
     setSelectedClients(prev => [
       ...prev,
-      { client_id: '', role: 'plaintiff' }
+      { client_id: 'none', role: 'plaintiff' }
     ]);
   };
 
@@ -145,7 +148,7 @@ export const ProcessModal = ({
           ? { 
               ...client, 
               [field]: value,
-              ...(field === 'client_id' && value ? { 
+              ...(field === 'client_id' && value && value !== 'none' ? { 
                 client: clients.find(c => c.id === value) 
               } : {})
             }
@@ -308,6 +311,7 @@ export const ProcessModal = ({
                         <SelectValue placeholder="Selecionar cliente" />
                       </SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="none">Selecionar cliente</SelectItem>
                         {clients.map((client) => (
                           <SelectItem key={client.id} value={client.id}>
                             {client.name}

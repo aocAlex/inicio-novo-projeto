@@ -133,7 +133,17 @@ export const useProcesses = () => {
 
         if (clientError) {
           console.error('Error adding clients to process:', clientError);
-          // Não falha a criação do processo por conta dos clientes
+          
+          // Se falhar ao adicionar clientes, remover o processo criado
+          await supabase.from('processes').delete().eq('id', newProcess.id);
+          
+          toast({
+            title: "Erro ao vincular clientes",
+            description: "Não foi possível vincular os clientes ao processo. Tente novamente.",
+            variant: "destructive",
+          });
+          
+          return null;
         }
       }
 
