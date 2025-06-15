@@ -5,6 +5,7 @@ import { useWorkspaceLoader } from '@/hooks/useWorkspaceLoader';
 import { useWorkspaceSwitcher } from '@/hooks/useWorkspaceSwitcher';
 import { useWorkspaceManager } from '@/hooks/useWorkspaceManager';
 import { createMemberWithProfile } from '@/utils/workspaceUtils';
+import { supabase } from '@/utils/supabase';
 
 interface WorkspaceContextType {
   currentWorkspace: Workspace | null;
@@ -58,12 +59,33 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     console.log('Starting workspace initialization for user:', user.id);
 
     try {
-      const { workspaces: userWorkspaces, memberData } = await loadWorkspaces(user.id);
-      setWorkspaces(userWorkspaces);
+      // Verificar se o profile do usuário ainda existe no banco
+      const { data: profileExists, error: profileError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('id', user.id)
+        .single();
 
-      if (userWorkspaces.length > 0 && !currentWorkspace) {
-        const targetWorkspaceId = profile.current_workspace_id || userWorkspaces[0].id;
-        const targetWorkspace = userWorkspaces.find(w => w.id === targetWorkspaceId) || userWorkspaces[0];
+      if (profileError || !profileExists) {
+        console.error('User profile not found in database:', user.id);
+        // Forçar logout se o profile não existir
+        await supabase.auth.signOut();
+        return;
+      }
+
+      const { workspaces: userWorkspaces, memberData } = await loadWorkspaces(user.id);
+      
+      // Filtrar workspaces onde o usuário tem membership válido
+      const validWorkspaces = userWorkspaces.filter(workspace => {
+        const memberInfo = memberData?.find(m => m.workspace_id === workspace.id);
+        return memberInfo && memberInfo.status === 'active';
+      });
+
+      setWorkspaces(validWorkspaces);
+
+      if (validWorkspaces.length > 0 && !currentWorkspace) {
+        const targetWorkspaceId = profile.current_workspace_id || validWorkspaces[0].id;
+        const targetWorkspace = validWorkspaces.find(w => w.id === targetWorkspaceId) || validWorkspaces[0];
         
         console.log('Auto-selecting workspace:', targetWorkspace.id);
         setCurrentWorkspace(targetWorkspace);
@@ -79,6 +101,10 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       console.log('Workspace initialization completed');
     } catch (error) {
       console.error('Error initializing workspaces:', error);
+      // Em caso de erro, limpar estado e tentar logout
+      setWorkspaces([]);
+      setCurrentWorkspace(null);
+      setCurrentMember(null);
     }
   }, [user?.id, profile?.id, profile?.current_workspace_id, initialized, loadWorkspaces, currentWorkspace]);
 

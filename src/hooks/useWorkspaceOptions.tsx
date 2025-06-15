@@ -60,7 +60,7 @@ export const useWorkspaceOptions = () => {
     enabled: !!currentWorkspace?.id,
   });
 
-  // Buscar usuários da workspace - com melhor tratamento de órfãos
+  // Buscar usuários da workspace - usando INNER JOIN para garantir apenas usuários válidos
   const { data: workspaceUsers = [] } = useQuery({
     queryKey: ['workspace-users', currentWorkspace?.id],
     queryFn: async () => {
@@ -68,7 +68,7 @@ export const useWorkspaceOptions = () => {
 
       console.log('Loading workspace users for workspace:', currentWorkspace.id);
 
-      // Usar JOIN ao invés de select aninhado para garantir que só retornamos usuários com profiles válidos
+      // Query mais robusta usando INNER JOIN para garantir que só retornamos usuários ativos com profiles válidos
       const { data, error } = await supabase
         .from('workspace_members')
         .select(`
@@ -80,25 +80,31 @@ export const useWorkspaceOptions = () => {
           )
         `)
         .eq('workspace_id', currentWorkspace.id)
-        .eq('status', 'active');
+        .eq('status', 'active')
+        .not('profiles.id', 'is', null);
 
       if (error) {
         console.error('Error loading workspace users:', error);
         throw error;
       }
       
-      console.log('Found workspace users with valid profiles:', data?.length || 0);
+      console.log('Raw query result:', data);
       
-      // Filtrar e mapear apenas usuários com profiles válidos
+      // Mapear e validar resultados
       const validUsers = data
-        ?.filter((member: any) => member.profiles && member.profiles.id)
+        ?.filter((member: any) => {
+          // Garantir que o profile existe e tem dados válidos
+          return member.profiles && 
+                 member.profiles.id && 
+                 member.user_id === member.profiles.id;
+        })
         .map((member: any) => ({
           id: member.user_id,
           full_name: member.profiles.full_name || member.profiles.email || 'Usuário sem nome',
           email: member.profiles.email || ''
         })) || [];
 
-      console.log('Valid users after filtering:', validUsers.length);
+      console.log('Valid users after filtering:', validUsers);
       return validUsers;
     },
     enabled: !!currentWorkspace?.id,
