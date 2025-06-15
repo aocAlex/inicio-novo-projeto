@@ -1,5 +1,5 @@
+
 import React, { useState, useEffect } from 'react';
-import { X } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,7 +27,7 @@ export const ContractModal: React.FC<ContractModalProps> = ({
 }) => {
   const { createContract, updateContract } = useContracts();
   const { getTemplate } = useContractTemplates();
-  const { clients } = useClients();
+  const { clients, loadClients } = useClients();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
 
@@ -42,6 +42,13 @@ export const ContractModal: React.FC<ContractModalProps> = ({
     client_id: '',
     notes: ''
   });
+
+  // Carregar clientes quando o modal abrir
+  useEffect(() => {
+    if (open) {
+      loadClients();
+    }
+  }, [open, loadClients]);
 
   useEffect(() => {
     const loadTemplateData = async () => {
@@ -102,6 +109,15 @@ export const ContractModal: React.FC<ContractModalProps> = ({
       return;
     }
 
+    if (!formData.client_id) {
+      toast({
+        title: "Erro", 
+        description: "Cliente é obrigatório",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
     
     try {
@@ -113,7 +129,7 @@ export const ContractModal: React.FC<ContractModalProps> = ({
           contract_type: formData.contract_type,
           contract_value: formData.contract_value ? parseFloat(formData.contract_value) : undefined,
           status: formData.status,
-          client_id: formData.client_id || undefined,
+          client_id: formData.client_id,
           notes: formData.notes
         });
       } else {
@@ -126,7 +142,7 @@ export const ContractModal: React.FC<ContractModalProps> = ({
           zapsign_open_id: formData.zapsign_open_id || Math.floor(Math.random() * 1000000),
           zapsign_token: formData.zapsign_token || `token_${Date.now()}`,
           status: formData.status,
-          client_id: formData.client_id || undefined,
+          client_id: formData.client_id,
           notes: formData.notes
         };
         
@@ -220,18 +236,17 @@ export const ContractModal: React.FC<ContractModalProps> = ({
               </Select>
             </div>
 
-            <div className="space-y-2 md:col-span-2">
+            <div className="space-y-2">
               <Label htmlFor="client_id">Cliente *</Label>
               <Select
                 value={formData.client_id}
-                onValueChange={(value) => setFormData(prev => ({ ...prev, client_id: value === 'none' ? '' : value }))}
+                onValueChange={(value) => setFormData(prev => ({ ...prev, client_id: value }))}
                 required
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione um cliente" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">Selecione um cliente</SelectItem>
                   {clients.map((client) => (
                     <SelectItem key={client.id} value={client.id}>
                       {client.name}

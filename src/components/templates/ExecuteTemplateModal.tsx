@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,6 +25,7 @@ import { useTemplateFields } from '@/hooks/useTemplateFields';
 import { DynamicFieldRenderer } from './DynamicFieldRenderer';
 import { CreateExecutionData } from '@/types/petition';
 import { Loader2, FileText } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 
 interface ExecuteTemplateModalProps {
   isOpen: boolean;
@@ -50,6 +50,7 @@ export const ExecuteTemplateModal = ({
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
   const [loadingTemplate, setLoadingTemplate] = useState(false);
+  const [processClients, setProcessClients] = useState<any[]>([]);
 
   const { getTemplate } = usePetitionTemplates();
   const { createExecution } = usePetitionExecutions();
@@ -125,6 +126,36 @@ export const ExecuteTemplateModal = ({
     setFieldErrors(errors);
     return Object.keys(errors).length === 0;
   };
+
+  // Novo useEffect para carregar clientes do processo selecionado
+  useEffect(() => {
+    const loadProcessClients = async () => {
+      if (formData.process_id && formData.process_id !== 'none') {
+        try {
+          const { data, error } = await supabase
+            .from('process_clients')
+            .select(`
+              id,
+              client_id,
+              role,
+              client:clients(id, name, email)
+            `)
+            .eq('process_id', formData.process_id);
+
+          if (error) throw error;
+
+          setProcessClients(data || []);
+        } catch (error) {
+          console.error('Erro ao carregar clientes do processo:', error);
+          setProcessClients([]);
+        }
+      } else {
+        setProcessClients([]);
+      }
+    };
+
+    loadProcessClients();
+  }, [formData.process_id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -232,6 +263,16 @@ export const ExecuteTemplateModal = ({
     return preview;
   };
 
+  // Função para determinar quais clientes mostrar
+  const getAvailableClients = () => {
+    if (formData.process_id && formData.process_id !== 'none' && processClients.length > 0) {
+      // Mostrar apenas clientes vinculados ao processo
+      return processClients.map(pc => pc.client);
+    }
+    // Mostrar todos os clientes
+    return clients;
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -255,7 +296,13 @@ export const ExecuteTemplateModal = ({
                 <Label htmlFor="process_id">Processo (opcional)</Label>
                 <Select 
                   value={formData.process_id || 'none'} 
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, process_id: value === 'none' ? '' : value }))}
+                  onValueChange={(value) => {
+                    setFormData(prev => ({ 
+                      ...prev, 
+                      process_id: value === 'none' ? '' : value,
+                      client_id: '' // Reset client selection when process changes
+                    }));
+                  }}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione um processo" />
@@ -272,7 +319,14 @@ export const ExecuteTemplateModal = ({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="client_id">Cliente (opcional)</Label>
+                <Label htmlFor="client_id">
+                  Cliente (opcional)
+                  {formData.process_id && formData.process_id !== 'none' && processClients.length > 0 && (
+                    <span className="text-xs text-gray-500 ml-1">
+                      - Apenas clientes vinculados ao processo
+                    </span>
+                  )}
+                </Label>
                 <Select 
                   value={formData.client_id || 'none'} 
                   onValueChange={(value) => setFormData(prev => ({ ...prev, client_id: value === 'none' ? '' : value }))}
@@ -282,13 +336,18 @@ export const ExecuteTemplateModal = ({
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">Nenhum cliente</SelectItem>
-                    {clients.map((client) => (
+                    {getAvailableClients().map((client) => (
                       <SelectItem key={client.id} value={client.id}>
                         {client.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+                {formData.process_id && formData.process_id !== 'none' && processClients.length === 0 && (
+                  <p className="text-xs text-gray-500">
+                    Nenhum cliente vinculado a este processo
+                  </p>
+                )}
               </div>
             </div>
 
