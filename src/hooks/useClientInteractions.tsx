@@ -37,11 +37,14 @@ export const useClientInteractions = (clientId?: string) => {
         throw queryError;
       }
 
-      // Type cast the data to match our interface
+      // Type cast the data to match our interface with safe creator handling
       const typedInteractions = (data || []).map(item => ({
         ...item,
         interaction_type: item.interaction_type as ClientInteraction['interaction_type'],
-        metadata: item.metadata || {}
+        metadata: item.metadata || {},
+        creator: item.creator && typeof item.creator === 'object' && !('error' in item.creator) 
+          ? item.creator as { id: string; full_name: string; email: string }
+          : undefined
       })) as ClientInteraction[];
 
       setInteractions(typedInteractions);
@@ -82,11 +85,14 @@ export const useClientInteractions = (clientId?: string) => {
         throw error;
       }
 
-      // Type cast the returned data
+      // Type cast the returned data with safe creator handling
       const typedInteraction = {
         ...data,
         interaction_type: data.interaction_type as ClientInteraction['interaction_type'],
-        metadata: data.metadata || {}
+        metadata: data.metadata || {},
+        creator: data.creator && typeof data.creator === 'object' && !('error' in data.creator)
+          ? data.creator as { id: string; full_name: string; email: string }
+          : undefined
       } as ClientInteraction;
 
       setInteractions(prev => [typedInteraction, ...prev]);
@@ -137,11 +143,14 @@ export const useClientInteractions = (clientId?: string) => {
         throw error;
       }
 
-      // Type cast the returned data
+      // Type cast the returned data with safe creator handling
       const typedInteraction = {
         ...data,
         interaction_type: data.interaction_type as ClientInteraction['interaction_type'],
-        metadata: data.metadata || {}
+        metadata: data.metadata || {},
+        creator: data.creator && typeof data.creator === 'object' && !('error' in data.creator)
+          ? data.creator as { id: string; full_name: string; email: string }
+          : undefined
       } as ClientInteraction;
 
       setInteractions(prev => prev.map(interaction => 
