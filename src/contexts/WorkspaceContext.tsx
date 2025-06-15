@@ -1,5 +1,4 @@
 
-
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './AuthContext';
@@ -36,51 +35,6 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [currentMember, setCurrentMember] = useState<WorkspaceMember | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  const loadWorkspaces = useCallback(async () => {
-    if (!user) return;
-
-    try {
-      setIsLoading(true);
-      
-      // Load user's workspaces
-      const { data: memberData, error: memberError } = await supabase
-        .from('workspace_members')
-        .select(`
-          *,
-          workspace:workspaces(*)
-        `)
-        .eq('user_id', user.id)
-        .eq('status', 'active');
-
-      if (memberError) throw memberError;
-
-      const userWorkspaces = memberData.map(member => member.workspace).filter(Boolean);
-      setWorkspaces(userWorkspaces);
-
-      // Set current workspace
-      let currentWorkspaceId = profile?.current_workspace_id;
-      
-      if (!currentWorkspaceId && userWorkspaces.length > 0) {
-        currentWorkspaceId = userWorkspaces[0].id;
-      }
-
-      if (currentWorkspaceId) {
-        await switchWorkspace(currentWorkspaceId);
-      }
-
-    } catch (error: any) {
-      console.error('Error loading workspaces:', error);
-      setError(error.message);
-      toast({
-        title: "Erro",
-        description: "Erro ao carregar workspaces",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  }, [user, profile, toast]);
 
   const switchWorkspace = async (workspaceId: string) => {
     if (!user) return;
@@ -159,6 +113,68 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
   };
 
+  const loadWorkspaces = useCallback(async () => {
+    if (!user) {
+      console.log('LoadWorkspaces: Não há usuário logado');
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      console.log('LoadWorkspaces: Iniciando carregamento para usuário:', user.id);
+      setIsLoading(true);
+      setError(null);
+      
+      // Load user's workspaces
+      const { data: memberData, error: memberError } = await supabase
+        .from('workspace_members')
+        .select(`
+          *,
+          workspace:workspaces(*)
+        `)
+        .eq('user_id', user.id)
+        .eq('status', 'active');
+
+      if (memberError) {
+        console.error('Erro ao carregar workspace_members:', memberError);
+        throw memberError;
+      }
+
+      console.log('LoadWorkspaces: Dados de membros carregados:', memberData);
+
+      const userWorkspaces = memberData?.map(member => member.workspace).filter(Boolean) || [];
+      setWorkspaces(userWorkspaces);
+      console.log('LoadWorkspaces: Workspaces definidas:', userWorkspaces);
+
+      // Set current workspace
+      let currentWorkspaceId = profile?.current_workspace_id;
+      
+      if (!currentWorkspaceId && userWorkspaces.length > 0) {
+        currentWorkspaceId = userWorkspaces[0].id;
+        console.log('LoadWorkspaces: Usando primeira workspace como padrão:', currentWorkspaceId);
+      }
+
+      if (currentWorkspaceId) {
+        console.log('LoadWorkspaces: Trocando para workspace:', currentWorkspaceId);
+        await switchWorkspace(currentWorkspaceId);
+      } else {
+        console.log('LoadWorkspaces: Nenhuma workspace disponível');
+      }
+
+    } catch (error: any) {
+      console.error('Error loading workspaces:', error);
+      setError(error.message);
+      toast({
+        title: "Erro",
+        description: "Erro ao carregar workspaces",
+        variant: "destructive",
+      });
+    } finally {
+      console.log('LoadWorkspaces: Finalizando carregamento');
+      setIsLoading(false);
+    }
+  }, [user]); // Removido profile e toast da dependência para evitar loop
+
   const createWorkspace = async (data: CreateWorkspaceData): Promise<Workspace> => {
     if (!user) throw new Error('User not authenticated');
 
@@ -186,7 +202,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       if (memberError) throw memberError;
 
       // Refresh workspaces list
-      await refreshWorkspaces();
+      await loadWorkspaces();
 
       toast({
         title: "Sucesso",
@@ -242,15 +258,19 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   useEffect(() => {
-    if (user) {
+    console.log('WorkspaceProvider useEffect - user:', user?.id, 'profile loaded:', !!profile);
+    
+    if (user && profile !== undefined) {
+      // Só carregar workspaces quando tanto user quanto profile estiverem definidos
       loadWorkspaces();
-    } else {
+    } else if (!user) {
+      // Se não há user, limpar tudo
       setCurrentWorkspace(null);
       setWorkspaces([]);
       setCurrentMember(null);
       setIsLoading(false);
     }
-  }, [user, loadWorkspaces]);
+  }, [user, profile, loadWorkspaces]);
 
   const value = {
     currentWorkspace,
@@ -266,4 +286,3 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>;
 };
-
