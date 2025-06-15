@@ -129,7 +129,20 @@ export const useProfileManager = ({ setProfile, setLoading }: UseProfileManagerP
 
     if (error) throw error;
     
-    setProfile(prev => prev ? { ...prev, ...data } : null);
+    // Get current profile and merge with new data
+    const { data: updatedProfile } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .single();
+
+    if (updatedProfile) {
+      const convertedProfile: Profile = {
+        ...updatedProfile,
+        preferences: parsePreferences(updatedProfile.preferences)
+      };
+      setProfile(convertedProfile);
+    }
   }, [setProfile]);
 
   return {
