@@ -2,8 +2,10 @@
 import { useState, useEffect } from 'react';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { supabase } from '@/integrations/supabase/client';
-import { PetitionTemplate, TemplateField, CreateTemplateData, UpdateTemplateData, PetitionFilters } from '@/types/petition';
 import { useToast } from '@/hooks/use-toast';
+
+// Import types from the templates module to ensure consistency
+import { PetitionTemplate, CreateTemplateData, UpdateTemplateData, TemplateFilters } from '@/types/templates';
 
 export const usePetitionTemplates = () => {
   const { currentWorkspace } = useWorkspace();
@@ -12,7 +14,7 @@ export const usePetitionTemplates = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const loadTemplates = async (filters?: PetitionFilters) => {
+  const loadTemplates = async (filters?: TemplateFilters) => {
     if (!currentWorkspace) return;
 
     try {
@@ -60,31 +62,20 @@ export const usePetitionTemplates = () => {
       const { data: template, error: templateError } = await supabase
         .from('petition_templates')
         .insert({
-          ...templateData,
-          workspace_id: currentWorkspace.id,
+          name: templateData.name,
+          description: templateData.description,
           category: templateData.category || 'civil',
+          template_content: templateData.template_content,
+          is_shared: templateData.is_shared || false,
+          webhook_url: templateData.webhook_url,
+          webhook_enabled: templateData.webhook_enabled || false,
+          workspace_id: currentWorkspace.id,
         })
         .select()
         .single();
 
       if (templateError) {
         throw templateError;
-      }
-
-      // Criar campos do template se fornecidos
-      if (templateData.fields && templateData.fields.length > 0) {
-        const fieldsToInsert = templateData.fields.map(field => ({
-          ...field,
-          template_id: template.id,
-        }));
-
-        const { error: fieldsError } = await supabase
-          .from('template_fields')
-          .insert(fieldsToInsert);
-
-        if (fieldsError) {
-          console.error('Error creating template fields:', fieldsError);
-        }
       }
 
       setTemplates(prev => [template, ...prev]);
@@ -206,33 +197,6 @@ export const usePetitionTemplates = () => {
     }
   };
 
-  const getTemplateFields = async (templateId: string): Promise<TemplateField[]> => {
-    try {
-      const { data, error } = await supabase
-        .from('template_fields')
-        .select('*')
-        .eq('template_id', templateId)
-        .order('display_order', { ascending: true });
-
-      if (error) {
-        throw error;
-      }
-
-      // Transform the data to match our types
-      const transformedData: TemplateField[] = (data || []).map(item => ({
-        ...item,
-        field_type: item.field_type as TemplateField['field_type'],
-        field_options: typeof item.field_options === 'object' ? item.field_options as Record<string, any> : {},
-        validation_rules: typeof item.validation_rules === 'object' ? item.validation_rules as Record<string, any> : {},
-      }));
-
-      return transformedData;
-    } catch (err: any) {
-      console.error('Error getting template fields:', err);
-      return [];
-    }
-  };
-
   useEffect(() => {
     if (currentWorkspace) {
       loadTemplates();
@@ -248,6 +212,5 @@ export const usePetitionTemplates = () => {
     updateTemplate,
     deleteTemplate,
     getTemplate,
-    getTemplateFields,
   };
 };

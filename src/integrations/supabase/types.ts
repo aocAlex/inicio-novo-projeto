@@ -1428,10 +1428,12 @@ export type Database = {
       template_fields: {
         Row: {
           created_at: string | null
+          default_value: string | null
           display_order: number | null
+          field_description: string
           field_key: string
-          field_label: string
           field_options: Json | null
+          field_title: string
           field_type: string
           id: string
           is_required: boolean | null
@@ -1440,10 +1442,12 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          default_value?: string | null
           display_order?: number | null
+          field_description?: string
           field_key: string
-          field_label: string
           field_options?: Json | null
+          field_title: string
           field_type: string
           id?: string
           is_required?: boolean | null
@@ -1452,10 +1456,12 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          default_value?: string | null
           display_order?: number | null
+          field_description?: string
           field_key?: string
-          field_label?: string
           field_options?: Json | null
+          field_title?: string
           field_type?: string
           id?: string
           is_required?: boolean | null

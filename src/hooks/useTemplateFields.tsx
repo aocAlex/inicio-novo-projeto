@@ -69,10 +69,10 @@ export const useTemplateFields = (templateId?: string) => {
         id: field.id,
         template_id: field.template_id,
         field_key: field.field_key,
-        field_title: field.field_title || field.field_label, // Fallback para compatibilidade
+        field_title: field.field_title,
         field_type: field.field_type as TemplateField['field_type'],
         default_value: field.default_value,
-        field_description: field.field_description || '', // Valor padrão se não existir
+        field_description: field.field_description,
         is_required: field.is_required,
         validation_rules: typeof field.validation_rules === 'object' ? field.validation_rules as Record<string, any> : {},
         display_order: field.display_order,
