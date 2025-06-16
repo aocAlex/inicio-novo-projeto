@@ -29,8 +29,8 @@ export const DeadlinesFilters: React.FC<DeadlinesFiltersProps> = ({
   const hasActiveFilters = Object.values(filters).some(value => value);
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap gap-4">
+    <div className="space-y-6"> {/* Adjusted space-y */}
+      <div className="flex flex-wrap gap-4 sm:gap-6"> {/* Applied responsive gap classes */}
         <div className="flex-1 min-w-[200px]">
           <Input
             placeholder="Buscar por título ou descrição..."

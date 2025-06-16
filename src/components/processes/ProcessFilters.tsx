@@ -46,17 +46,17 @@ export const ProcessFilters = ({ onFilter, onClear }: ProcessFiltersProps) => {
   const hasFilters = search || (status && status !== 'all') || (priority && priority !== 'all') || court;
 
   return (
-    <Card>
+    <Card className="mb-6"> {/* Added mb-6 */}
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Filter className="h-4 w-4" />
           Filtros
         </CardTitle>
       </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <CardContent className="p-4 sm:p-6"> {/* Applied responsive padding */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-6"> {/* Applied new responsive grid classes */}
           {/* Busca */}
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-2"> {/* Keep lg:col-span-2 for larger screens */}
             <div className="relative">
               <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
               <Input

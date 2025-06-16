@@ -105,14 +105,14 @@ export const FinancialReports = () => {
   return (
     <div className="space-y-6">
       {/* Filtros e Controles */}
-      <Card>
+      <Card className="mb-6"> {/* Added mb-6 */}
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <BarChart3 className="h-5 w-5" />
             Relatórios Financeiros
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-4 sm:p-6"> {/* Applied responsive padding */}
           <div className="flex flex-col sm:flex-row gap-4 items-end">
             <div className="flex-1">
               <label className="text-sm font-medium mb-2 block">Tipo de Relatório</label>
@@ -128,7 +128,7 @@ export const FinancialReports = () => {
                 </SelectContent>
               </Select>
             </div>
-            
+
             <div className="flex-1">
               <label className="text-sm font-medium mb-2 block">Período</label>
               <DatePickerWithRange
@@ -136,9 +136,9 @@ export const FinancialReports = () => {
                 onDateChange={setDateRange}
               />
             </div>
-            
+
             <Button onClick={exportReport} className="flex items-center gap-2">
-              <Download className="h-4 w-4" />
+              <Download className="h-4 w-4 mr-2" />
               Exportar
             </Button>
           </div>
@@ -146,9 +146,9 @@ export const FinancialReports = () => {
       </Card>
 
       {/* Métricas Resumo */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-6"> {/* Applied new responsive grid classes */}
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-6"> {/* Keep p-6 for these smaller cards */}
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Total de Contratos</p>
@@ -160,7 +160,7 @@ export const FinancialReports = () => {
         </Card>
 
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-6"> {/* Keep p-6 for these smaller cards */}
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Receita Total</p>
@@ -174,7 +174,7 @@ export const FinancialReports = () => {
         </Card>
 
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-6"> {/* Keep p-6 for these smaller cards */}
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Contratos Assinados</p>
@@ -188,12 +188,12 @@ export const FinancialReports = () => {
         </Card>
 
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-6"> {/* Keep p-6 for these smaller cards */}
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Taxa de Conversão</p>
                 <p className="text-2xl font-bold">
-                  {contractsData.length > 0 
+                  {contractsData.length > 0
                     ? `${((contractsData.filter(c => c.status === 'signed').length / contractsData.length) * 100).toFixed(1)}%`
                     : '0%'
                   }
@@ -206,13 +206,13 @@ export const FinancialReports = () => {
       </div>
 
       {/* Gráficos */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6"> {/* Applied responsive gap classes */}
         {/* Evolução Mensal */}
         <Card>
           <CardHeader>
             <CardTitle>Evolução Mensal de Contratos</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-4 sm:p-6"> {/* Applied responsive padding */}
             <ChartContainer
               config={{
                 contratos: { label: "Contratos", color: "#0088FE" },
@@ -238,7 +238,7 @@ export const FinancialReports = () => {
           <CardHeader>
             <CardTitle>Status dos Contratos</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-4 sm:p-6"> {/* Applied responsive padding */}
             <ChartContainer
               config={{
                 count: { label: "Quantidade", color: "#0088FE" },
@@ -270,11 +270,11 @@ export const FinancialReports = () => {
       </div>
 
       {/* Top Clientes */}
-      <Card>
+      <Card className="mb-6"> {/* Added mb-6 */}
         <CardHeader>
           <CardTitle>Top 5 Clientes por Valor</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-4 sm:p-6"> {/* Applied responsive padding */}
           <div className="space-y-4">
             {topClients.map((client, index) => (
               <div key={client.client} className="flex items-center justify-between p-3 bg-muted rounded-lg">
@@ -300,11 +300,11 @@ export const FinancialReports = () => {
 
       {/* Lista Detalhada de Contratos */}
       {reportType === 'contracts' && (
-        <Card>
+        <Card className="mb-6"> {/* Added mb-6 */}
           <CardHeader>
             <CardTitle>Detalhes dos Contratos</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-4 sm:p-6"> {/* Applied responsive padding */}
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>

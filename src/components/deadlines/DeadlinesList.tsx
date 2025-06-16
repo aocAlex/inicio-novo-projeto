@@ -142,7 +142,7 @@ export const DeadlinesList = ({
   if (deadlines.length === 0) {
     return (
       <Card>
-        <CardContent className="p-12 text-center">
+        <CardContent className="p-4 sm:p-6 text-center"> {/* Applied responsive padding */}
           <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">
             Nenhum prazo encontrado
@@ -156,7 +156,7 @@ export const DeadlinesList = ({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6"> {/* Adjusted space-y */}
       {deadlines.map((deadline) => (
         <Card key={deadline.id} className={`${isOverdue(deadline.due_date, deadline.status) ? 'border-red-500 bg-red-50' : ''}`}>
           <CardHeader>
@@ -228,7 +228,7 @@ export const DeadlinesList = ({
                         Marcar como Cumprido
                       </DropdownMenuItem>
                     )}
-                    <DropdownMenuItem 
+                    <DropdownMenuItem
                       onClick={() => handleDelete(deadline.id)}
                       className="text-red-600"
                     >
@@ -241,7 +241,7 @@ export const DeadlinesList = ({
             </div>
           </CardHeader>
           {deadline.description && (
-            <CardContent>
+            <CardContent className="p-4 sm:p-6"> {/* Applied responsive padding */}
               <p className="text-gray-600">{deadline.description}</p>
             </CardContent>
           )}

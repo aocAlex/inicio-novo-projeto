@@ -73,8 +73,9 @@ export const ContractTemplatesList: React.FC<ContractTemplatesListProps> = ({
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
+    <div className="space-y-6"> {/* Adjusted space-y */}
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8"> {/* Applied new header classes */}
         <div>
           <h3 className="text-lg font-semibold">Templates de Contratos</h3>
           <p className="text-sm text-gray-600">
@@ -89,7 +90,7 @@ export const ContractTemplatesList: React.FC<ContractTemplatesListProps> = ({
 
       {templates.length === 0 ? (
         <Card>
-          <CardContent className="pt-6">
+          <CardContent className="p-4 sm:p-6"> {/* Applied responsive padding */}
             <div className="text-center text-gray-500">
               <FileText className="h-12 w-12 mx-auto mb-4 text-gray-300" />
               <h4 className="text-lg font-medium mb-2">Nenhum template encontrado</h4>
@@ -104,7 +105,7 @@ export const ContractTemplatesList: React.FC<ContractTemplatesListProps> = ({
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-6"> {/* Applied new responsive grid classes */}
           {templates.map((template) => (
             <Card key={template.id} className="hover:shadow-lg transition-shadow">
               <CardHeader>
@@ -125,7 +126,7 @@ export const ContractTemplatesList: React.FC<ContractTemplatesListProps> = ({
                   </Badge>
                 </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-4 sm:p-6"> {/* Applied responsive padding */}
                 <div className="space-y-3">
                   {template.contract_value && (
                     <div>
@@ -135,7 +136,7 @@ export const ContractTemplatesList: React.FC<ContractTemplatesListProps> = ({
                       </p>
                     </div>
                   )}
-                  
+
                   {template.notes && (
                     <div>
                       <p className="text-sm font-medium text-gray-600">Observações</p>
@@ -174,7 +175,7 @@ export const ContractTemplatesList: React.FC<ContractTemplatesListProps> = ({
                         <AlertDialogHeader>
                           <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
                           <AlertDialogDescription>
-                            Tem certeza que deseja excluir o template "{template.template_name}"? 
+                            Tem certeza que deseja excluir o template "{template.template_name}"?
                             Esta ação não pode ser desfeita.
                           </AlertDialogDescription>
                         </AlertDialogHeader>

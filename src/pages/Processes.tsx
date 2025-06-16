@@ -134,91 +134,93 @@ export const Processes = () => {
   }
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Processos</h1>
-          <p className="text-gray-600">Gerencie seus processos jurídicos</p>
-        </div>
-        <div className="flex gap-2">
-          <Button onClick={handleRefresh} variant="outline" disabled={isLoading}>
-            <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-            Atualizar
-          </Button>
-          {can.createProcess() && (
-            <Button onClick={handleCreateNew}>
-              <Plus className="mr-2 h-4 w-4" />
-              Novo Processo
+    <div className="min-h-screen bg-gray-50">
+      <div className="px-4 sm:px-6 lg:px-8 py-6 max-w-none">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Processos</h1>
+            <p className="text-gray-600">Gerencie seus processos jurídicos</p>
+          </div>
+          <div className="flex gap-2">
+            <Button onClick={handleRefresh} variant="outline" disabled={isLoading}>
+              <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+              Atualizar
             </Button>
-          )}
-        </div>
-      </div>
-
-      {/* Error Alert */}
-      {error && (
-        <Alert variant="destructive">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-
-      {/* Estatísticas */}
-      <ProcessStats stats={stats} isLoading={isLoading} />
-
-      {/* Filtros */}
-      <ProcessFilters onFilter={handleFilter} onClear={handleClearFilters} />
-
-      {/* Lista de Processos */}
-      <ProcessList
-        processes={processes}
-        isLoading={isLoading}
-        onFilter={handleFilter}
-        onEdit={handleEdit}
-        onDelete={handleDelete}
-        onCreateNew={handleCreateNew}
-      />
-
-      {/* Modal de Criar/Editar */}
-      <ProcessModal
-        open={isModalOpen}
-        onClose={() => {
-          setIsModalOpen(false);
-          setEditingProcess(null);
-        }}
-        process={editingProcess}
-      />
-
-      {/* Confirmação de exclusão */}
-      {isConfirmDeleteOpen && processToDelete && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg max-w-md w-full mx-4">
-            <h3 className="text-lg font-semibold mb-4">Confirmar Exclusão</h3>
-            <p className="text-gray-600 mb-6">
-              Tem certeza que deseja excluir o processo <strong>{processToDelete.title}</strong>?
-              Esta ação não pode ser desfeita.
-            </p>
-            <div className="flex justify-end gap-3">
-              <Button
-                onClick={() => {
-                  setIsConfirmDeleteOpen(false);
-                  setProcessToDelete(null);
-                }}
-                variant="outline"
-              >
-                Cancelar
+            {can.createProcess() && (
+              <Button onClick={handleCreateNew}>
+                <Plus className="mr-2 h-4 w-4" />
+                Novo Processo
               </Button>
-              <Button
-                onClick={confirmDelete}
-                variant="destructive"
-                disabled={isLoading}
-              >
-                {isLoading ? 'Excluindo...' : 'Excluir'}
-              </Button>
-            </div>
+            )}
           </div>
         </div>
-      )}
+
+        {/* Error Alert */}
+        {error && (
+          <Alert variant="destructive" className="mb-6"> {/* Added mb-6 for consistency */}
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+
+        {/* Estatísticas */}
+        <ProcessStats stats={stats} isLoading={isLoading} />
+
+        {/* Filtros */}
+        <ProcessFilters onFilter={handleFilter} onClear={handleClearFilters} />
+
+        {/* Lista de Processos */}
+        <ProcessList
+          processes={processes}
+          isLoading={isLoading}
+          onFilter={handleFilter}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+          onCreateNew={handleCreateNew}
+        />
+
+        {/* Modal de Criar/Editar */}
+        <ProcessModal
+          open={isModalOpen}
+          onClose={() => {
+            setIsModalOpen(false);
+            setEditingProcess(null);
+          }}
+          process={editingProcess}
+        />
+
+        {/* Confirmação de exclusão */}
+        {isConfirmDeleteOpen && processToDelete && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white p-6 rounded-lg max-w-md w-full mx-4">
+              <h3 className="text-lg font-semibold mb-4">Confirmar Exclusão</h3>
+              <p className="text-gray-600 mb-6">
+                Tem certeza que deseja excluir o processo <strong>{processToDelete.title}</strong>?
+                Esta ação não pode ser desfeita.
+              </p>
+              <div className="flex justify-end gap-3">
+                <Button
+                  onClick={() => {
+                    setIsConfirmDeleteOpen(false);
+                    setProcessToDelete(null);
+                  }}
+                  variant="outline"
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={confirmDelete}
+                  variant="destructive"
+                  disabled={isLoading}
+                >
+                  {isLoading ? 'Excluindo...' : 'Excluir'}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

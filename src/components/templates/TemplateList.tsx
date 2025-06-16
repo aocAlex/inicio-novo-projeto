@@ -66,7 +66,7 @@ export const TemplateList = ({
   if (templates.length === 0) {
     return (
       <Card>
-        <CardContent className="p-12 text-center">
+        <CardContent className="p-4 sm:p-6 text-center"> {/* Applied responsive padding */}
           <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">
             Nenhum template encontrado
@@ -80,7 +80,7 @@ export const TemplateList = ({
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-6"> {/* Applied new responsive grid classes */}
       {templates.map((template) => (
         <Card key={template.id} className="hover:shadow-lg transition-shadow">
           <CardHeader>
@@ -104,7 +104,7 @@ export const TemplateList = ({
               </Badge>
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-4 sm:p-6"> {/* Applied responsive padding */}
             <div className="flex gap-2">
               <Button
                 variant="default"

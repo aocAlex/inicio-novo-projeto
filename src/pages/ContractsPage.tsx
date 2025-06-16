@@ -48,46 +48,49 @@ export const ContractsPage = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Contratos</h1>
-          <p className="text-muted-foreground">
-            Gerencie contratos de assinatura eletrônica e templates
-          </p>
-        </div>
-        <Button onClick={handleCreateClick}>
-          <Plus className="h-4 w-4 mr-2" />
-          Novo Contrato
-        </Button>
-      </div>
-
-      <ContractStats />
-
-      <Tabs defaultValue="contracts" className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="contracts">Contratos</TabsTrigger>
-          <TabsTrigger value="templates">Templates</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="contracts" className="space-y-6">
-          <div className="grid gap-6">
-            <ContractFilters onFilterChange={handleFilterChange} />
-            <ContractsList onContractClick={handleContractClick} />
+    <div className="min-h-screen bg-gray-50">
+      <div className="px-4 sm:px-6 lg:px-8 py-6 max-w-none">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Contratos</h1> {/* Adjusted text size */}
+            <p className="text-gray-600"> {/* Adjusted text color */}
+              Gerencie contratos de assinatura eletrônica e templates
+            </p>
           </div>
-        </TabsContent>
+          <Button onClick={handleCreateClick}>
+            <Plus className="h-4 w-4 mr-2" />
+            Novo Contrato
+          </Button>
+        </div>
 
-        <TabsContent value="templates" className="space-y-6">
-          <ContractTemplatesList onUseTemplate={handleUseTemplate} />
-        </TabsContent>
-      </Tabs>
+        <ContractStats />
 
-      <ContractModal
-        open={showCreateModal}
-        onClose={handleCloseModal}
-        contract={selectedContract}
-        templateId={selectedTemplateId}
-      />
+        <Tabs defaultValue="contracts" className="space-y-6">
+          <TabsList>
+            <TabsTrigger value="contracts">Contratos</TabsTrigger>
+            <TabsTrigger value="templates">Templates</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="contracts" className="space-y-6">
+            <div className="grid gap-6"> {/* Keep grid gap for now, adjust within components if needed */}
+              <ContractFilters onFilterChange={handleFilterChange} />
+              <ContractsList onContractClick={handleContractClick} />
+            </div>
+          </TabsContent>
+
+          <TabsContent value="templates" className="space-y-6">
+            <ContractTemplatesList onUseTemplate={handleUseTemplate} />
+          </TabsContent>
+        </Tabs>
+
+        <ContractModal
+          open={showCreateModal}
+          onClose={handleCloseModal}
+          contract={selectedContract}
+          templateId={selectedTemplateId}
+        />
+      </div>
     </div>
   );
 };

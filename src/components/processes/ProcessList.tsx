@@ -148,9 +148,9 @@ export const ProcessList = ({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6"> {/* Adjusted space-y */}
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8"> {/* Applied new header classes */}
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Processos</h1>
           <p className="text-gray-600">Gerencie seus processos jurídicos</p>
@@ -162,14 +162,14 @@ export const ProcessList = ({
       </div>
 
       {/* Filtros */}
-      <Card>
+      <Card className="mb-6"> {/* Added mb-6 */}
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Filter className="h-4 w-4" />
             Filtros
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-4 sm:p-6"> {/* Applied responsive padding */}
           <div className="flex gap-4">
             <div className="flex-1">
               <div className="relative">
@@ -269,7 +269,7 @@ export const ProcessList = ({
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <Badge 
+                      <Badge
                         variant={getPriorityBadgeVariant(process.priority)}
                         className="flex items-center gap-1 w-fit"
                       >

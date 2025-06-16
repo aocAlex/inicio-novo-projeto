@@ -84,9 +84,9 @@ export const ContractsList: React.FC<ContractsListProps> = ({ onContractClick })
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6"> {/* Adjusted space-y */}
       {contracts.map((contract) => (
-        <Card key={contract.id} className="p-6 hover:shadow-md transition-shadow cursor-pointer"
+        <Card key={contract.id} className="p-4 sm:p-6 hover:shadow-md transition-shadow cursor-pointer" {/* Applied responsive padding */}
               onClick={() => onContractClick(contract)}>
           <div className="flex items-start justify-between">
             <div className="flex-1 space-y-2">
@@ -111,7 +111,7 @@ export const ContractsList: React.FC<ContractsListProps> = ({ onContractClick })
                     Cliente não vinculado
                   </span>
                 )}
-                
+
                 {contract.contract_value && (
                   <div className="flex items-center gap-1">
                     <DollarSign className="h-4 w-4" />

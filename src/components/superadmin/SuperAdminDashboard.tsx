@@ -76,20 +76,22 @@ export const SuperAdminDashboard: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">
-          Dashboard SuperAdmin
-        </h1>
-        <p className="mt-2 text-gray-600">
-          Bem-vindo de volta, {superAdminData?.email}
-        </p>
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900"> {/* Adjusted text size */}
+            Dashboard SuperAdmin
+          </h1>
+          <p className="text-gray-600"> {/* Adjusted text color and removed mt-2 */}
+            Bem-vindo de volta, {superAdminData?.email}
+          </p>
+        </div>
       </div>
 
       {/* Main Metrics */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-6 mb-6"> {/* Applied new responsive grid classes and mb-6 */}
         {metricCards.map((card) => (
           <Card key={card.title}>
-            <CardContent className="p-6">
+            <CardContent className="p-6"> {/* Keep p-6 for these smaller cards */}
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-600">
@@ -110,14 +112,14 @@ export const SuperAdminDashboard: React.FC = () => {
       </div>
 
       {/* Recent Workspaces */}
-      <Card>
+      <Card className="mb-6"> {/* Added mb-6 */}
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <TrendingUp className="h-5 w-5" />
             Workspaces Recentes
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-4 sm:p-6"> {/* Applied responsive padding */}
           <div className="space-y-3">
             {analytics.slice(0, 5).map((workspace) => (
               <div

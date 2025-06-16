@@ -143,103 +143,106 @@ export const DeadlinesPage = () => {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Gestão de Prazos</h1>
-          <p className="text-gray-600 mt-2">
-            Gerencie e acompanhe todos os prazos jurídicos
-          </p>
+    <div className="min-h-screen bg-gray-50">
+      <div className="px-4 sm:px-6 lg:px-8 py-6 max-w-none">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Gestão de Prazos</h1> {/* Adjusted text size */}
+            <p className="text-gray-600"> {/* Adjusted text color and removed mt-2 */}
+              Gerencie e acompanhe todos os prazos jurídicos
+            </p>
+          </div>
+          <Button onClick={() => setShowCreateModal(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Novo Prazo
+          </Button>
         </div>
-        <Button onClick={() => setShowCreateModal(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Novo Prazo
-        </Button>
+
+        {/* Cards de Resumo */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-6 mb-8"> {/* Applied new responsive grid classes and mb-8 */}
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total de Prazos</CardTitle>
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{totalDeadlines}</div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Próximos 7 Dias</CardTitle>
+              <Clock className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-orange-600">{upcomingDeadlines.length}</div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Em Atraso</CardTitle>
+              <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-red-600">{overdueDeadlines.length}</div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Cumpridos</CardTitle>
+              <CheckCircle className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-green-600">{completedDeadlines.length}</div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Filtros */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>Filtros</CardTitle>
+            <CardDescription>
+              Use os filtros para encontrar prazos específicos
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-4 sm:p-6"> {/* Applied responsive padding */}
+            <DeadlinesFilters
+              filters={filters}
+              onFiltersChange={handleFiltersChange}
+              onClearFilters={handleClearFilters}
+            />
+          </CardContent>
+        </Card>
+
+        {/* Lista de Prazos */}
+        <DeadlinesList
+          deadlines={deadlines}
+          isLoading={isLoading}
+          onEdit={setEditingDeadline}
+          onComplete={handleCompleteDeadline}
+          onDelete={deleteDeadline}
+        />
+
+        {/* Modal de Criar Prazo */}
+        <DeadlineModal
+          open={showCreateModal}
+          onClose={() => setShowCreateModal(false)}
+          onSave={handleCreateDeadline}
+        />
+
+        {/* Modal de Editar Prazo */}
+        <DeadlineModal
+          open={!!editingDeadline}
+          onClose={() => setEditingDeadline(undefined)}
+          onSave={handleEditDeadline}
+          deadline={editingDeadline}
+        />
       </div>
-
-      {/* Cards de Resumo */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total de Prazos</CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalDeadlines}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Próximos 7 Dias</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-orange-600">{upcomingDeadlines.length}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Em Atraso</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">{overdueDeadlines.length}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Cumpridos</CardTitle>
-            <CheckCircle className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">{completedDeadlines.length}</div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Filtros */}
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle>Filtros</CardTitle>
-          <CardDescription>
-            Use os filtros para encontrar prazos específicos
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <DeadlinesFilters
-            filters={filters}
-            onFiltersChange={handleFiltersChange}
-            onClearFilters={handleClearFilters}
-          />
-        </CardContent>
-      </Card>
-
-      {/* Lista de Prazos */}
-      <DeadlinesList
-        deadlines={deadlines}
-        isLoading={isLoading}
-        onEdit={setEditingDeadline}
-        onComplete={handleCompleteDeadline}
-        onDelete={deleteDeadline}
-      />
-
-      {/* Modal de Criar Prazo */}
-      <DeadlineModal
-        open={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
-        onSave={handleCreateDeadline}
-      />
-
-      {/* Modal de Editar Prazo */}
-      <DeadlineModal
-        open={!!editingDeadline}
-        onClose={() => setEditingDeadline(undefined)}
-        onSave={handleEditDeadline}
-        deadline={editingDeadline}
-      />
     </div>
   );
 };

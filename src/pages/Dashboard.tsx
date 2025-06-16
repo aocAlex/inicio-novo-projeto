@@ -71,52 +71,54 @@ export const Dashboard = () => {
   }
 
   return (
-    <div className="space-y-6 p-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            Dashboard
-          </h1>
-          <p className="text-gray-600">
-            Visão geral das atividades de {currentWorkspace?.name}
-          </p>
+    <div className="min-h-screen bg-gray-50">
+      <div className="px-4 sm:px-6 lg:px-8 py-6 max-w-none">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">
+              Dashboard
+            </h1>
+            <p className="text-gray-600">
+              Visão geral das atividades de {currentWorkspace?.name}
+            </p>
+          </div>
+          <Button onClick={refresh} variant="outline" disabled={isLoading}>
+            <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+            Atualizar
+          </Button>
         </div>
-        <Button onClick={refresh} variant="outline" disabled={isLoading}>
-          <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-          Atualizar
-        </Button>
-      </div>
 
-      {/* Métricas Principais */}
-      {metrics ? (
-        <DashboardCards metrics={metrics} isLoading={isLoading} />
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="bg-white p-6 rounded-lg shadow animate-pulse">
-              <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-              <div className="h-6 bg-gray-200 rounded w-1/2"></div>
-            </div>
-          ))}
+        {/* Métricas Principais */}
+        {metrics ? (
+          <DashboardCards metrics={metrics} isLoading={isLoading} />
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-6">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="bg-white p-6 rounded-lg shadow animate-pulse">
+                <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                <div className="h-6 bg-gray-200 rounded w-1/2"></div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Seção Inferior */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+          {/* Atividade Recente */}
+          <RecentActivity
+            activities={recentActivities}
+            isLoading={isLoading}
+          />
+
+          {/* Ações Rápidas */}
+          <QuickActions
+            onCreateClient={() => navigate('/clients')}
+            onCreateProcess={() => navigate('/processes')}
+            onCreateTemplate={() => navigate('/templates')}
+            onExecutePetition={() => navigate('/petitions')}
+          />
         </div>
-      )}
-
-      {/* Seção Inferior */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Atividade Recente */}
-        <RecentActivity 
-          activities={recentActivities} 
-          isLoading={isLoading} 
-        />
-        
-        {/* Ações Rápidas */}
-        <QuickActions
-          onCreateClient={() => navigate('/clients')}
-          onCreateProcess={() => navigate('/processes')}
-          onCreateTemplate={() => navigate('/templates')}
-          onExecutePetition={() => navigate('/petitions')}
-        />
       </div>
     </div>
   );

@@ -28,7 +28,7 @@ export const ContractFilters: React.FC<ContractFiltersProps> = ({ onFilterChange
   };
 
   return (
-    <Card className="p-6">
+    <Card className="mb-6 p-4 sm:p-6"> {/* Added mb-6 and responsive padding */}
       <div className="flex items-center gap-4 mb-4">
         <Filter className="h-5 w-5 text-muted-foreground" />
         <h3 className="font-medium">Filtros</h3>
@@ -37,7 +37,7 @@ export const ContractFilters: React.FC<ContractFiltersProps> = ({ onFilterChange
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-6"> {/* Applied new responsive grid classes */}
         <div className="space-y-2">
           <label className="text-sm font-medium">Buscar</label>
           <div className="relative">

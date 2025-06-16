@@ -294,12 +294,12 @@ export const TemplateEditorPage = () => {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white border-b shadow-sm">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
+        <div className="px-4 sm:px-6 lg:px-8 py-6 max-w-none"> {/* Applied new full-width container classes */}
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4"> {/* Applied new responsive header classes */}
             <div className="flex items-center gap-4">
-              <Button 
-                variant="ghost" 
-                size="sm" 
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={() => navigate('/templates')}
                 className="text-gray-600"
               >
@@ -315,16 +315,16 @@ export const TemplateEditorPage = () => {
                 </p>
               </div>
             </div>
-            
+
             <div className="flex gap-2">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={() => navigate('/templates')}
               >
                 Cancelar
               </Button>
-              <Button 
-                onClick={handleSubmit} 
+              <Button
+                onClick={handleSubmit}
                 disabled={isLoading}
               >
                 <Save className="h-4 w-4 mr-2" />
@@ -336,7 +336,7 @@ export const TemplateEditorPage = () => {
       </div>
 
       {/* Content */}
-      <div className="max-w-7xl mx-auto px-6 py-6">
+      <div className="px-4 sm:px-6 lg:px-8 py-6 max-w-none"> {/* Applied new full-width container classes */}
         <form onSubmit={handleSubmit} className="space-y-6">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="grid w-full grid-cols-2">
@@ -347,12 +347,12 @@ export const TemplateEditorPage = () => {
             {/* Editor Tab */}
             <TabsContent value="editor" className="space-y-6 mt-6">
               {/* Basic Info */}
-              <Card>
+              <Card className="mb-6"> {/* Added mb-6 */}
                 <CardHeader>
                   <CardTitle>Informações Básicas</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
+                <CardContent className="p-4 sm:p-6"> {/* Applied responsive padding */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6"> {/* Applied responsive gap classes */}
                     <div>
                       <Label htmlFor="name">Nome do Template</Label>
                       <Input
@@ -363,11 +363,11 @@ export const TemplateEditorPage = () => {
                         required
                       />
                     </div>
-                    
+
                     <div>
                       <Label htmlFor="category">Categoria</Label>
-                      <Select 
-                        value={formData.category} 
+                      <Select
+                        value={formData.category}
                         onValueChange={(value: any) => setFormData(prev => ({ ...prev, category: value }))}
                       >
                         <SelectTrigger>
@@ -397,11 +397,11 @@ export const TemplateEditorPage = () => {
               </Card>
 
               {/* Template Content */}
-              <Card>
+              <Card className="mb-6"> {/* Added mb-6 */}
                 <CardHeader>
                   <CardTitle>Conteúdo do Template</CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="p-4 sm:p-6"> {/* Applied responsive padding */}
                   <div className="space-y-2">
                     <Textarea
                       id="template-content"
@@ -419,7 +419,7 @@ export const TemplateEditorPage = () => {
               </Card>
 
               {/* Configurable Fields */}
-              <Card>
+              <Card className="mb-6"> {/* Added mb-6 */}
                 <CardHeader>
                   <div className="flex justify-between items-center">
                     <CardTitle>Campos Configuráveis</CardTitle>
@@ -429,14 +429,14 @@ export const TemplateEditorPage = () => {
                     </Button>
                   </div>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="p-4 sm:p-6"> {/* Applied responsive padding */}
                   <div className="space-y-4">
                     {(formData.fields || []).map((field, index) => (
-                      <Card key={index} className="p-4">
+                      <Card key={index} className="p-4 sm:p-6"> {/* Applied responsive padding */}
                         <div className="space-y-4">
                           <div className="flex justify-between items-start">
                             <div className="flex-1 space-y-3">
-                              <div className="grid grid-cols-2 gap-3">
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6"> {/* Applied responsive gap classes */}
                                 <div>
                                   <Label className="text-xs">Chave da Variável</Label>
                                   <Input
@@ -446,7 +446,7 @@ export const TemplateEditorPage = () => {
                                     className="text-sm h-8"
                                   />
                                 </div>
-                                
+
                                 <div>
                                   <Label className="text-xs">Label do Campo</Label>
                                   <Input
@@ -458,11 +458,11 @@ export const TemplateEditorPage = () => {
                                 </div>
                               </div>
 
-                              <div className="grid grid-cols-2 gap-3">
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6"> {/* Applied responsive gap classes */}
                                 <div>
                                   <Label className="text-xs">Tipo</Label>
-                                  <Select 
-                                    value={field.field_type} 
+                                  <Select
+                                    value={field.field_type}
                                     onValueChange={(value: any) => updateField(index, { field_type: value, field_options: {} })}
                                   >
                                     <SelectTrigger className="text-sm h-8">
@@ -477,7 +477,7 @@ export const TemplateEditorPage = () => {
                                     </SelectContent>
                                   </Select>
                                 </div>
-                                
+
                                 <div className="flex items-center justify-between pt-4">
                                   <div className="flex items-center space-x-2">
                                     <Switch
@@ -486,7 +486,7 @@ export const TemplateEditorPage = () => {
                                     />
                                     <Label className="text-xs">Obrigatório</Label>
                                   </div>
-                                  
+
                                   <div className="flex items-center gap-1">
                                     <Button
                                       type="button"
@@ -519,7 +519,7 @@ export const TemplateEditorPage = () => {
                         </div>
                       </Card>
                     ))}
-                    
+
                     {(!formData.fields || formData.fields.length === 0) && (
                       <div className="text-center py-8 text-gray-500">
                         Nenhum campo configurado. Clique em "Adicionar Campo" para começar.
@@ -532,43 +532,45 @@ export const TemplateEditorPage = () => {
 
             {/* Settings Tab */}
             <TabsContent value="settings" className="space-y-6 mt-6">
-              <Card>
+              <Card className="mb-6"> {/* Added mb-6 */}
                 <CardHeader>
                   <CardTitle>Configurações Avançadas</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center space-x-2">
-                    <Switch
-                      checked={formData.is_shared}
-                      onCheckedChange={(checked) => setFormData(prev => ({ ...prev, is_shared: checked }))}
-                    />
-                    <Label>Compartilhar template com outros membros</Label>
-                  </div>
-
-                  <div className="space-y-2">
+                <CardContent className="p-4 sm:p-6"> {/* Applied responsive padding */}
+                  <div className="space-y-4">
                     <div className="flex items-center space-x-2">
                       <Switch
-                        checked={formData.webhook_enabled}
-                        onCheckedChange={(checked) => setFormData(prev => ({ ...prev, webhook_enabled: checked }))}
+                        checked={formData.is_shared}
+                        onCheckedChange={(checked) => setFormData(prev => ({ ...prev, is_shared: checked }))}
                       />
-                      <Label>Webhook ativo</Label>
+                      <Label>Compartilhar template com outros membros</Label>
                     </div>
-                    
-                    {formData.webhook_enabled && (
-                      <div>
-                        <Label htmlFor="webhook_url">URL do Webhook</Label>
-                        <Input
-                          id="webhook_url"
-                          value={formData.webhook_url}
-                          onChange={(e) => setFormData(prev => ({ ...prev, webhook_url: e.target.value }))}
-                          placeholder="https://n8n.exemplo.com/webhook/petition"
-                          type="url"
+
+                    <div className="space-y-2">
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          checked={formData.webhook_enabled}
+                          onCheckedChange={(checked) => setFormData(prev => ({ ...prev, webhook_enabled: checked }))}
                         />
-                        <p className="text-xs text-gray-500 mt-1">
-                          URL que receberá os dados quando o template for executado
-                        </p>
+                        <Label>Webhook ativo</Label>
                       </div>
-                    )}
+
+                      {formData.webhook_enabled && (
+                        <div>
+                          <Label htmlFor="webhook_url">URL do Webhook</Label>
+                          <Input
+                            id="webhook_url"
+                            value={formData.webhook_url}
+                            onChange={(e) => setFormData(prev => ({ ...prev, webhook_url: e.target.value }))}
+                            placeholder="https://n8n.exemplo.com/webhook/petition"
+                            type="url"
+                          />
+                          <p className="text-xs text-gray-500 mt-1">
+                            URL que receberá os dados quando o template for executado
+                          </p>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </CardContent>
               </Card>

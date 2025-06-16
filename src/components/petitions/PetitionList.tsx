@@ -76,7 +76,7 @@ export const PetitionList = ({
   if (executions.length === 0) {
     return (
       <Card>
-        <CardContent className="p-12 text-center">
+        <CardContent className="p-4 sm:p-6 text-center"> {/* Applied responsive padding */}
           <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">
             Nenhuma execução encontrada
@@ -90,7 +90,7 @@ export const PetitionList = ({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6"> {/* Adjusted space-y */}
       {executions.map((execution) => (
         <Card key={execution.id}>
           <CardHeader>
@@ -128,7 +128,7 @@ export const PetitionList = ({
               </div>
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-4 sm:p-6"> {/* Applied responsive padding */}
             <div className="flex gap-2">
               {execution.webhook_status === 'failed' && (
                 <Button
@@ -140,7 +140,7 @@ export const PetitionList = ({
                   Reenviar
                 </Button>
               )}
-              
+
               {execution.final_document_url && (
                 <Button
                   variant="outline"
@@ -151,7 +151,7 @@ export const PetitionList = ({
                   Documento
                 </Button>
               )}
-              
+
               {execution.generated_content && (
                 <Button
                   variant="outline"
@@ -175,7 +175,7 @@ export const PetitionList = ({
                   Ver Conteúdo
                 </Button>
               )}
-              
+
               <Button
                 variant="ghost"
                 size="sm"
@@ -184,7 +184,7 @@ export const PetitionList = ({
                 <Trash2 className="h-4 w-4" />
               </Button>
             </div>
-            
+
             {/* Mostrar detalhes do webhook se houver erro */}
             {execution.webhook_status === 'failed' && execution.webhook_response?.error && (
               <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded">
