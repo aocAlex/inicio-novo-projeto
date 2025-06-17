@@ -91,9 +91,11 @@ export const Dashboard = () => {
 
         {/* Métricas Principais */}
         {metrics ? (
-          <DashboardCards metrics={metrics} isLoading={isLoading} />
+          <div className="mb-6"> {/* Added mb-6 */}
+            <DashboardCards metrics={metrics} isLoading={isLoading} />
+          </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-6 mb-6"> {/* Added mb-6 */}
             {Array.from({ length: 4 }).map((_, i) => (
               <div key={i} className="bg-white p-6 rounded-lg shadow animate-pulse">
                 <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>

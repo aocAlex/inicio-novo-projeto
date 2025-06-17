@@ -165,20 +165,26 @@ export const Processes = () => {
         )}
 
         {/* Estatísticas */}
-        <ProcessStats stats={stats} isLoading={isLoading} />
+        <div className="mt-6"> {/* Added mt-6 */}
+          <ProcessStats stats={stats} isLoading={isLoading} />
+        </div>
 
         {/* Filtros */}
-        <ProcessFilters onFilter={handleFilter} onClear={handleClearFilters} />
+        <div className="mt-6"> {/* Added mt-6 */}
+          <ProcessFilters onFilter={handleFilter} onClear={handleClearFilters} />
+        </div>
 
         {/* Lista de Processos */}
-        <ProcessList
-          processes={processes}
-          isLoading={isLoading}
-          onFilter={handleFilter}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
-          onCreateNew={handleCreateNew}
-        />
+        <div className="mt-6"> {/* Added mt-6 */}
+          <ProcessList
+            processes={processes}
+            isLoading={isLoading}
+            onFilter={handleFilter}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+            onCreateNew={handleCreateNew}
+          />
+        </div>
 
         {/* Modal de Criar/Editar */}
         <ProcessModal
