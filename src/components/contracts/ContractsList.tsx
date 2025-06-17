@@ -86,7 +86,7 @@ export const ContractsList: React.FC<ContractsListProps> = ({ onContractClick })
   return (
     <div className="space-y-6"> {/* Adjusted space-y */}
       {contracts.map((contract) => (
-        <Card key={contract.id} className="p-4 sm:p-6 hover:shadow-md transition-shadow cursor-pointer" {/* Applied responsive padding */}
+        <Card key={contract.id} className="p-4 sm:p-6 hover:shadow-md transition-shadow cursor-pointer"
               onClick={() => onContractClick(contract)}>
           <div className="flex items-start justify-between">
             <div className="flex-1 space-y-2">
