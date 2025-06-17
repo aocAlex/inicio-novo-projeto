@@ -86,10 +86,23 @@ export const useWorkspaceManager = () => {
         hint: error.hint,
         stack: error.stack
       });
+
+      let userFacingMessage = "Erro ao criar workspace";
+
+      // Check if it's the workspace limit error from the RPC
+      if (error.code === "P0001" && error.message && error.message.includes("Workspace limit reached")) {
+        // Extract the limit number from the message
+        const match = error.message.match(/You can only create (\d+) workspaces/);
+        const limit = match ? match[1] : 'X';
+        userFacingMessage = `Limite de workspaces atingido. Você pode ter no máximo ${limit} workspaces. Contate o administrador para aumentar seu limite.`;
+      } else if (error.message) {
+        // Use the original error message if available and not the specific limit error
+        userFacingMessage = error.message;
+      }
       
       toast({
         title: "Erro",
-        description: error.message || "Erro ao criar workspace",
+        description: userFacingMessage,
         variant: "destructive",
       });
       throw error;
