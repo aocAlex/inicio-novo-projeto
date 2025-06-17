@@ -52,16 +52,16 @@ export const useWorkspaceManager = () => {
         owner_id: userId,
       };
 
-      console.log('Final insert data:', insertData);
+      console.log('Calling create_user_workspace RPC with data:', data); // Updated log
 
-      const { data: workspaceData, error: workspaceError } = await supabase
-        .from('workspaces')
-        .insert(insertData)
-        .select()
-        .single();
+      const { data: workspaceData, error: workspaceError } = await supabase.rpc('create_user_workspace', {
+        workspace_name: data.name,
+        workspace_description: data.description,
+        workspace_logo_url: data.logo_url,
+      });
 
       if (workspaceError) {
-        console.error('❌ Workspace creation error:', {
+        console.error('❌ Workspace creation RPC error:', { // Updated log
           code: workspaceError.code,
           message: workspaceError.message,
           details: workspaceError.details,
@@ -123,6 +123,40 @@ export const useWorkspaceManager = () => {
       toast({
         title: "Erro",
         description: "Erro ao atualizar workspace",
+        variant: "destructive",
+      });
+      throw error;
+    }
+  }, [toast]);
+
+  const deleteWorkspace = useCallback(async (workspaceId: string) => {
+    try {
+      console.log('=== DEBUG: Deleting workspace ===');
+      console.log('Workspace ID to delete:', workspaceId);
+
+      const { error } = await supabase.rpc('delete_workspace', { workspace_id_to_delete: workspaceId });
+
+      if (error) {
+        console.error('❌ Workspace deletion error:', error);
+        throw error;
+      }
+
+      console.log('✅ Workspace deleted successfully');
+
+      toast({
+        title: "Sucesso",
+        description: "Workspace deletada com sucesso",
+      });
+
+      // TODO: After successful deletion, check if the user has any remaining workspaces.
+      // If no remaining workspaces, redirect to the public workspace or a default page (e.g., /auth).
+      // This logic needs to be implemented here or triggered from the component.
+
+    } catch (error: any) {
+      console.error('❌ Error deleting workspace:', error);
+      toast({
+        title: "Erro",
+        description: error.message || "Erro ao deletar workspace",
         variant: "destructive",
       });
       throw error;

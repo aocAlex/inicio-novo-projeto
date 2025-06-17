@@ -10,6 +10,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Save, Trash2, AlertTriangle, Eye } from 'lucide-react';
+import { useWorkspaceManager } from '@/hooks/useWorkspaceManager'; // Added import
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,6 +28,7 @@ export const WorkspaceSettings = () => {
   const { currentWorkspace, updateWorkspace, isOwner } = useWorkspace();
   const { can } = useSimplifiedPermissions();
   const { toast } = useToast();
+  const { deleteWorkspace } = useWorkspaceManager(); // Added hook call
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: currentWorkspace?.name || '',
@@ -207,14 +210,15 @@ export const WorkspaceSettings = () => {
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                  <AlertDialogAction 
+                  <AlertDialogAction
                     className="bg-red-600 hover:bg-red-700"
-                    onClick={() => {
-                      toast({
-                        title: "Funcionalidade em desenvolvimento",
-                        description: "A deleção de workspace será implementada em breve",
-                        variant: "destructive",
-                      });
+                    onClick={async () => {
+                      if (currentWorkspace) {
+                        await deleteWorkspace(currentWorkspace.id);
+                        // TODO: Handle post-deletion redirect here
+                        // This will depend on the application's flow after deletion.
+                        // A redirect might be needed here, e.g., navigate('/select-workspace');
+                      }
                     }}
                   >
                     Sim, deletar permanentemente
