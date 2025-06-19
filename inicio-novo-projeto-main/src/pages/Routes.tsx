@@ -36,8 +36,7 @@ export const Routes = () => {
       <Route path="/deadlines" element={<ProtectedRoute><DeadlinesPage /></ProtectedRoute>} />
       <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
       {/* Route for the new Super Admin Overview Page */}
-      <Route path="/superadmin" element={<ProtectedRoute><SuperAdminOverviewPage /></ProtectedRoute>} />
-      
+      <Route path="/superadmin" element={<ProtectedRoute><SuperAdminOverviewPage /></ProtectedRoute>} /> 
       {/* 404 route */}
       <Route path="*" element={<NotFound />} />
     </RouterRoutes>
